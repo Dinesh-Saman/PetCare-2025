@@ -1,6 +1,8 @@
 const Clinic = require('../models/Clinic');
+const Veterinarian = require('../models/Veterinarian');
 
 // Create a new clinic (typically done by a Primary Vet)
+// Create a new clinic (authenticated vet automatically becomes Primary Vet)
 exports.createClinic = async (req, res) => {
   try {
     const {
@@ -8,44 +10,86 @@ exports.createClinic = async (req, res) => {
       address,
       phoneNumber,
       operatingHours,
-      location, // { type: 'Point', coordinates: [lng, lat] }
-      description,
-      primaryVetId // Should come from authenticated user or body
+      location,
+      description
     } = req.body;
 
     // Basic validation
-    if (!name || !address || !phoneNumber || !primaryVetId) {
+    if (!name || !address || !phoneNumber) {
       return res.status(400).json({
-        message: 'Name, address, phone number, and primary vet are required'
+        message: 'Name, address, and phone number are required'
       });
     }
 
-    // Ensure location is in correct GeoJSON format
-    if (location && (!location.type || !location.coordinates || location.type !== 'Point')) {
+    // Validate location format if provided
+    if (location && (!location.type || !Array.isArray(location.coordinates) || location.type !== 'Point')) {
       return res.status(400).json({
         message: 'Location must be a valid GeoJSON Point: { type: "Point", coordinates: [lng, lat] }'
       });
     }
 
+    // The logged-in vet becomes the Primary Vet
+    const primaryVetId = req.user.id;
+
     const clinic = new Clinic({
-      name,
-      address,
-      phoneNumber,
-      operatingHours,
+      name: name.trim(),
+      address: address.trim(),
+      phoneNumber: phoneNumber.trim(),
+      operatingHours: operatingHours?.trim() || '',
+      description: description?.trim() || '',
       location: location || { type: 'Point', coordinates: [0, 0] },
-      description,
       primaryVetId
     });
 
     await clinic.save();
+
+    // Optional: Update the vet's clinicId
+    await Veterinarian.findByIdAndUpdate(primaryVetId, { clinicId: clinic._id });
 
     res.status(201).json({
       message: 'Clinic created successfully',
       clinic
     });
   } catch (error) {
+    console.error('Error creating clinic:', error);
     res.status(400).json({
       message: 'Error creating clinic',
+      error: error.message
+    });
+  }
+};
+
+exports.getMyClinic = async (req, res) => {
+  try {
+    console.log('=== getMyClinic called ===');
+    console.log('req.user:', req.user);
+
+    if (!req.user || !req.user.id) {
+      return res.status(200).json({ clinics: [] });
+    }
+
+    const vetId = req.user.id;
+
+    // Now Veterinarian is defined!
+    const vet = await Veterinarian.findById(vetId).select('clinicId accessLevel');
+    if (!vet || !vet.clinicId) {
+      return res.status(200).json({ clinics: [] });
+    }
+
+    const clinic = await Clinic.findById(vet.clinicId)
+      .populate('primaryVetId', 'firstName lastName');
+
+    if (!clinic) {
+      return res.status(200).json({ clinics: [] });
+    }
+
+    res.status(200).json({
+      clinics: [clinic]
+    });
+  } catch (error) {
+    console.error('Error in getMyClinic:', error);
+    res.status(500).json({
+      message: 'Error fetching your clinic',
       error: error.message
     });
   }
@@ -236,3 +280,4 @@ exports.getAllClinics = async (req, res) => {
     });
   }
 };
+

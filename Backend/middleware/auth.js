@@ -2,6 +2,7 @@
 const jwt = require('jsonwebtoken');
 const PetOwner = require('../models/PetOwner');
 const Veterinarian = require('../models/Veterinarian');
+const PetProfile = require('../models/PetProfile');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
@@ -51,6 +52,7 @@ exports.protect = async (req, res, next) => {
 // Authorize specific roles
 exports.authorize = (...roles) => {
   return (req, res, next) => {
+
     if (!req.user) {
       return res.status(401).json({ message: 'Not authenticated' });
     }
@@ -80,4 +82,39 @@ exports.authorizeVetAccess = (...levels) => {
 
     next();
   };
+};
+
+// Middleware: Ensure vet belongs to the clinic requested for the pet
+const authorizeVetForClinicFromPet = async (req, res, next) => {
+  try {
+    const { id } = req.params; // petId
+
+    const pet = await PetProfile.findById(id);
+
+    if (!pet) {
+      return res.status(404).json({ message: 'Pet not found' });
+    }
+
+    if (!pet.registeredClinicId) {
+      return res.status(400).json({ message: 'This pet has no clinic registration request' });
+    }
+
+    if (req.user.role !== 'vet' || req.user.clinicId?.toString() !== pet.registeredClinicId.toString()) {
+      return res.status(403).json({
+        message: 'Not authorized: This pet registration request is not for your clinic'
+      });
+    }
+
+    req.pet = pet;
+    next();
+  } catch (error) {
+    res.status(500).json({ message: 'Error in vet clinic authorization', error: error.message });
+  }
+};
+
+module.exports = {
+  protect: exports.protect,           // or just protect,
+  authorize: exports.authorize,
+  authorizeVetAccess: exports.authorizeVetAccess,
+  authorizeVetForClinicFromPet
 };

@@ -19,17 +19,4 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Optional: response interceptor for global error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid → redirect to login
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
 export default api;

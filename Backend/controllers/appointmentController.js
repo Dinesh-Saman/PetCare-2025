@@ -7,52 +7,64 @@ exports.bookAppointment = async (req, res) => {
   try {
     const { petId, clinicId, vetId, dateTime, reason, notes } = req.body;
 
-    // Basic validation
     if (!petId || !clinicId || !vetId || !dateTime) {
       return res.status(400).json({
         message: 'petId, clinicId, vetId, and dateTime are required'
       });
     }
 
-    // Optional: Check if pet is registered with the clinic
-    const pet = await PetProfile.findById(petId);
+    // Fetch pet with owner info
+    const pet = await PetProfile.findById(petId)
+      .populate('ownerId', 'firstName lastName email phoneNumber');
+
     if (!pet) {
       return res.status(404).json({ message: 'Pet not found' });
     }
+
+    // Security: Owner can only book for their own pet
+    if (req.user.role === 'owner' && pet.ownerId._id.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: 'You can only book appointments for your own pets'
+      });
+    }
+
+    // Optional clinic registration check
     if (pet.registeredClinicId && pet.registeredClinicId.toString() !== clinicId) {
       return res.status(403).json({
         message: 'This pet is not registered with the selected clinic'
       });
     }
 
-    // Check for conflicting appointments (same vet, same time)
+    // Check for conflicting appointments
     const conflicting = await Appointment.findOne({
       vetId,
-      dateTime,
-      status: { $nin: ['Canceled'] }
+      dateTime: new Date(dateTime),
+      status: { $nin: ['Canceled', 'Completed'] }
     });
 
     if (conflicting) {
       return res.status(409).json({
-        message: 'Vet is not available at this time'
+        message: 'Vet is not available at this time slot'
       });
     }
 
     const appointment = new Appointment({
       petId,
+      ownerId: pet.ownerId._id, // ← Set from pet
       clinicId,
       vetId,
       dateTime: new Date(dateTime),
-      reason,
-      notes,
-      status: 'Booked' // Default status
+      reason: reason?.trim(),
+      notes: notes?.trim(),
+      status: 'Booked'
     });
 
     await appointment.save();
 
-    // Populate useful fields before sending response
+    // Populate full details
     await appointment.populate([
-      { path: 'petId', select: 'name species breed' },
+      { path: 'petId', select: 'name species breed photo' },
+      { path: 'ownerId', select: 'firstName lastName email phoneNumber' },
       { path: 'vetId', select: 'firstName lastName specialization' },
       { path: 'clinicId', select: 'name address phoneNumber' }
     ]);
@@ -62,6 +74,7 @@ exports.bookAppointment = async (req, res) => {
       appointment
     });
   } catch (error) {
+    console.error('Error booking appointment:', error);
     res.status(400).json({
       message: 'Error booking appointment',
       error: error.message
@@ -69,26 +82,31 @@ exports.bookAppointment = async (req, res) => {
   }
 };
 
-// Get all appointments for a specific pet (Owner or Vet view)
+// Get appointments by pet (for owner or vet)
 exports.getAppointmentsByPet = async (req, res) => {
   try {
     const { petId } = req.params;
-    const { status, upcoming } = req.query; // Optional filters
+    const { status, upcoming } = req.query;
+
+    const pet = await PetProfile.findById(petId);
+    if (!pet) {
+      return res.status(404).json({ message: 'Pet not found' });
+    }
+
+    // Security check for owners
+    if (req.user.role === 'owner' && pet.ownerId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
 
     let query = { petId };
-
-    if (status) {
-      query.status = status;
-    }
-
-    if (upcoming === 'true') {
-      query.dateTime = { $gte: new Date() };
-    }
+    if (status) query.status = status;
+    if (upcoming === 'true') query.dateTime = { $gte: new Date() };
 
     const appointments = await Appointment.find(query)
       .populate('vetId', 'firstName lastName specialization')
       .populate('clinicId', 'name address phoneNumber')
-      .sort({ dateTime: -1 }); // Most recent first
+      .populate('ownerId', 'firstName lastName')
+      .sort({ dateTime: -1 });
 
     res.status(200).json({
       count: appointments.length,
@@ -96,17 +114,22 @@ exports.getAppointmentsByPet = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      message: 'Error fetching appointments by pet',
+      message: 'Error fetching appointments',
       error: error.message
     });
   }
 };
 
-// Get all appointments for a vet on a specific day or range
+// Get appointments by vet
 exports.getAppointmentsByVet = async (req, res) => {
   try {
     const { vetId } = req.params;
     const { date, clinicId } = req.query;
+
+    // Security: Vet can only view their own appointments
+    if (req.user.role === 'vet' && req.user.id !== vetId) {
+      return res.status(403).json({ message: 'You can only view your own appointments' });
+    }
 
     let query = { vetId };
 
@@ -117,12 +140,15 @@ exports.getAppointmentsByVet = async (req, res) => {
       start.setHours(0, 0, 0, 0);
       const end = new Date(date);
       end.setHours(23, 59, 59, 999);
-
       query.dateTime = { $gte: start, $lte: end };
     }
 
     const appointments = await Appointment.find(query)
-      .populate('petId', 'name species breed ownerId')
+      .populate({
+        path: 'petId',
+        select: 'name species breed photo',
+        populate: { path: 'ownerId', select: 'firstName lastName phoneNumber' }
+      })
       .populate('clinicId', 'name')
       .sort({ dateTime: 1 });
 
@@ -131,102 +157,44 @@ exports.getAppointmentsByVet = async (req, res) => {
       appointments
     });
   } catch (error) {
-    res.status(500).json({
-      message: 'Error fetching vet appointments',
-      error: error.message
-    });
+    res.status(500).json({ message: 'Error fetching appointments', error: error.message });
   }
 };
 
-// Get upcoming appointments for a clinic
-exports.getUpcomingAppointmentsByClinic = async (req, res) => {
-  try {
-    const { clinicId } = req.params;
-    const limit = parseInt(req.query.limit) || 10;
-
-    const appointments = await Appointment.find({
-      clinicId,
-      dateTime: { $gte: new Date() },
-      status: { $in: ['Booked', 'Confirmed'] }
-    })
-      .populate('petId', 'name')
-      .populate('vetId', 'firstName lastName')
-      .sort({ dateTime: 1 })
-      .limit(limit);
-
-    res.status(200).json(appointments);
-  } catch (error) {
-    res.status(500).json({
-      message: 'Error fetching upcoming clinic appointments',
-      error: error.message
-    });
-  }
-};
-
-// Update appointment (reschedule, confirm, cancel, etc.)
-exports.updateAppointment = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-
-    // If rescheduling, check for conflicts
-    if (updates.dateTime) {
-      const conflicting = await Appointment.findOne({
-        _id: { $ne: id },
-        vetId: updates.vetId || (await Appointment.findById(id)).vetId,
-        dateTime: new Date(updates.dateTime),
-        status: { $nin: ['Canceled'] }
-      });
-
-      if (conflicting) {
-        return res.status(409).json({
-          message: 'Vet is not available at the new time'
-        });
-      }
-    }
-
-    const appointment = await Appointment.findByIdAndUpdate(
-      id,
-      updates,
-      { new: true, runValidators: true }
-    )
-      .populate('petId vetId clinicId');
-
-    if (!appointment) {
-      return res.status(404).json({ message: 'Appointment not found' });
-    }
-
-    res.status(200).json({
-      message: 'Appointment updated successfully',
-      appointment
-    });
-  } catch (error) {
-    res.status(400).json({
-      message: 'Error updating appointment',
-      error: error.message
-    });
-  }
-};
-
-// Cancel appointment (allowed by owner or vet)
+// Cancel appointment (owner or vet)
 exports.cancelAppointment = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
 
-    const appointment = await Appointment.findByIdAndUpdate(
-      id,
-      { status: 'Canceled', notes: reason ? `Cancellation reason: ${reason}` : undefined },
-      { new: true }
-    );
+    const appointment = await Appointment.findById(id)
+      .populate('petId', 'ownerId');
 
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
+    // Security: Owner or vet from the same clinic can cancel
+    const isOwner = req.user.role === 'owner' && appointment.petId.ownerId.toString() === req.user.id;
+    const isVet = req.user.role === 'vet' && appointment.vetId.toString() === req.user.id;
+
+    if (!isOwner && !isVet) {
+      return res.status(403).json({ message: 'You can only cancel your own appointments' });
+    }
+
+    const updated = await Appointment.findByIdAndUpdate(
+      id,
+      { 
+        status: 'Canceled', 
+        notes: reason ? `Cancellation reason: ${reason}` : appointment.notes 
+      },
+      { new: true }
+    )
+      .populate('petId vetId clinicId ownerId');
+
     res.status(200).json({
       message: 'Appointment canceled successfully',
-      appointment
+      appointment: updated
     });
   } catch (error) {
     res.status(400).json({
@@ -236,24 +204,31 @@ exports.cancelAppointment = async (req, res) => {
   }
 };
 
-// Confirm appointment (Vet action)
+// Confirm appointment (Vet only)
 exports.confirmAppointment = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const appointment = await Appointment.findByIdAndUpdate(
-      id,
-      { status: 'Confirmed' },
-      { new: true }
-    );
-
+    const appointment = await Appointment.findById(id);
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
+    // Only the assigned vet can confirm
+    if (req.user.role === 'vet' && appointment.vetId.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'You can only confirm your own appointments' });
+    }
+
+    const updated = await Appointment.findByIdAndUpdate(
+      id,
+      { status: 'Confirmed' },
+      { new: true }
+    )
+      .populate('petId vetId clinicId ownerId');
+
     res.status(200).json({
       message: 'Appointment confirmed',
-      appointment
+      appointment: updated
     });
   } catch (error) {
     res.status(400).json({
@@ -263,18 +238,27 @@ exports.confirmAppointment = async (req, res) => {
   }
 };
 
-// Get single appointment by ID
+// Get single appointment by ID (with full details)
 exports.getAppointmentById = async (req, res) => {
   try {
     const { id } = req.params;
 
     const appointment = await Appointment.findById(id)
-      .populate('petId', 'name species breed ownerId')
-      .populate('vetId', 'firstName lastName')
+      .populate('petId', 'name species breed photo')
+      .populate('ownerId', 'firstName lastName email phoneNumber')
+      .populate('vetId', 'firstName lastName specialization')
       .populate('clinicId', 'name address phoneNumber');
 
     if (!appointment) {
       return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    // Security check
+    const isOwner = req.user.role === 'owner' && appointment.ownerId._id.toString() === req.user.id;
+    const isVet = req.user.role === 'vet' && appointment.vetId.toString() === req.user.id;
+
+    if (!isOwner && !isVet) {
+      return res.status(403).json({ message: 'Access denied' });
     }
 
     res.status(200).json(appointment);

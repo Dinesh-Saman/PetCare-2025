@@ -11,34 +11,43 @@ const {
   getAppointmentById
 } = require('../controllers/appointmentController');
 
-// Import authentication middleware
-const { protect, authorize, authorizeVetAccess } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
-// Owner can book appointments
-router.post('/book', protect, authorize('owner'), bookAppointment);
+// Custom middleware: Allow owner or vet to cancel
+const allowCancel = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
 
-// Owner can view their pet's appointments
-router.get('/pet/:petId', protect, authorize('owner'), getAppointmentsByPet);
-
-// Anyone authenticated (owner or vet) can view a single appointment (useful for details)
-router.get('/:id', protect, getAppointmentById);
-
-// Vet routes - require vet role
-router.get('/vet/:vetId', protect, authorize('vet'), getAppointmentsByVet);
-router.get('/clinic/:clinicId/upcoming', protect, authorize('vet'), getUpcomingAppointmentsByClinic);
-
-// Vet actions: confirm, update (reschedule), cancel
-router.put('/:id', protect, authorize('vet'), updateAppointment);
-router.patch('/:id/confirm', protect, authorize('vet'), confirmAppointment);
-
-// Allow both owner and vet to cancel (owner cancels their booking, vet can cancel on behalf)
-router.patch('/:id/cancel', protect, (req, res, next) => {
-  // Custom logic: allow owner if they own the pet, or vet if in same clinic
-  // We'll keep it simple for now: both can cancel, but you can enhance later
   if (req.user.role === 'owner' || req.user.role === 'vet') {
     return next();
   }
+
   return res.status(403).json({ message: 'Not authorized to cancel this appointment' });
-}, cancelAppointment);
+};
+
+// === Routes ===
+
+// Book appointment (owner only)
+router.post('/book', protect, authorize('owner'), bookAppointment);
+
+// Get appointments by pet (owner only)
+router.get('/pet/:petId', protect, authorize('owner'), getAppointmentsByPet);
+
+// Get single appointment (authenticated user)
+router.get('/:id', protect, getAppointmentById);
+
+// Vet routes
+router.get('/vet/:vetId', protect, authorize('vet'), getAppointmentsByVet);
+//router.get('/clinic/:clinicId/upcoming', protect, authorize('vet'), getUpcomingAppointmentsByClinic);
+
+// Update appointment (vet only)
+//router.put('/:id', protect, authorize('vet'), updateAppointment);
+
+// Confirm appointment (vet only)
+//router.patch('/:id/confirm', protect, authorize('vet'), confirmAppointment);
+
+// Cancel appointment (owner or vet)
+//router.patch('/:id/cancel', protect, allowCancel, cancelAppointment);
 
 module.exports = router;

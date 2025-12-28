@@ -223,10 +223,9 @@ const RegisteredPets = () => {
   const getUniqueSpecies = () => [...new Set(pets.map(p => p.species).filter(Boolean))];
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa', marginTop: '70px' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa'}}>
       <Sidebar />
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <Header />
         <ContentContainer>
           <SearchSection>
             <Typography variant="h4" sx={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: '#49149eff' }}>

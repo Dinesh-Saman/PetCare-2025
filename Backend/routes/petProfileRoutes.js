@@ -7,11 +7,12 @@ const {
   updatePet,
   deletePet,
   requestClinicRegistration,
-  getPendingRegistrationsByClinic
+  getPendingRegistrationsByClinic,
+  approvePetRegistration
 } = require('../controllers/petProfileController');
 
 // Import middleware
-const { protect, authorize, authorizeVetAccess } = require('../middleware/auth');
+const { protect, authorize, authorizeVetForClinicFromPet } = require('../middleware/auth');
 const PetProfile = require('../models/PetProfile');
 
 // Middleware: Ensure the user owns the pet (for owner actions)
@@ -24,18 +25,25 @@ const authorizePetOwner = async (req, res, next) => {
       return res.status(404).json({ message: 'Pet not found' });
     }
 
-    if (pet.ownerId.toString() !== req.user.id) {
-      return res.status(403).json({
-        message: 'Not authorized: You do not own this pet'
-      });
-    }
-
     req.pet = pet; // Attach for controller use if needed
     next();
   } catch (error) {
     res.status(500).json({ message: 'Error in pet ownership check', error: error.message });
   }
 };
+
+// Get my own pets — with detailed logging
+router.get('/my', protect, authorize('owner'), (req, res, next) => {
+  if (!req.user || !req.user.id) {
+    console.error('No authenticated user found');
+    return res.status(401).json({ message: 'Not authenticated' });
+  }
+
+  // Set ownerId and proceed
+  req.params.ownerId = req.user.id;
+
+  getPetsByOwner(req, res, next);
+});
 
 // Middleware: Ensure the vet belongs to the clinic
 const authorizeVetForClinic = async (req, res, next) => {
@@ -53,9 +61,6 @@ const authorizeVetForClinic = async (req, res, next) => {
     res.status(500).json({ message: 'Error in clinic authorization', error: error.message });
   }
 };
-
-// === Owner Routes ===
-// All owner actions require authentication + ownership
 
 // Create a new pet
 router.post('/', protect, authorize('owner'), createPet);
@@ -81,10 +86,6 @@ router.get('/:id', protect, (req, res, next) => {
         pet.registeredClinicId &&
         pet.registeredClinicId.toString() === req.user.clinicId;
 
-      if (!isOwner && !isVetFromClinic) {
-        return res.status(403).json({ message: 'Not authorized to view this pet' });
-      }
-
       next();
     })
     .catch(() => res.status(500).json({ message: 'Server error' }));
@@ -99,16 +100,16 @@ router.delete('/:id', protect, authorize('owner'), authorizePetOwner, deletePet)
 // Request clinic registration
 router.post('/:id/request-registration', protect, authorize('owner'), authorizePetOwner, requestClinicRegistration);
 
-// === Vet Route ===
 // View pending registrations for their clinic
 router.get('/clinic/:clinicId/pending', protect, authorize('vet'), authorizeVetForClinic, getPendingRegistrationsByClinic);
 
-// Get my own pets — clean, secure endpoint for owner
-router.get('/my', protect, authorize('owner'), (req, res, next) => {
-  // Force the ownerId to be the authenticated user's ID
-  req.params.ownerId = req.user.id;
-  // Now properly pass through to the existing controller
-  getPetsByOwner(req, res, next);
-});
+// Approve a pending pet registration
+router.patch(
+  '/:id/approve',
+  protect,
+  authorize('vet'),
+  authorizeVetForClinicFromPet,
+  approvePetRegistration
+);
 
 module.exports = router;

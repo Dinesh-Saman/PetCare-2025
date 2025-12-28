@@ -160,10 +160,9 @@ const ClinicStaff = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa', marginTop: '70px' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa'}}>
       <Sidebar />
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <Header />
         <ContentContainer>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
             <PageTitle variant="h4">
@@ -171,7 +170,7 @@ const ClinicStaff = () => {
             </PageTitle>
             <AddButton
               startIcon={<PersonAddIcon />}
-              onClick={() => setOpenAddDialog(true)}
+              onClick={() => navigate('/vet/add-new-staff')}  // Navigate to new page
             >
               Add New Staff
             </AddButton>

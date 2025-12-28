@@ -26,6 +26,8 @@ import PetProfile from './pages/owner/PetProfile';
 import EditPet from './pages/owner/EditPet';
 import OwnerAppointments from './pages/owner/Appointments';
 import OwnerChat from './pages/owner/OwnerChat';
+import AddClinic from './pages/vet/AddClinic';
+import AddNewStaff from './pages/vet/AddNewStaff';
 
 function App() {
   // Mock auth - replace with real AuthContext later
@@ -48,6 +50,8 @@ function App() {
         <Route path="vet/clinic-settings" element={<ClinicSettings />} /> 
         <Route path="vet/login" element={<VetLogin />} />
         <Route path="vet/register" element={<VetRegister />} />
+        <Route path="vet/clinic/create" element={<AddClinic />} />
+        <Route path="vet/add-new-staff" element={<AddNewStaff />} />
         <Route path="login" element={<OwnerLogin />} />
         <Route path="register" element={<OwnerRegister />} />
         <Route path="/owner/dashboard" element={<OwnerDashboard />} />

@@ -5,7 +5,8 @@ import Swal from 'sweetalert2';
 import {
   Box, Typography, Grid, Card, CardContent, CardHeader, Button, Chip,
   IconButton, Collapse, TextField, MenuItem, FormControl, InputLabel,
-  Select, Dialog, DialogTitle, DialogContent, DialogActions, Divider
+  Select, Dialog, DialogTitle, DialogContent, DialogActions, Divider,
+  Paper // ← Added missing import
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -103,14 +104,16 @@ const OwnerAppointments = () => {
       try {
         // Fetch owner's pets
         const petsRes = await api.get('/pets/my');
-        setPets(petsRes.data.pets || petsRes.data || []);
+        setPets(petsRes.data.pets || []);
 
-        // Fetch appointments (adjust endpoint as needed)
-        const apptsRes = await api.get('/appointments/owner');
-        setAppointments(apptsRes.data.appointments || apptsRes.data || []);
+        // Fetch owner's appointments (you'll need this endpoint)
+        const apptsRes = await api.get('/appointments/owner'); // ← Create this backend route
+        const appts = apptsRes.data.appointments || apptsRes.data || [];
+        setAppointments(appts);
+        setFilteredAppointments(appts);
       } catch (error) {
         console.error('Error loading data:', error);
-        Swal.fire('Error', 'Could not load appointments', 'error');
+        Swal.fire('Error', 'Could not load appointments or pets', 'error');
       }
     };
 
@@ -120,12 +123,10 @@ const OwnerAppointments = () => {
   useEffect(() => {
     let filtered = appointments;
 
-    // Filter by pet
     if (petFilter !== 'all') {
       filtered = filtered.filter(a => a.petId?._id === petFilter);
     }
 
-    // Filter by status
     const now = new Date();
     if (statusFilter === 'upcoming') {
       filtered = filtered.filter(a => new Date(a.dateTime) > now && a.status !== 'Canceled');
@@ -145,19 +146,18 @@ const OwnerAppointments = () => {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#f44336',
-      cancelButtonColor: '#3085d6',
       confirmButtonText: 'Yes, cancel it'
     });
 
     if (result.isConfirmed) {
       try {
-        await api.patch(`/appointments/${apptId}/cancel`);
+        await api.patch(`/appointments/${apptId}/cancel`, { reason: 'Canceled by owner' });
         setAppointments(prev => prev.map(a => 
           a._id === apptId ? { ...a, status: 'Canceled' } : a
         ));
         Swal.fire('Canceled!', 'Appointment has been canceled', 'success');
       } catch (error) {
-        Swal.fire('Error', 'Could not cancel appointment', 'error');
+        Swal.fire('Error', error.response?.data?.message || 'Could not cancel', 'error');
       }
     }
   };
@@ -169,7 +169,7 @@ const OwnerAppointments = () => {
     }
 
     try {
-      await api.post('/appointments/book', {
+      const response = await api.post('/appointments/book', {
         petId: bookForm.petId,
         clinicId: bookForm.clinicId,
         vetId: bookForm.vetId,
@@ -180,9 +180,9 @@ const OwnerAppointments = () => {
 
       Swal.fire('Booked!', 'Your appointment has been requested', 'success');
       setOpenBookDialog(false);
-      // Refetch appointments
-      const res = await api.get('/appointments/owner');
-      setAppointments(res.data.appointments || []);
+      
+      // Add new appointment to list
+      setAppointments(prev => [response.data.appointment, ...prev]);
     } catch (error) {
       Swal.fire('Error', error.response?.data?.message || 'Could not book appointment', 'error');
     }
@@ -310,16 +310,16 @@ const OwnerAppointments = () => {
                           <LocationOnIcon sx={{ color: '#2196f3' }} />
                           <Box>
                             <Typography variant="subtitle2" color="textSecondary">Clinic</Typography>
-                            <Typography variant="h6">{appt.clinicId?.name || 'N/A'}</Typography>
+                            <Typography variant="h6">{appt.clinicId?.name}</Typography>
                             <Typography variant="body2" color="textSecondary">
-                              {appt.clinicId?.address || ''}
+                              {appt.clinicId?.address}
                             </Typography>
                           </Box>
                         </Box>
 
                         <Box sx={{ mb: 3 }}>
                           <Typography variant="subtitle2" color="textSecondary">Reason</Typography>
-                          <Typography variant="body1">{appt.reason || 'Check-up'}</Typography>
+                          <Typography variant="body1">{appt.reason || 'Routine check-up'}</Typography>
                         </Box>
 
                         {appt.notes && (
@@ -361,37 +361,38 @@ const OwnerAppointments = () => {
         <DialogContent sx={{ pt: 4 }}>
           <Grid container spacing={3}>
             <Grid item xs={12}>
-              <FormControl fullWidth>
+              <FormControl fullWidth required>
                 <InputLabel>Select Pet</InputLabel>
                 <Select
                   value={bookForm.petId}
                   onChange={(e) => setBookForm({ ...bookForm, petId: e.target.value })}
-                  required
                 >
-                  <MenuItem value="">Choose a pet</MenuItem>
+                  <MenuItem value=""><em>Choose a pet</em></MenuItem>
                   {pets.map(pet => (
                     <MenuItem key={pet._id} value={pet._id}>
-                      {pet.name} ({pet.species})
+                      {pet.name} ({pet.species} - {pet.breed || 'Mixed'})
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
 
-            {/* In real app, you would fetch clinics & vets based on pet or location */}
-            <Grid item xs={12} sm={6}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Clinic ID (if known)"
+                label="Clinic ID"
+                placeholder="Enter clinic ID (from clinic finder)"
                 value={bookForm.clinicId}
                 onChange={(e) => setBookForm({ ...bookForm, clinicId: e.target.value })}
-                placeholder="e.g., from clinic finder"
+                required
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Vet ID (optional)"
+                placeholder="Leave blank for any available vet"
                 value={bookForm.vetId}
                 onChange={(e) => setBookForm({ ...bookForm, vetId: e.target.value })}
               />
@@ -422,12 +423,12 @@ const OwnerAppointments = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Additional Notes"
+                label="Additional Notes (optional)"
                 value={bookForm.notes}
                 onChange={(e) => setBookForm({ ...bookForm, notes: e.target.value })}
                 multiline
                 rows={3}
-                placeholder="Symptoms, concerns, or special requests..."
+                placeholder="Symptoms, special requests, etc."
               />
             </Grid>
           </Grid>

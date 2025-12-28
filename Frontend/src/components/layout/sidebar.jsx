@@ -10,14 +10,15 @@ import {
   FaComments, 
   FaUsers, 
   FaCog, 
-  FaSignOutAlt 
+  FaSignOutAlt,
+  FaPlusCircle  // New icon for "Create Clinic"
 } from 'react-icons/fa';
 import Logo from '../../assets/logo.png';
 
 // Strictly fixed 260px width sidebar
 const SidebarContainer = styled.div`
   width: 260px;
-  min-width: 280px;
+  min-width: 330px;
   max-width: 280px;
   min-height: 100vh;
   background: url('https://img.freepik.com/free-vector/decorative-background-with-purple-damask-pattern_1048-3458.jpg') repeat;
@@ -28,7 +29,7 @@ const SidebarContainer = styled.div`
   color: #ecf0f1;
   box-shadow: 6px 0 25px rgba(0, 0, 0, 0.25);
   position: relative;
-  flex-shrink: 0; /* Prevents shrinking */
+  flex-shrink: 0;
 
   &::before {
     content: "";
@@ -118,7 +119,9 @@ const Sidebar = () => {
   const location = useLocation();
 
   const menuItems = [
+    // New: Create Clinic at the very top
     { to: "/vet/dashboard", icon: <FaTachometerAlt />, label: "Dashboard" },
+    { to: "/vet/clinic/create", icon: <FaPlusCircle />, label: "Create Clinic" },
     { to: "/vet/appointments/today", icon: <FaCalendarDay />, label: "Today's Appointments" },
     { to: "/vet/appointments", icon: <FaCalendarAlt />, label: "All Appointments" },
     { to: "/vet/pets", icon: <FaPaw />, label: "Registered Pets" },

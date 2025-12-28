@@ -34,7 +34,7 @@ router.get('/:id', protect, authorize('owner'), authorizeSelf, getOwnerById);
 router.get('/:id/summary', protect, authorize('owner'), authorizeSelf, getOwnerSummary);
 
 // Update own profile
-router.put('/:id', protect, authorize('owner'), authorizeSelf, updateOwner);
+router.put('/:id', protect, authorize('owner'), updateOwner);
 
 // Soft-delete own account (optional — dangerous, you might want to disable)
 router.delete('/:id', protect, authorize('owner'), authorizeSelf, deleteOwner);

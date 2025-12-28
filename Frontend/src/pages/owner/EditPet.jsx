@@ -149,7 +149,7 @@ const EditPet = () => {
         showConfirmButton: false
       });
 
-      navigate(`/owner/pets/${id}`);
+      navigate(`/owner/dashboard`);
     } catch (error) {
       console.error('Error updating pet:', error);
       Swal.fire(

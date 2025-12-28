@@ -11,10 +11,10 @@ exports.registerVet = async (req, res) => {
       email,
       password,
       phoneNumber,
-      veterinaryId,         // Professional license number
+      veterinaryId,
       specialization,
-      clinicId,             // Required if not creating a new clinic
-      isPrimaryVet = false  // Only allowed when creating the first vet of a clinic
+      clinicId,             // Optional for Primary Vet
+      isPrimaryVet = false
     } = req.body;
 
     // Required fields
@@ -42,34 +42,43 @@ exports.registerVet = async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    let finalClinicId = clinicId || null;
+    let finalClinicId = null;
     let accessLevel = 'Normal Access';
     let isPrimary = false;
 
-    // Handle Primary Vet logic: creating or linking to a clinic
+    // Handle Primary Vet logic
     if (isPrimaryVet) {
-      if (!clinicId) {
-        return res.status(400).json({
-          message: 'clinicId is required when isPrimaryVet is true'
-        });
-      }
-
-      const clinic = await Clinic.findById(clinicId);
-      if (!clinic) {
-        return res.status(404).json({ message: 'Clinic not found' });
-      }
-
-      // Only allow if clinic has no primary vet yet
-      if (clinic.primaryVetId) {
-        return res.status(403).json({
-          message: 'This clinic already has a Primary Vet'
-        });
-      }
-
       accessLevel = 'Primary';
       isPrimary = true;
+
+      if (clinicId) {
+        // Linking to an existing clinic
+        const clinic = await Clinic.findById(clinicId);
+        if (!clinic) {
+          return res.status(404).json({ message: 'Clinic not found' });
+        }
+        if (clinic.primaryVetId) {
+          return res.status(403).json({
+            message: 'This clinic already has a Primary Vet'
+          });
+        }
+        finalClinicId = clinicId;
+      } else {
+        // Create a new clinic automatically
+        const clinicName = `${firstName} ${lastName}'s Clinic`; // Or let them provide name later
+        const newClinic = new Clinic({
+          name: clinicName,
+          address: '', // Can be updated later in clinic settings
+          phoneNumber: phoneNumber,
+          primaryVetId: null // Will be set after vet is created
+        });
+
+        await newClinic.save();
+        finalClinicId = newClinic._id;
+      }
     }
 
+    // Create the vet
     const vet = new Veterinarian({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -87,12 +96,16 @@ exports.registerVet = async (req, res) => {
 
     await vet.save();
 
-    // If Primary Vet → update clinic
+    // If Primary Vet and new clinic was created → link them
+    if (isPrimaryVet && !clinicId) {
+      await Clinic.findByIdAndUpdate(finalClinicId, { primaryVetId: vet._id });
+    }
+
+    // If linking to existing clinic → update primaryVetId
     if (isPrimaryVet && clinicId) {
       await Clinic.findByIdAndUpdate(clinicId, { primaryVetId: vet._id });
     }
 
-    // Remove password from response
     const vetResponse = vet.toObject();
     delete vetResponse.passwordHash;
 
@@ -101,6 +114,7 @@ exports.registerVet = async (req, res) => {
       vet: vetResponse
     });
   } catch (error) {
+    console.error('Error registering vet:', error);
     res.status(400).json({
       message: 'Error registering veterinarian',
       error: error.message

@@ -4,7 +4,8 @@ import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Grid, Card, CardContent, CardHeader, Avatar, Button,
-  Paper, Divider, Collapse, IconButton, Chip
+  Paper, Divider, Collapse, IconButton, Chip, Dialog, DialogTitle,
+  DialogContent, DialogActions, TextField
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -14,15 +15,15 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import EmailIcon from '@mui/icons-material/Email';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import MaleIcon from '@mui/icons-material/Male';
 import FemaleIcon from '@mui/icons-material/Female';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ScaleIcon from '@mui/icons-material/Scale';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
-import Header from '../../components/layout/Header'; // Optional: if you have a shared header
-import Sidebar from '../../components/layout/Sidebar'; // Remove if you want no sidebar for owner
+import Header from '../../components/layout/Header';
 
-// Main Container
 const DashboardContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
   background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
@@ -30,7 +31,6 @@ const DashboardContainer = styled(Box)(({ theme }) => ({
 
 const ContentArea = styled(Box)(({ theme }) => ({
   padding: '40px',
-  marginTop: '70px', // Space for header
 }));
 
 const SectionTitle = styled(Typography)(({ theme }) => ({
@@ -56,6 +56,7 @@ const ProfileHeader = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   gap: 24,
+  justifyContent: 'space-between',
 }));
 
 const PetCard = styled(Card)(({ theme }) => ({
@@ -99,23 +100,42 @@ const AddPetButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+const ActionButton = styled(IconButton)(({ theme }) => ({
+  backgroundColor: '#f0f7ff',
+  marginLeft: 8,
+  '&:hover': {
+    backgroundColor: '#bbdefb',
+  },
+}));
+
 const OwnerDashboard = () => {
   const [owner, setOwner] = useState(null);
   const [pets, setPets] = useState([]);
   const [expandedPet, setExpandedPet] = useState(null);
+  const [openEditProfile, setOpenEditProfile] = useState(false);
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    address: ''
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchOwnerData = async () => {
       try {
-        // Get current user profile
         const profileRes = await api.get('/auth/me');
         const userData = profileRes.data.user;
         setOwner(userData);
+        setEditForm({
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          phoneNumber: userData.phoneNumber || '',
+          address: userData.address || ''
+        });
 
-        // Get owner's pets
-        const petsRes = await api.get('/pets/my'); // Adjust endpoint if needed
-        setPets(petsRes.data.pets || petsRes.data || []);
+        const petsRes = await api.get('/pets/my');
+        setPets(petsRes.data.pets || []);
       } catch (error) {
         console.error('Error loading dashboard:', error);
         Swal.fire('Error', 'Could not load your dashboard', 'error');
@@ -127,6 +147,59 @@ const OwnerDashboard = () => {
 
   const togglePetExpand = (petId) => {
     setExpandedPet(expandedPet === petId ? null : petId);
+  };
+
+  const handleDeletePet = async (petId, petName) => {
+    const result = await Swal.fire({
+      title: `Delete ${petName}?`,
+      text: "This action cannot be undone!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`/pets/${petId}`);
+        setPets(prev => prev.filter(p => p._id !== petId));
+        Swal.fire('Deleted!', `${petName} has been removed`, 'success');
+      } catch (error) {
+        Swal.fire('Error', 'Could not delete pet', 'error');
+      }
+    }
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+      await api.put(`/owners/${owner.id}`, editForm);
+      
+      // Update local state
+      setOwner(prev => ({ ...prev, ...editForm }));
+      
+      // Close dialog
+      setOpenEditProfile(false);
+      
+      // Show success message
+      Swal.fire({
+        title: 'Updated!',
+        text: 'Your profile has been updated successfully',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
+
+      // Navigate to dashboard (refreshes the page to ensure fresh data)
+      navigate('/owner/dashboard', { replace: true });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Swal.fire(
+        'Error',
+        error.response?.data?.message || 'Could not update profile',
+        'error'
+      );
+    }
   };
 
   const calculateAge = (dob) => {
@@ -156,24 +229,37 @@ const OwnerDashboard = () => {
     <DashboardContainer>
       <Header />
       <ContentArea>
-        {/* Owner Profile Section */}
         <SectionTitle variant="h4">
           Welcome back, {owner.firstName}!
         </SectionTitle>
 
         <ProfileCard>
           <ProfileHeader>
-            <Avatar sx={{ width: 120, height: 120, fontSize: '3rem' }}>
-              {owner.firstName.charAt(0)}{owner.lastName.charAt(0)}
-            </Avatar>
-            <Box>
-              <Typography variant="h4" fontWeight="bold">
-                {owner.firstName} {owner.lastName}
-              </Typography>
-              <Typography variant="h6" sx={{ opacity: 0.9 }}>
-                Pet Owner
-              </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              <Avatar sx={{ width: 120, height: 120, fontSize: '3rem' }}>
+                {owner.firstName.charAt(0)}{owner.lastName.charAt(0)}
+              </Avatar>
+              <Box>
+                <Typography variant="h4" fontWeight="bold">
+                  {owner.firstName} {owner.lastName}
+                </Typography>
+                <Typography variant="h6" sx={{ opacity: 0.9 }}>
+                  Pet Owner
+                </Typography>
+              </Box>
             </Box>
+            <Button
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={() => setOpenEditProfile(true)}
+              sx={{
+                background: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                '&:hover': { background: 'rgba(255,255,255,0.3)' }
+              }}
+            >
+              Edit Profile
+            </Button>
           </ProfileHeader>
 
           <CardContent sx={{ pt: 6 }}>
@@ -209,14 +295,13 @@ const OwnerDashboard = () => {
           </CardContent>
         </ProfileCard>
 
-        {/* My Pets Section */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <SectionTitle variant="h4">
             My Pets ({pets.length})
           </SectionTitle>
           <AddPetButton
             startIcon={<AddIcon />}
-            onClick={() => navigate('/owner/pets/new')} // You'll create this form later
+            onClick={() => navigate('/owner/pets/new')}
           >
             Add New Pet
           </AddPetButton>
@@ -236,8 +321,8 @@ const OwnerDashboard = () => {
           <Grid container spacing={4}>
             {pets.map((pet) => (
               <Grid item xs={12} md={6} key={pet._id}>
-                <PetCard onClick={() => togglePetExpand(pet._id)}>
-                  <PetHeader>
+                <PetCard>
+                  <PetHeader onClick={() => togglePetExpand(pet._id)}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       <PetAvatar src={pet.photo || ''} alt={pet.name}>
                         {pet.name.charAt(0).toUpperCase()}
@@ -251,7 +336,7 @@ const OwnerDashboard = () => {
                         </Typography>
                       </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Chip
                         label={pet.registrationStatus}
                         color={
@@ -261,6 +346,12 @@ const OwnerDashboard = () => {
                         }
                         size="small"
                       />
+                      <ActionButton onClick={(e) => { e.stopPropagation(); navigate(`/owner/pets/${pet._id}/edit`); }}>
+                        <EditIcon />
+                      </ActionButton>
+                      <ActionButton onClick={(e) => { e.stopPropagation(); handleDeletePet(pet._id, pet.name); }}>
+                        <DeleteIcon color="error" />
+                      </ActionButton>
                       <IconButton>
                         <ExpandMoreIcon sx={{ transform: expandedPet === pet._id ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} />
                       </IconButton>
@@ -316,6 +407,61 @@ const OwnerDashboard = () => {
           </Grid>
         )}
       </ContentArea>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={openEditProfile} onClose={() => setOpenEditProfile(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ background: 'linear-gradient(90deg, #2196f3, #21cbf3)', color: 'white' }}>
+          Edit My Profile
+        </DialogTitle>
+        <DialogContent sx={{ pt: 4 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="First Name"
+                value={editForm.firstName}
+                onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Last Name"
+                value={editForm.lastName}
+                onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Phone Number"
+                value={editForm.phoneNumber}
+                onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Address"
+                value={editForm.address}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                multiline
+                rows={3}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenEditProfile(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleUpdateProfile}
+            sx={{ background: 'linear-gradient(90deg, #2196f3, #21cbf3)' }}
+          >
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
     </DashboardContainer>
   );
 };

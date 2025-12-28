@@ -12,8 +12,19 @@ const petProfileSchema = new mongoose.Schema({
   microchipNumber: { type: String },
   photo: { type: String }, // URL to image
   notes: { type: String },
-  registrationStatus: { type: String, enum: ['Pending', 'Approved', 'Rejected'], default: 'Pending' },
-  registeredClinicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clinic' }
+  registrationStatus: { 
+    type: String, 
+    enum: ['Pending', 'Approved', 'Rejected'], 
+    default: 'Pending' 
+  },
+  registeredClinicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clinic' },
+
+  // === ADD THESE SOFT DELETE FIELDS ===
+  isDeleted: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null }
 });
+
+// Optional: Create index for better query performance
+petProfileSchema.index({ isDeleted: 1 });
 
 module.exports = mongoose.model('PetProfile', petProfileSchema);

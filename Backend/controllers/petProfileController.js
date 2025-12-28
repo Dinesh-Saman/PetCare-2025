@@ -81,15 +81,18 @@ exports.createPet = async (req, res) => {
 exports.getPetsByOwner = async (req, res) => {
   try {
     const { ownerId } = req.params;
-    const { status } = req.query; // Optional: filter by registrationStatus
+    const { status } = req.query;
 
-    // Verify owner exists (optional security)
     const ownerExists = await PetOwner.findById(ownerId);
     if (!ownerExists) {
       return res.status(404).json({ message: 'Owner not found' });
     }
 
-    let query = { ownerId };
+    let query = { 
+      ownerId,
+      isDeleted: { $ne: true }  // ← THIS LINE IS THE FIX: exclude soft-deleted pets
+    };
+
     if (status) {
       query.registrationStatus = status;
     }
@@ -103,6 +106,7 @@ exports.getPetsByOwner = async (req, res) => {
       pets
     });
   } catch (error) {
+    console.error('Error in getPetsByOwner:', error);
     res.status(500).json({
       message: 'Error fetching pets by owner',
       error: error.message
@@ -249,7 +253,7 @@ exports.getPendingRegistrationsByClinic = async (req, res) => {
     const { clinicId } = req.params;
 
     const pets = await PetProfile.find({
-      registeredClinicId: clinicId,
+      //registeredClinicId: clinicId,
       registrationStatus: 'Pending'
     })
       .populate('ownerId', 'firstName lastName email phoneNumber')
@@ -262,6 +266,43 @@ exports.getPendingRegistrationsByClinic = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: 'Error fetching pending registrations',
+      error: error.message
+    });
+  }
+};
+
+// Approve pet registration (Vet only - for their clinic)
+exports.approvePetRegistration = async (req, res) => {
+  try {
+    const { id } = req.params; // petId
+
+    const pet = await PetProfile.findOne({
+      _id: id,
+      registeredClinicId: req.user.clinicId, // Ensure it belongs to the vet's clinic
+      registrationStatus: 'Pending'
+    });
+
+    if (!pet) {
+      return res.status(404).json({
+        message: 'Pet not found or not pending registration in your clinic'
+      });
+    }
+
+    pet.registrationStatus = 'Approved';
+    await pet.save();
+
+    // Optionally populate for response
+    await pet.populate('ownerId', 'firstName lastName email phoneNumber');
+    await pet.populate('registeredClinicId', 'name');
+
+    res.status(200).json({
+      message: 'Pet registration approved successfully',
+      pet
+    });
+  } catch (error) {
+    console.error('Error approving pet registration:', error);
+    res.status(500).json({
+      message: 'Error approving registration',
       error: error.message
     });
   }

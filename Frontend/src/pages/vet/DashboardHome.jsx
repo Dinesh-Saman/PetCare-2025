@@ -241,10 +241,9 @@ const DashboardHome = () => {
   ];
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa', marginTop: '70px' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       <Sidebar />
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <Header />
         <ContentContainer>
           <SearchSection>
             <PageTitle variant="h4">
