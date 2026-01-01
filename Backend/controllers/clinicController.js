@@ -1,5 +1,7 @@
 const Clinic = require('../models/Clinic');
 const Veterinarian = require('../models/Veterinarian');
+const ClinicStaff = require('../models/ClinicStaff');
+const bcrypt = require('bcryptjs');
 
 // Create a new clinic (typically done by a Primary Vet)
 // Create a new clinic (authenticated vet automatically becomes Primary Vet)
@@ -281,3 +283,257 @@ exports.getAllClinics = async (req, res) => {
   }
 };
 
+// Unified endpoint: Add either a Veterinarian (sub-account) or non-vet ClinicStaff
+exports.addClinicStaff = async (req, res) => {
+  try {
+    const {
+      staffType,           // Required: 'veterinarian' or any other value
+      firstName,
+      lastName,
+      email,
+      password,
+      phoneNumber,
+      veterinaryId,        // Required only for veterinarian
+      specialization,      // Optional for veterinarian
+      accessLevel,         // For veterinarian: 'Normal Access' or 'Full Access'
+      role                 // For non-vet: e.g., 'Receptionist', 'Vet Tech', 'Manager'
+    } = req.body;
+
+    console.log(req.user.role);
+    
+    // === 1. Authentication & Role Check ===
+    if (!req.user || req.user.role !== 'vet') {
+      return res.status(403).json({
+        message: 'Access denied: Only veterinarians can add staff'
+      });
+    }
+
+    // Find the creator (logged-in vet)
+    const creator = await Veterinarian.findById(req.user.id);
+
+    if (!creator) {
+      return res.status(404).json({
+        message: 'Your veterinarian account was not found'
+      });
+    }
+
+    // Only Primary or Full Access vets can add staff
+    if (!['Primary', 'Full Access'].includes(creator.accessLevel)) {
+      return res.status(403).json({
+        message: 'Permission denied: Only Primary or Full Access veterinarians can add staff'
+      });
+    }
+
+    // Ensure creator has a clinic
+    if (!creator.clinicId) {
+      return res.status(400).json({
+        message: 'You are not associated with any clinic'
+      });
+    }
+
+    // === 2. Basic Validation ===
+    if (!staffType || !firstName?.trim() || !lastName?.trim() || !email?.trim() || !password) {
+      return res.status(400).json({
+        message: 'firstName, lastName, email, password, and staffType are required'
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // === 3. Add Veterinarian Sub-Account ===
+    if (staffType === 'veterinarian') {
+      if (!veterinaryId?.trim()) {
+        return res.status(400).json({
+          message: 'Veterinary License ID is required for veterinarians'
+        });
+      }
+
+      // Prevent creating another Primary Vet
+      if (accessLevel === 'Primary') {
+        return res.status(403).json({
+          message: 'Cannot create another Primary Veterinarian via sub-account'
+        });
+      }
+
+      // Check for duplicate email or license
+      const existingVet = await Veterinarian.findOne({
+        $or: [
+          { email: normalizedEmail },
+          { veterinaryId: veterinaryId.trim() }
+        ]
+      });
+
+      if (existingVet) {
+        return res.status(409).json({
+          message: 'A veterinarian with this email or license ID already exists'
+        });
+      }
+
+      const salt = await bcrypt.genSalt(12);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      const newVet = new Veterinarian({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: normalizedEmail,
+        passwordHash,
+        phoneNumber: phoneNumber?.trim() || '',
+        veterinaryId: veterinaryId.trim(),
+        specialization: specialization?.trim() || '',
+        clinicId: creator.clinicId,
+        accessLevel: accessLevel || 'Normal Access',
+        isPrimaryVet: false,
+        createdByVetId: creator._id,
+        status: 'Active'
+      });
+
+      await newVet.save();
+
+      const response = newVet.toObject();
+      delete response.passwordHash;
+
+      return res.status(201).json({
+        message: 'Veterinarian added successfully',
+        staff: response
+      });
+    }
+
+    // === 4. Add Non-Veterinarian Clinic Staff ===
+    if (!role) {
+      return res.status(400).json({
+        message: 'Role is required for non-veterinarian staff'
+      });
+    }
+
+    // Check for duplicate email in ClinicStaff
+    const existingStaff = await ClinicStaff.findOne({ email: normalizedEmail });
+    if (existingStaff) {
+      return res.status(409).json({
+        message: 'A staff member with this email already exists'
+      });
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    // Map role to access level
+    let staffAccessLevel = 'Basic';
+    if (role === 'Manager') staffAccessLevel = 'Admin';
+    else if (role === 'Vet Tech') staffAccessLevel = 'Moderate';
+
+    const newStaff = new ClinicStaff({
+      clinicId: creator.clinicId,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      phoneNumber: phoneNumber?.trim() || '',
+      role,
+      accessLevel: staffAccessLevel,
+      createdBy: creator._id,
+      status: 'Active'
+    });
+
+    await newStaff.save();
+
+    const response = newStaff.toObject();
+    delete response.passwordHash;
+
+    return res.status(201).json({
+      message: `${role} added successfully`,
+      staff: response
+    });
+
+  } catch (error) {
+    console.error('Error in addClinicStaff:', error);
+    res.status(500).json({
+      message: 'Error adding staff member',
+      error: error.message
+    });
+  }
+};
+
+// Get all staff members (vets + non-vet staff) for the logged-in vet's clinic
+exports.getClinicStaff = async (req, res) => {
+  try {
+    // === 1. Authentication & Role Check ===
+    if (!req.user || req.user.role !== 'vet') {
+      return res.status(403).json({
+        message: 'Access denied: Only veterinarians can view clinic staff'
+      });
+    }
+
+    const vet = await Veterinarian.findById(req.user.id);
+    if (!vet || !vet.clinicId) {
+      return res.status(400).json({
+        message: 'You are not associated with any clinic'
+      });
+    }
+
+    const clinicId = vet.clinicId;
+
+    // === 2. Fetch Veterinarians ===
+    const vets = await Veterinarian.find({
+      clinicId,
+      status: 'Active'
+    })
+      .select('firstName lastName email phoneNumber veterinaryId specialization accessLevel isPrimaryVet createdAt')
+      .sort({ isPrimaryVet: -1, accessLevel: -1, firstName: 1 });
+
+    // === 3. Fetch Non-Vet Clinic Staff ===
+    const staff = await ClinicStaff.find({
+      clinicId,
+      status: 'Active'
+    })
+      .select('firstName lastName email phoneNumber role accessLevel createdAt')
+      .sort({ role: 1, firstName: 1 });
+
+    // === 4. Format unified response ===
+    const formattedVets = vets.map(v => ({
+      _id: v._id,
+      type: 'Veterinarian',
+      firstName: v.firstName,
+      lastName: v.lastName,
+      email: v.email,
+      phoneNumber: v.phoneNumber || 'N/A',
+      details: {
+        licenseId: v.veterinaryId || 'N/A',
+        specialization: v.specialization || 'General',
+        accessLevel: v.accessLevel,
+        isPrimary: v.isPrimaryVet
+      },
+      createdAt: v.createdAt
+    }));
+
+    const formattedStaff = staff.map(s => ({
+      _id: s._id,
+      type: 'Clinic Staff',
+      firstName: s.firstName,
+      lastName: s.lastName,
+      email: s.email,
+      phoneNumber: s.phoneNumber || 'N/A',
+      details: {
+        role: s.role,
+        accessLevel: s.accessLevel
+      },
+      createdAt: s.createdAt
+    }));
+
+    // Combine and sort by creation date (newest first)
+    const allStaff = [...formattedVets, ...formattedStaff]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.status(200).json({
+      message: 'Clinic staff retrieved successfully',
+      total: allStaff.length,
+      staff: allStaff
+    });
+
+  } catch (error) {
+    console.error('Error in getClinicStaff:', error);
+    res.status(500).json({
+      message: 'Error fetching clinic staff',
+      error: error.message
+    });
+  }
+};

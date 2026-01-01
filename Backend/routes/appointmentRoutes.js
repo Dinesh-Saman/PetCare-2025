@@ -38,7 +38,7 @@ router.get('/pet/:petId', protect, authorize('owner'), getAppointmentsByPet);
 router.get('/:id', protect, getAppointmentById);
 
 // Vet routes
-router.get('/vet/:vetId', protect, authorize('vet'), getAppointmentsByVet);
+router.get('/vet/:vetId', protect, getAppointmentsByVet);
 //router.get('/clinic/:clinicId/upcoming', protect, authorize('vet'), getUpcomingAppointmentsByClinic);
 
 // Update appointment (vet only)

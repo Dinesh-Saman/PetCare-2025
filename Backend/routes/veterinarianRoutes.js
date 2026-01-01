@@ -19,7 +19,6 @@ router.post('/register', registerVet);
 
 // === All routes below require authentication ===
 router.use(protect);
-router.use(authorize('vet')); // All vet routes require vet role
 
 // View own profile or any vet profile (useful for clinic directory)
 router.get('/:id', getVetById);
@@ -36,11 +35,6 @@ router.put('/:id', (req, res, next) => {
 
 // Get all vets in your own clinic
 router.get('/clinic/:clinicId', async (req, res, next) => {
-  if (req.params.clinicId !== req.user.clinicId?.toString()) {
-    return res.status(403).json({
-      message: 'Not authorized: You can only view staff from your own clinic'
-    });
-  }
   getVetsByClinic(req, res, next);
 });
 

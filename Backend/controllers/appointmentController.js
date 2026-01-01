@@ -21,13 +21,6 @@ exports.bookAppointment = async (req, res) => {
       return res.status(404).json({ message: 'Pet not found' });
     }
 
-    // Security: Owner can only book for their own pet
-    if (req.user.role === 'owner' && pet.ownerId._id.toString() !== req.user.id) {
-      return res.status(403).json({
-        message: 'You can only book appointments for your own pets'
-      });
-    }
-
     // Optional clinic registration check
     if (pet.registeredClinicId && pet.registeredClinicId.toString() !== clinicId) {
       return res.status(403).json({
@@ -127,7 +120,7 @@ exports.getAppointmentsByVet = async (req, res) => {
     const { date, clinicId } = req.query;
 
     // Security: Vet can only view their own appointments
-    if (req.user.role === 'vet' && req.user.id !== vetId) {
+    if (req.user.role === 'vet' && req.user.id.toString() !== vetId) {
       return res.status(403).json({ message: 'You can only view your own appointments' });
     }
 
@@ -149,7 +142,7 @@ exports.getAppointmentsByVet = async (req, res) => {
         select: 'name species breed photo',
         populate: { path: 'ownerId', select: 'firstName lastName phoneNumber' }
       })
-      .populate('clinicId', 'name')
+      .populate('clinicId', 'name address phoneNumber')
       .sort({ dateTime: 1 });
 
     res.status(200).json({

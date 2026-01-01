@@ -15,7 +15,8 @@ exports.createPet = async (req, res) => {
       weight,
       microchipNumber,
       photo,
-      notes
+      notes,
+      clinicId // ← ADD THIS
     } = req.body;
 
     // Required fields
@@ -25,6 +26,16 @@ exports.createPet = async (req, res) => {
       });
     }
 
+    // Optional: Validate clinicId if provided
+    if (clinicId) {
+      const clinic = await Clinic.findById(clinicId);
+      if (!clinic) {
+        return res.status(400).json({
+          message: 'Invalid clinic ID'
+        });
+      }
+    }
+
     // Validate gender
     if (gender && !['Male', 'Female', 'Other'].includes(gender)) {
       return res.status(400).json({
@@ -32,13 +43,12 @@ exports.createPet = async (req, res) => {
       });
     }
 
-    // Owner ID from authenticated user (later via JWT)
+    // Owner ID from authenticated user
     const ownerId = req.body.ownerId || req.user?.id;
     if (!ownerId) {
       return res.status(401).json({ message: 'Owner authentication required' });
     }
 
-    // Verify owner exists
     const owner = await PetOwner.findById(ownerId);
     if (!owner) {
       return res.status(404).json({ message: 'Owner not found' });
@@ -54,23 +64,27 @@ exports.createPet = async (req, res) => {
       color: color?.trim() || '',
       weight: weight ? parseFloat(weight) : null,
       microchipNumber: microchipNumber?.trim() || '',
-      photo: photo || '', // URL from upload (Cloudinary/Multer)
+      photo: photo || '',
       notes: notes?.trim() || '',
-      registrationStatus: 'Pending', // Default until clinic approves
-      registeredClinicId: null
+      registrationStatus: clinicId ? 'Pending' : 'Pending', // Still pending until approved
+      registeredClinicId: clinicId || null // ← NOW SAVED!
     });
 
     await pet.save();
 
-    // Populate owner info
+    // Populate for response
     await pet.populate('ownerId', 'firstName lastName email phoneNumber');
+    if (pet.registeredClinicId) {
+      await pet.populate('registeredClinicId', 'name address phoneNumber');
+    }
 
     res.status(201).json({
       message: 'Pet profile created successfully',
       pet
     });
   } catch (error) {
-    res.status(400).json({
+    console.error('Error creating pet:', error);
+    res.status(500).json({
       message: 'Error creating pet profile',
       error: error.message
     });
@@ -253,7 +267,7 @@ exports.getPendingRegistrationsByClinic = async (req, res) => {
     const { clinicId } = req.params;
 
     const pets = await PetProfile.find({
-      //registeredClinicId: clinicId,
+      registeredClinicId: clinicId,
       registrationStatus: 'Pending'
     })
       .populate('ownerId', 'firstName lastName email phoneNumber')
@@ -303,6 +317,38 @@ exports.approvePetRegistration = async (req, res) => {
     console.error('Error approving pet registration:', error);
     res.status(500).json({
       message: 'Error approving registration',
+      error: error.message
+    });
+  }
+};
+
+// Get approved pets for a clinic (Vet dashboard - view registered pets)
+exports.getApprovedRegistrationsByClinic = async (req, res) => {
+  try {
+    const { clinicId } = req.params;
+
+    // Validate clinic exists
+    const clinic = await Clinic.findById(clinicId);
+    if (!clinic) {
+      return res.status(404).json({ message: 'Clinic not found' });
+    }
+
+    const pets = await PetProfile.find({
+      registeredClinicId: clinicId,
+      registrationStatus: 'Approved',
+      isDeleted: { $ne: true }
+    })
+      .populate('ownerId', 'firstName lastName email phoneNumber address')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      count: pets.length,
+      approvedPets: pets
+    });
+  } catch (error) {
+    console.error('Error fetching approved registrations:', error);
+    res.status(500).json({
+      message: 'Error fetching approved pet registrations',
       error: error.message
     });
   }

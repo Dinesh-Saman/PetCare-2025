@@ -104,15 +104,21 @@ const ClinicStaff = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchClinicStaff = async () => {
-      try {
-        const response = await api.get('/vets/clinic/current'); // Adjust to your endpoint
-        setStaff(response.data.vets || []);
-      } catch (error) {
-        console.error('Error fetching staff:', error);
-        Swal.fire('Error', 'Could not load clinic staff', 'error');
-      }
-    };
+const fetchClinicStaff = async () => {
+  try {
+    const response = await api.get('/clinics/staff');
+    
+    // Correct: use response.data.staff from your unified controller
+    const staffList = response.data.staff || [];
+    
+    setStaff(staffList);
+    console.log('Fetched staff:', staffList); // For debugging
+  } catch (error) {
+    console.error('Error fetching staff:', error);
+    Swal.fire('Error', 'Could not load clinic staff', 'error');
+    setStaff([]);
+  }
+};
 
     fetchClinicStaff();
   }, []);

@@ -1,3 +1,4 @@
+// src/pages/owner/OwnerDashboard.jsx
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
@@ -22,7 +23,6 @@ import FemaleIcon from '@mui/icons-material/Female';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ScaleIcon from '@mui/icons-material/Scale';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
-import Header from '../../components/layout/Header';
 
 const DashboardContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -111,6 +111,7 @@ const ActionButton = styled(IconButton)(({ theme }) => ({
 const OwnerDashboard = () => {
   const [owner, setOwner] = useState(null);
   const [pets, setPets] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [expandedPet, setExpandedPet] = useState(null);
   const [openEditProfile, setOpenEditProfile] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -124,12 +125,13 @@ const OwnerDashboard = () => {
   useEffect(() => {
     const fetchOwnerData = async () => {
       try {
+        setLoading(true);
         const profileRes = await api.get('/auth/me');
         const userData = profileRes.data.user;
         setOwner(userData);
         setEditForm({
-          firstName: userData.firstName,
-          lastName: userData.lastName,
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
           phoneNumber: userData.phoneNumber || '',
           address: userData.address || ''
         });
@@ -139,6 +141,8 @@ const OwnerDashboard = () => {
       } catch (error) {
         console.error('Error loading dashboard:', error);
         Swal.fire('Error', 'Could not load your dashboard', 'error');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -173,15 +177,11 @@ const OwnerDashboard = () => {
 
   const handleUpdateProfile = async () => {
     try {
-      await api.put(`/owners/${owner.id}`, editForm);
+      await api.put(`/owners/${owner._id || owner.id}`, editForm);
       
-      // Update local state
       setOwner(prev => ({ ...prev, ...editForm }));
-      
-      // Close dialog
       setOpenEditProfile(false);
       
-      // Show success message
       Swal.fire({
         title: 'Updated!',
         text: 'Your profile has been updated successfully',
@@ -189,9 +189,6 @@ const OwnerDashboard = () => {
         timer: 2000,
         showConfirmButton: false
       });
-
-      // Navigate to dashboard (refreshes the page to ensure fresh data)
-      navigate('/owner/dashboard', { replace: true });
     } catch (error) {
       console.error('Error updating profile:', error);
       Swal.fire(
@@ -212,14 +209,29 @@ const OwnerDashboard = () => {
     return `${age} years`;
   };
 
+  if (loading) {
+    return (
+      <DashboardContainer>
+        <ContentArea>
+          <Box sx={{ textAlign: 'center', py: 10 }}>
+            <Typography variant="h5" color="textSecondary">
+              Loading your dashboard...
+            </Typography>
+          </Box>
+        </ContentArea>
+      </DashboardContainer>
+    );
+  }
+
   if (!owner) {
     return (
       <DashboardContainer>
-        <Header />
         <ContentArea>
-          <Typography variant="h5" textAlign="center" color="#666">
-            Loading your dashboard...
-          </Typography>
+          <Box sx={{ textAlign: 'center', py: 10 }}>
+            <Typography variant="h6" color="error">
+              Unable to load profile. Please try again later.
+            </Typography>
+          </Box>
         </ContentArea>
       </DashboardContainer>
     );
@@ -227,7 +239,6 @@ const OwnerDashboard = () => {
 
   return (
     <DashboardContainer>
-      <Header />
       <ContentArea>
         <SectionTitle variant="h4">
           Welcome back, {owner.firstName}!
@@ -237,7 +248,7 @@ const OwnerDashboard = () => {
           <ProfileHeader>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               <Avatar sx={{ width: 120, height: 120, fontSize: '3rem' }}>
-                {owner.firstName.charAt(0)}{owner.lastName.charAt(0)}
+                {owner.firstName?.charAt(0)}{owner.lastName?.charAt(0)}
               </Avatar>
               <Box>
                 <Typography variant="h4" fontWeight="bold">
@@ -338,7 +349,7 @@ const OwnerDashboard = () => {
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Chip
-                        label={pet.registrationStatus}
+                        label={pet.registrationStatus || 'Pending'}
                         color={
                           pet.registrationStatus === 'Approved' ? 'success' :
                           pet.registrationStatus === 'Pending' ? 'warning' :
@@ -385,7 +396,7 @@ const OwnerDashboard = () => {
                         {pet.registeredClinicId && (
                           <Grid item xs={12}>
                             <Typography variant="subtitle1" fontWeight="bold" color="#1976d2">
-                              Registered at: {pet.registeredClinicId.name}
+                              Registered at: {pet.registeredClinicId.name || 'Unknown Clinic'}
                             </Typography>
                           </Grid>
                         )}
@@ -406,62 +417,62 @@ const OwnerDashboard = () => {
             ))}
           </Grid>
         )}
-      </ContentArea>
 
-      {/* Edit Profile Dialog */}
-      <Dialog open={openEditProfile} onClose={() => setOpenEditProfile(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ background: 'linear-gradient(90deg, #2196f3, #21cbf3)', color: 'white' }}>
-          Edit My Profile
-        </DialogTitle>
-        <DialogContent sx={{ pt: 4 }}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="First Name"
-                value={editForm.firstName}
-                onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-              />
+        {/* Edit Profile Dialog */}
+        <Dialog open={openEditProfile} onClose={() => setOpenEditProfile(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ background: 'linear-gradient(90deg, #2196f3, #21cbf3)', color: 'white' }}>
+            Edit My Profile
+          </DialogTitle>
+          <DialogContent sx={{ pt: 4 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  value={editForm.firstName}
+                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  value={editForm.lastName}
+                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Phone Number"
+                  value={editForm.phoneNumber}
+                  onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Address"
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  multiline
+                  rows={3}
+                />
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Last Name"
-                value={editForm.lastName}
-                onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Phone Number"
-                value={editForm.phoneNumber}
-                onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Address"
-                value={editForm.address}
-                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                multiline
-                rows={3}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditProfile(false)}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={handleUpdateProfile}
-            sx={{ background: 'linear-gradient(90deg, #2196f3, #21cbf3)' }}
-          >
-            Save Changes
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenEditProfile(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={handleUpdateProfile}
+              sx={{ background: 'linear-gradient(90deg, #2196f3, #21cbf3)' }}
+            >
+              Save Changes
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </ContentArea>
     </DashboardContainer>
   );
 };

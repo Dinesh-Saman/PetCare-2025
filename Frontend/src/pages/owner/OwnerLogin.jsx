@@ -91,7 +91,7 @@ const OwnerLogin = () => {
       }
 
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('owner', JSON.stringify(user));
 
       Swal.fire({
         title: 'Welcome back!',
@@ -111,7 +111,6 @@ const OwnerLogin = () => {
 
   return (
     <>
-      <Header />
       <AuthContainer>
         <AuthCard>
           <CardHeader>

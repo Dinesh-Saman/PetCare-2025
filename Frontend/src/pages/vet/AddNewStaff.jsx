@@ -1,5 +1,5 @@
 // src/pages/vet/AddNewStaff.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
@@ -11,7 +11,7 @@ import {
 import { styled } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-// Styled Components (MUI fields + Bootstrap layout via classes)
+// Styled Components (your beautiful design)
 const PageContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   minHeight: '100vh',
@@ -101,6 +101,7 @@ const SubmitButton = styled(Button)(({ theme }) => ({
 
 const AddNewStaff = () => {
   const [formData, setFormData] = useState({
+    staffType: 'veterinarian',
     firstName: '',
     lastName: '',
     email: '',
@@ -108,38 +109,109 @@ const AddNewStaff = () => {
     phoneNumber: '',
     veterinaryId: '',
     specialization: '',
-    accessLevel: 'Normal Access'
+    accessLevel: 'Normal Access',
+    role: 'Receptionist'
   });
 
+  const [clinicId, setClinicId] = useState('');
   const navigate = useNavigate();
+
+  // Load clinicId from localStorage when component mounts
+  useEffect(() => {
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        if (user.role === 'vet' && user.clinicId) {
+          setClinicId(user.clinicId);
+        } else {
+          Swal.fire('Access Denied', 'You must be a veterinarian with a clinic to add staff', 'error');
+          navigate('/vet/dashboard');
+        }
+      } else {
+        navigate('/login');
+      }
+    } catch (err) {
+      console.error('Error reading user from localStorage:', err);
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async () => {
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.veterinaryId) {
-      Swal.fire('Error', 'Please fill all required fields', 'error');
-      return;
+const handleSubmit = async () => {
+  // Validation
+  const required = ['firstName', 'lastName', 'email', 'password'];
+  if (formData.staffType === 'veterinarian') {
+    required.push('veterinaryId');
+  }
+
+  const missing = required.filter(field => !formData[field]?.trim());
+  if (missing.length > 0) {
+    Swal.fire('Missing Fields', 'Please fill all required fields', 'warning');
+    return;
+  }
+
+  if (!clinicId) {
+    Swal.fire('Error', 'Clinic information not found. Please log in again.', 'error');
+    return;
+  }
+
+  try {
+    // Common base payload — ALWAYS include clinicId and staffType
+    const basePayload = {
+      staffType: formData.staffType,           // ← CRITICAL: Always send this
+      clinicId,
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
+      email: formData.email.toLowerCase().trim(),
+      password: formData.password,
+      phoneNumber: formData.phoneNumber?.trim() || ''
+    };
+
+    let payload;
+
+    if (formData.staffType === 'veterinarian') {
+      payload = {
+        ...basePayload,
+        veterinaryId: formData.veterinaryId.trim(),
+        specialization: formData.specialization?.trim() || '',
+        accessLevel: formData.accessLevel
+      };
+    } else {
+      payload = {
+        ...basePayload,
+        role: formData.role
+      };
     }
 
-    try {
-      await api.post('/vets/subaccount', formData);
+    // Use the unified endpoint for both types
+    const response = await api.post('/clinics/staff', payload);
 
-      Swal.fire({
-        title: 'Success!',
-        text: `Dr. ${formData.firstName} ${formData.lastName} has been added to your clinic staff.`,
-        icon: 'success',
-        timer: 3000,
-        showConfirmButton: false
-      });
+    const title = formData.staffType === 'veterinarian'
+      ? `Dr. ${formData.firstName} ${formData.lastName}`
+      : `${formData.firstName} ${formData.lastName} (${formData.role})`;
 
-      navigate('/vet/clinic-staff');
-    } catch (error) {
-      Swal.fire('Error!', error.response?.data?.message || 'Could not add staff member', 'error');
-    }
-  };
+    Swal.fire({
+      title: 'Success!',
+      text: `${title} has been successfully added to your clinic.`,
+      icon: 'success',
+      timer: 3500,
+      showConfirmButton: false
+    });
+
+    navigate('/vet/staff');
+  } catch (error) {
+    console.error('Error adding staff:', error);
+    const message = error.response?.data?.message || 'Failed to add staff member.';
+    Swal.fire('Error!', message, 'error');
+  }
+};
+
+  const isVet = formData.staffType === 'veterinarian';
 
   return (
     <PageContainer>
@@ -151,7 +223,7 @@ const AddNewStaff = () => {
               Add New Clinic Staff
             </HeaderTitle>
             <HeaderSubtitle>
-              Invite a new veterinarian to join your clinic team
+              Add a veterinarian or other team member to your clinic
             </HeaderSubtitle>
           </CardHeader>
 
@@ -163,19 +235,40 @@ const AddNewStaff = () => {
               Back to Staff List
             </BackButton>
 
-            {/* Bootstrap Grid Layout + Material UI Fields */}
+            {/* Staff Type Selector */}
+            <div className="row g-4 mb-5">
+              <div className="col-12 col-md-6 offset-md-3">
+                <FormControl fullWidth>
+                  <InputLabel>Staff Type</InputLabel>
+                  <Select
+                    name="staffType"
+                    value={formData.staffType}
+                    onChange={handleChange}
+                    label="Staff Type"
+                  >
+                    <MenuItem value="veterinarian">Veterinarian</MenuItem>
+                    <MenuItem value="receptionist">Receptionist</MenuItem>
+                    <MenuItem value="vetTech">Veterinary Technician</MenuItem>
+                    <MenuItem value="manager">Clinic Manager</MenuItem>
+                    <MenuItem value="assistant">Assistant / Kennel Staff</MenuItem>
+                  </Select>
+                </FormControl>
+              </div>
+            </div>
+
+            {/* Main Form */}
             <div className="row g-4">
-              {/* LEFT COLUMN - 4 Fields */}
+              {/* Left Column */}
               <div className="col-12 col-lg-6">
                 <div className="row g-4">
                   <div className="col-12">
-                    <TextField fullWidth label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required />
+                    <TextField fullWidth label="First Name *" name="firstName" value={formData.firstName} onChange={handleChange} required />
                   </div>
                   <div className="col-12">
-                    <TextField fullWidth label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required />
+                    <TextField fullWidth label="Last Name *" name="lastName" value={formData.lastName} onChange={handleChange} required />
                   </div>
                   <div className="col-12">
-                    <TextField fullWidth label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} required />
+                    <TextField fullWidth label="Email Address *" name="email" type="email" value={formData.email} onChange={handleChange} required />
                   </div>
                   <div className="col-12">
                     <TextField fullWidth label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} />
@@ -183,40 +276,57 @@ const AddNewStaff = () => {
                 </div>
               </div>
 
-              {/* RIGHT COLUMN - 4 Fields */}
+              {/* Right Column */}
               <div className="col-12 col-lg-6">
                 <div className="row g-4">
                   <div className="col-12">
-                    <TextField fullWidth label="Password" name="password" type="password" value={formData.password} onChange={handleChange} required />
+                    <TextField fullWidth label="Password *" name="password" type="password" value={formData.password} onChange={handleChange} required />
                   </div>
-                  <div className="col-12">
-                    <TextField fullWidth label="Veterinary License ID" name="veterinaryId" value={formData.veterinaryId} onChange={handleChange} required />
-                  </div>
-                  <div className="col-12">
-                    <TextField fullWidth label="Specialization (e.g., Surgery, Dermatology)" name="specialization" value={formData.specialization} onChange={handleChange} />
-                  </div>
-                  <div className="col-12">
-                    <FormControl fullWidth>
-                      <InputLabel>Access Level</InputLabel>
-                      <Select
-                        name="accessLevel"
-                        value={formData.accessLevel}
-                        onChange={handleChange}
-                        label="Access Level"
-                      >
-                        <MenuItem value="Normal Access">Normal Access</MenuItem>
-                        <MenuItem value="Full Access">Full Access</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </div>
+
+                  {/* Veterinarian Fields */}
+                  {isVet && (
+                    <>
+                      <div className="col-12">
+                        <TextField fullWidth label="Veterinary License ID *" name="veterinaryId" value={formData.veterinaryId} onChange={handleChange} required />
+                      </div>
+                      <div className="col-12">
+                        <TextField fullWidth label="Specialization (e.g., Surgery, Dermatology)" name="specialization" value={formData.specialization} onChange={handleChange} />
+                      </div>
+                      <div className="col-12">
+                        <FormControl fullWidth>
+                          <InputLabel>Vet Access Level</InputLabel>
+                          <Select name="accessLevel" value={formData.accessLevel} onChange={handleChange} label="Vet Access Level">
+                            <MenuItem value="Normal Access">Normal Access</MenuItem>
+                            <MenuItem value="Full Access">Full Access</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Non-Vet Role */}
+                  {!isVet && (
+                    <div className="col-12">
+                      <FormControl fullWidth>
+                        <InputLabel>Staff Role</InputLabel>
+                        <Select name="role" value={formData.role} onChange={handleChange} label="Staff Role">
+                          <MenuItem value="Receptionist">Receptionist</MenuItem>
+                          <MenuItem value="Vet Tech">Veterinary Technician</MenuItem>
+                          <MenuItem value="Manager">Clinic Manager</MenuItem>
+                          <MenuItem value="Assistant">Assistant</MenuItem>
+                          <MenuItem value="Kennel Staff">Kennel Staff</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Centered Submit Button */}
+            {/* Submit Button */}
             <Box sx={{ textAlign: 'center', mt: { xs: 6, md: 8 } }}>
               <SubmitButton onClick={handleSubmit}>
-                Add Staff Member
+                Add {isVet ? 'Veterinarian' : 'Staff Member'}
               </SubmitButton>
             </Box>
           </CardBody>

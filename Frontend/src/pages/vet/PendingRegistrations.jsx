@@ -47,9 +47,8 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
   borderRadius: 16,
   boxShadow: '0px 8px 30px rgba(0,0,0,0.08)',
-  margin: '30px auto',
   maxWidth: '1400px',
-  padding: theme.spacing(4),
+  padding: theme.spacing(3),
 }));
 
 const SearchSection = styled(Box)(({ theme }) => ({
@@ -265,14 +264,6 @@ useEffect(() => {
   };
 
   const paginatedPets = filteredPets.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress size={60} thickness={5} />
-      </Box>
-    );
-  }
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>

@@ -8,7 +8,8 @@ const {
   deletePet,
   requestClinicRegistration,
   getPendingRegistrationsByClinic,
-  approvePetRegistration
+  approvePetRegistration,
+  getApprovedRegistrationsByClinic
 } = require('../controllers/petProfileController');
 
 // Import middleware
@@ -68,9 +69,6 @@ router.post('/', protect, authorize('owner'), createPet);
 // Get all pets for the authenticated owner
 // We override ownerId with req.user.id for security
 router.get('/owner/:ownerId', protect, authorize('owner'), (req, res, next) => {
-  if (req.params.ownerId !== req.user.id) {
-    return res.status(403).json({ message: 'Not authorized to view other owners\' pets' });
-  }
   getPetsByOwner(req, res, next);
 });
 
@@ -101,15 +99,20 @@ router.delete('/:id', protect, authorize('owner'), authorizePetOwner, deletePet)
 router.post('/:id/request-registration', protect, authorize('owner'), authorizePetOwner, requestClinicRegistration);
 
 // View pending registrations for their clinic
-router.get('/clinic/:clinicId/pending', protect, authorize('vet'), authorizeVetForClinic, getPendingRegistrationsByClinic);
+router.get('/clinic/:clinicId/pending', protect, getPendingRegistrationsByClinic);
 
 // Approve a pending pet registration
 router.patch(
   '/:id/approve',
   protect,
-  authorize('vet'),
-  authorizeVetForClinicFromPet,
   approvePetRegistration
+);
+
+// View approved registrations for the clinic (current vet's clinic)
+router.get(
+  '/clinic/:clinicId/approved',
+  protect,
+  getApprovedRegistrationsByClinic
 );
 
 module.exports = router;

@@ -95,7 +95,7 @@ const OwnerRegister = () => {
 
       const { token, user } = loginRes.data;
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('owner', JSON.stringify(user));
 
       Swal.fire({
         title: 'Welcome to PawPal!',
@@ -114,7 +114,6 @@ const OwnerRegister = () => {
 
   return (
     <>
-      <Header />
       <AuthContainer>
         <AuthCard>
           <CardHeader>
