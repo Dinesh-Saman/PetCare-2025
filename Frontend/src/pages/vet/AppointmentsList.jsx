@@ -288,14 +288,6 @@ const VetAppointmentsList = () => {
     page * rowsPerPage + rowsPerPage
   );
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Typography variant="h5">Loading your appointments...</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       <Sidebar />

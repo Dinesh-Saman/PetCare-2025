@@ -306,7 +306,7 @@ const VetRegister = () => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      navigate('/vet/dashboard');
+      navigate('/vet/login');
     } catch (error) {
       Swal.fire('Error', error.response?.data?.message || 'Registration failed', 'error');
     } finally {

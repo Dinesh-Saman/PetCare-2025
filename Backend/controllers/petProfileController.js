@@ -1,6 +1,7 @@
 const PetProfile = require('../models/PetProfile');
 const PetOwner = require('../models/PetOwner');
 const Clinic = require('../models/Clinic');
+const Veterinarian = require('../models/Veterinarian');
 
 // Create a new pet profile (Pet Owner only)
 exports.createPet = async (req, res) => {
@@ -349,6 +350,149 @@ exports.getApprovedRegistrationsByClinic = async (req, res) => {
     console.error('Error fetching approved registrations:', error);
     res.status(500).json({
       message: 'Error fetching approved pet registrations',
+      error: error.message
+    });
+  }
+};
+
+// Get ONLY the count of approved registered pets for a clinic
+// Ideal for dashboard stats — fast and lightweight
+exports.getRegisteredPetsCountByClinic = async (req, res) => {
+  try {
+    const { clinicId } = req.params;
+
+    // === Security: Only allow vets from this clinic ===
+    if (!req.user || req.user.role !== 'vet') {
+      return res.status(403).json({
+        message: 'Access denied: Only veterinarians can access this data'
+      });
+    }
+
+    const vet = await Veterinarian.findById(req.user.id);
+    if (!vet || !vet.clinicId || vet.clinicId.toString() !== clinicId) {
+      return res.status(403).json({
+        message: 'You do not have permission to view stats for this clinic'
+      });
+    }
+
+    // Optional: Verify clinic exists
+    const clinicExists = await Clinic.findById(clinicId);
+    if (!clinicExists) {
+      return res.status(404).json({ message: 'Clinic not found' });
+    }
+
+    // Count only approved, non-deleted pets
+    const count = await PetProfile.countDocuments({
+      registeredClinicId: clinicId,
+      registrationStatus: 'Approved',
+      isDeleted: { $ne: true }
+    });
+
+    res.status(200).json({
+      message: 'Registered pets count retrieved successfully',
+      clinicId,
+      totalRegisteredPets: count
+    });
+
+  } catch (error) {
+    console.error('Error in getRegisteredPetsCountByClinic:', error);
+    res.status(500).json({
+      message: 'Error fetching registered pets count',
+      error: error.message
+    });
+  }
+};
+
+// Get ONLY the count of pending pet registrations for a clinic
+// Ideal for dashboard stats — fast and lightweight
+exports.getPendingRegistrationsCountByClinic = async (req, res) => {
+  try {
+    const { clinicId } = req.params;
+
+    // === Security: Only allow vets from this clinic ===
+    if (!req.user || req.user.role !== 'vet') {
+      return res.status(403).json({
+        message: 'Access denied: Only veterinarians can access this data'
+      });
+    }
+
+    const vet = await Veterinarian.findById(req.user.id);
+    if (!vet || !vet.clinicId || vet.clinicId.toString() !== clinicId) {
+      return res.status(403).json({
+        message: 'You do not have permission to view stats for this clinic'
+      });
+    }
+
+    // Optional: Verify clinic exists
+    const clinicExists = await Clinic.findById(clinicId);
+    if (!clinicExists) {
+      return res.status(404).json({ message: 'Clinic not found' });
+    }
+
+    // Count only pending registrations
+    const count = await PetProfile.countDocuments({
+      registeredClinicId: clinicId,
+      registrationStatus: 'Pending',
+      isDeleted: { $ne: true }
+    });
+
+    res.status(200).json({
+      message: 'Pending registrations count retrieved successfully',
+      clinicId,
+      totalPendingRegistrations: count
+    });
+
+  } catch (error) {
+    console.error('Error in getPendingRegistrationsCountByClinic:', error);
+    res.status(500).json({
+      message: 'Error fetching pending registrations count',
+      error: error.message
+    });
+  }
+};
+
+// Reject pet registration (Vet only - for their clinic)
+exports.rejectPetRegistration = async (req, res) => {
+  try {
+    const { id } = req.params; // petId
+    const { reason } = req.body; // Optional rejection reason
+
+    // Find the pet and ensure it's pending in the vet's clinic
+    const pet = await PetProfile.findOne({
+      _id: id,
+      registeredClinicId: req.user.clinicId,
+      registrationStatus: 'Pending'
+    });
+
+    if (!pet) {
+      return res.status(404).json({
+        message: 'Pet not found or not pending registration in your clinic'
+      });
+    }
+
+    // Update status to Rejected and optionally add rejection reason
+    pet.registrationStatus = 'Rejected';
+    if (reason && reason.trim()) {
+      pet.notes = pet.notes 
+        ? `${pet.notes}\n\n[Rejected on ${new Date().toLocaleDateString()}] Reason: ${reason.trim()}`
+        : `[Rejected on ${new Date().toLocaleDateString()}] Reason: ${reason.trim()}`;
+    }
+
+    await pet.save();
+
+    // Populate for clean response
+    await pet.populate('ownerId', 'firstName lastName email phoneNumber');
+    await pet.populate('registeredClinicId', 'name');
+
+    res.status(200).json({
+      message: 'Pet registration rejected successfully',
+      pet
+    });
+
+  } catch (error) {
+    console.error('Error rejecting pet registration:', error);
+    res.status(500).json({
+      message: 'Error rejecting registration',
       error: error.message
     });
   }

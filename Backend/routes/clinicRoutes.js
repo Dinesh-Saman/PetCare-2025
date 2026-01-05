@@ -11,8 +11,9 @@ const {
   searchClinics,
   getAllClinics,
   getMyClinic,
-  getClinicStaff,     // ← your new method
-  addClinicStaff
+  getClinicStaff,   
+  addClinicStaff,
+  getClinicStaffCount
 } = require('../controllers/clinicController');
 
 const { protect, authorize, authorizeVetAccess } = require('../middleware/auth');
@@ -23,7 +24,7 @@ router.get('/search', searchClinics);
 router.get('/', getAllClinics);
 
 // === Protected Vet Routes ===
-router.get('/my', protect, authorize('vet'), getMyClinic);
+router.get('/my', protect, getMyClinic);
 
 // STAFF ROUTES - MUST COME BEFORE /:id !!!
 router.get('/staff', protect, authorize('vet'), authorizeVetAccess('Primary', 'Full Access'), getClinicStaff);
@@ -31,9 +32,16 @@ router.post('/staff', protect, authorize('vet'), authorizeVetAccess('Primary', '
 
 // === Clinic CRUD - :id routes LAST ===
 router.get('/:id', getClinicById);                    // Now only matches real ObjectIds
-//router.put('/:id', protect, authorize('vet'), authorizeClinicPrimaryVet, updateClinic);
+router.put('/:id', updateClinic);
 //router.delete('/:id', protect, authorize('vet'), authorizeClinicPrimaryVet, deleteClinic);
 
 router.post('/', protect, authorize('vet'), createClinic);
+
+// routes/clinicRoutes.js
+router.get(
+  '/:clinicId/staff-count',
+  protect,
+  getClinicStaffCount
+);
 
 module.exports = router;

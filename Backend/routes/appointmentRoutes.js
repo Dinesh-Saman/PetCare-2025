@@ -8,7 +8,8 @@ const {
   updateAppointment,
   cancelAppointment,
   confirmAppointment,
-  getAppointmentById
+  getAppointmentById,
+  getTodayAppointmentsCountByVet
 } = require('../controllers/appointmentController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -32,13 +33,20 @@ const allowCancel = (req, res, next) => {
 router.post('/book', protect, authorize('owner'), bookAppointment);
 
 // Get appointments by pet (owner only)
-router.get('/pet/:petId', protect, authorize('owner'), getAppointmentsByPet);
+router.get('/pet/:petId', protect, getAppointmentsByPet);
 
 // Get single appointment (authenticated user)
 router.get('/:id', protect, getAppointmentById);
 
 // Vet routes
 router.get('/vet/:vetId', protect, getAppointmentsByVet);
+
+// routes/appointmentRoutes.js
+router.get(
+  '/vet/:vetId/today-count',
+  protect,
+  getTodayAppointmentsCountByVet
+);
 //router.get('/clinic/:clinicId/upcoming', protect, authorize('vet'), getUpcomingAppointmentsByClinic);
 
 // Update appointment (vet only)

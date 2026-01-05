@@ -537,3 +537,62 @@ exports.getClinicStaff = async (req, res) => {
     });
   }
 };
+
+// Get ONLY the total count of active clinic staff (vets + non-vet staff)
+// Fast and lightweight — ideal for dashboard stats
+exports.getClinicStaffCount = async (req, res) => {
+  try {
+    const { clinicId } = req.params;
+
+    // === Security: Only allow vets from this clinic ===
+    if (!req.user || req.user.role !== 'vet') {
+      return res.status(403).json({
+        message: 'Access denied: Only veterinarians can access this data'
+      });
+    }
+
+    const vet = await Veterinarian.findById(req.user.id);
+    if (!vet || !vet.clinicId || vet.clinicId.toString() !== clinicId) {
+      return res.status(403).json({
+        message: 'You do not have permission to view staff stats for this clinic'
+      });
+    }
+
+    // Optional: Verify clinic exists
+    const clinicExists = await Clinic.findById(clinicId);
+    if (!clinicExists) {
+      return res.status(404).json({ message: 'Clinic not found' });
+    }
+
+    // Count active veterinarians
+    const vetCount = await Veterinarian.countDocuments({
+      clinicId,
+      status: 'Active'
+    });
+
+    // Count active non-vet staff
+    const staffCount = await ClinicStaff.countDocuments({
+      clinicId,
+      status: 'Active'
+    });
+
+    const totalStaff = vetCount + staffCount;
+
+    res.status(200).json({
+      message: 'Clinic staff count retrieved successfully',
+      clinicId,
+      totalStaff,
+      breakdown: {
+        veterinarians: vetCount,
+        nonVetStaff: staffCount
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in getClinicStaffCount:', error);
+    res.status(500).json({
+      message: 'Error fetching clinic staff count',
+      error: error.message
+    });
+  }
+};

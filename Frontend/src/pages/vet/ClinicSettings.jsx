@@ -1,119 +1,135 @@
+// src/pages/vet/ClinicList.jsx
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/layout/Sidebar';
-import Header from '../../components/layout/Header';
 import {
-  Box, Typography, TextField, Button, Grid, Card, CardContent, Paper,
-  InputAdornment, Chip
+  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, TextField, MenuItem, FormControl, Select, InputLabel, TablePagination,
+  IconButton, Collapse, Grid, Card, CardContent, CardHeader, Chip
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import DescriptionIcon from '@mui/icons-material/Description';
-import BusinessIcon from '@mui/icons-material/Business';
 import EditIcon from '@mui/icons-material/Edit';
+import BusinessIcon from '@mui/icons-material/Business';
+import DescriptionIcon from '@mui/icons-material/Description';
+import ClinicEdit from '../vet/ClinicEdit';
 
-const PageContainer = styled(Box)(({ theme }) => ({
-  minHeight: '100vh',
-  backgroundColor: '#f5f7fa',
-}));
+// Styled Components — matching your VetAppointmentsList perfectly
+const CustomPagination = ({ count, page, rowsPerPage, onPageChange }) => (
+  <TablePagination
+    component="div"
+    count={count}
+    page={page}
+    rowsPerPage={rowsPerPage}
+    onPageChange={onPageChange}
+    rowsPerPageOptions={[]}
+    labelRowsPerPage=""
+  />
+);
 
-const ContentWrapper = styled(Box)(({ theme }) => ({
+const ContentContainer = styled(Box)(({ theme }) => ({
+  backgroundColor: 'white',
+  borderRadius: 12,
+  boxShadow: '0px 0px 15px rgba(0,0,0,0.1)',
+  flex: 1,
+  margin: '20px',
+  padding: '30px',
   display: 'flex',
   flexDirection: 'column',
-  flexGrow: 1,
 }));
 
-const ContentArea = styled(Box)(({ theme }) => ({
-  padding: '40px',
-  flexGrow: 1,
+const SearchSection = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 30,
+  flexWrap: 'wrap',
+  gap: 20,
 }));
 
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  fontFamily: 'Georgia, serif',
-  fontWeight: 700,
-  color: '#49149eff',
-  textAlign: 'center',
-  marginBottom: 40,
-  fontSize: '2.8rem',
+const TableRowStyled = styled(TableRow)(({ theme }) => ({
+  backgroundColor: '#f9f9f9',
+  '&:hover': { backgroundColor: '#f1f1f1' },
+  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+  borderRadius: 12,
+  marginBottom: 10,
 }));
 
-const ClinicListCard = styled(Card)(({ theme }) => ({
-  borderRadius: 16,
-  boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: '0 16px 50px rgba(142, 36, 170, 0.2)',
-  },
-}));
+const TableHeadRow = styled(TableRow)({
+  backgroundColor: '#e08c0eff',
+});
 
-const SelectedClinicCard = styled(Card)(({ theme }) => ({
-  borderRadius: 16,
-  boxShadow: '0 12px 40px rgba(142, 36, 170, 0.15)',
-  overflow: 'hidden',
-  border: '3px solid #8e24aa',
-}));
-
-const CardHeader = styled(Box)(({ theme }) => ({
-  background: 'linear-gradient(90deg, #8e24aa, #ab47bc)',
+const TableHeadCell = styled(TableCell)({
   color: 'white',
-  padding: 24,
+  fontWeight: 'bold',
+  fontSize: '1rem',
+});
+
+const DetailsCard = styled(Card)(({ theme }) => ({
+  margin: theme.spacing(3, 0),
+  borderRadius: 12,
+  boxShadow: '0 6px 20px rgba(0,0,0,0.08)',
+}));
+
+const CardHeaderStyled = styled(CardHeader)(({ bgcolor }) => ({
+  backgroundColor: bgcolor || '#8e24aa',
+  color: 'white',
+  padding: 16,
+  borderTopLeftRadius: 12,
+  borderTopRightRadius: 12,
+}));
+
+const InfoRow = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  gap: 16,
+  margin: theme.spacing(2, 0),
+  '& svg': { marginRight: 12, color: '#8e24aa', fontSize: 28 },
 }));
 
-const SaveButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(90deg, #4caf50, #66bb6a)',
-  color: 'white',
-  padding: '14px 40px',
-  borderRadius: 30,
+const InfoLabel = styled(Typography)({
   fontWeight: 'bold',
-  fontSize: '1.1rem',
-  textTransform: 'none',
-  boxShadow: '0 6px 20px rgba(76, 175, 80, 0.3)',
-  '&:hover': {
-    background: 'linear-gradient(90deg, #388e3c, #4caf50)',
-    transform: 'translateY(-2px)',
-  },
-}));
+  color: '#555',
+  minWidth: 140,
+});
 
-const ClinicSettings = () => {
+const InfoValue = styled(Typography)({
+  color: '#333',
+});
+
+const ClinicList = () => {
   const [clinics, setClinics] = useState([]);
-  const [selectedClinic, setSelectedClinic] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    phoneNumber: '',
-    operatingHours: '',
-    description: '',
-    location: { lng: '', lat: '' }
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage] = useState(10);
+  const [expandedRow, setExpandedRow] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchClinics = async () => {
       try {
-        // This endpoint should return all clinics the vet has access to
-        const response = await api.get('/clinics/my'); // You'll create this backend route
-        const clinicsData = response.data.clinics || response.data || [];
-        
-        setClinics(clinicsData);
+        setLoading(true);
+        const response = await api.get('/clinics/my'); // Gets vet's clinics
 
-        // Auto-select first clinic if exists
-        if (clinicsData.length > 0 && !selectedClinic) {
-          handleSelectClinic(clinicsData[0]);
+        let clinicsData = [];
+        if (response.data.clinics) {
+          clinicsData = response.data.clinics;
+        } else if (Array.isArray(response.data)) {
+          clinicsData = response.data;
         }
 
-        setLoading(false);
+        setClinics(clinicsData);
       } catch (error) {
         console.error('Error fetching clinics:', error);
         Swal.fire('Error', 'Could not load your clinics', 'error');
+        setClinics([]);
+      } finally {
         setLoading(false);
       }
     };
@@ -121,287 +137,179 @@ const ClinicSettings = () => {
     fetchClinics();
   }, []);
 
-  const handleSelectClinic = (clinic) => {
-    setSelectedClinic(clinic);
-    setFormData({
-      name: clinic.name || '',
-      address: clinic.address || '',
-      phoneNumber: clinic.phoneNumber || '',
-      operatingHours: clinic.operatingHours || '',
-      description: clinic.description || '',
-      location: {
-        lng: clinic.location?.coordinates[0] || '',
-        lat: clinic.location?.coordinates[1] || ''
-      }
-    });
+  const handleExpandRow = (id) => {
+    setExpandedRow(expandedRow === id ? null : id);
   };
 
-  const handleInputChange = (field) => (e) => {
-    if (field.startsWith('location.')) {
-      const locField = field.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        location: { ...prev.location, [locField]: e.target.value }
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, [field]: e.target.value }));
-    }
+  const handleEdit = (clinicId) => {
+    navigate(`/vet/clinic-edit/${clinicId}`);
   };
 
-const handleSave = async () => {
-  if (!formData.name || !formData.address || !formData.phoneNumber) {
-    Swal.fire('Validation Error', 'Name, address, and phone number are required', 'warning');
-    return;
+  // Search filter
+  const filteredClinics = clinics.filter(clinic =>
+    clinic.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    clinic.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    clinic.phoneNumber?.includes(searchQuery)
+  );
+
+  const paginatedClinics = filteredClinics.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <Typography variant="h5">Loading your clinics...</Typography>
+      </Box>
+    );
   }
-
-  setSaving(true);
-
-  try {
-    const updateData = {
-      name: formData.name.trim(),
-      address: formData.address.trim(),
-      phoneNumber: formData.phoneNumber.trim(),
-      operatingHours: formData.operatingHours.trim(),
-      description: formData.description.trim(),
-    };
-
-    if (formData.location.lng && formData.location.lat) {
-      updateData.location = {
-        type: 'Point',
-        coordinates: [
-          parseFloat(formData.location.lng),
-          parseFloat(formData.location.lat)
-        ]
-      };
-    }
-
-    // ← CHANGE THIS LINE: patch → put
-    await api.put(`/clinics/${selectedClinic._id}`, updateData);
-
-    // Update local state
-    setClinics(prev => prev.map(c => 
-      c._id === selectedClinic._id ? { ...c, ...updateData } : c
-    ));
-    setSelectedClinic(prev => ({ ...prev, ...updateData }));
-
-    Swal.fire('Saved!', 'Clinic settings updated successfully', 'success');
-  } catch (error) {
-    console.error('Error saving clinic:', error);
-    Swal.fire('Error', error.response?.data?.message || 'Could not save changes', 'error');
-  } finally {
-    setSaving(false);
-  }
-};
 
   return (
-    <PageContainer sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       <Sidebar />
-      <ContentWrapper>
-        <ContentArea>
-          <SectionTitle variant="h4">
-            My Clinics
-          </SectionTitle>
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <ContentContainer>
+          <SearchSection>
+            <Typography variant="h4" sx={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: '#49149eff' }}>
+              My Clinics
+            </Typography>
 
-          {clinics.length === 0 ? (
-            <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 20 }}>
-              <BusinessIcon sx={{ fontSize: 100, color: '#ccc', mb: 3 }} />
-              <Typography variant="h5" color="textSecondary" gutterBottom>
-                No clinics yet
-              </Typography>
-              <Typography variant="body1" color="textSecondary">
-                Create your first clinic to get started!
-              </Typography>
-            </Paper>
-          ) : (
-            <Grid container spacing={4}>
-              {/* Clinic List */}
-              <Grid item xs={12} md={4}>
-                <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: '#8e24aa', mb: 2 }}>
-                  Select a Clinic to Edit
-                </Typography>
-                {clinics.map((clinic) => (
-                  <ClinicListCard
-                    key={clinic._id}
-                    onClick={() => handleSelectClinic(clinic)}
-                    sx={{
-                      mb: 2,
-                      border: selectedClinic?._id === clinic._id ? '3px solid #8e24aa' : 'none'
-                    }}
-                  >
-                    <CardContent>
-                      <Typography variant="h6" fontWeight="bold">
-                        {clinic.name}
+            <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+              <TextField
+                variant="outlined"
+                placeholder="Search by name, address, or phone"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{ width: 350, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+              />
+            </Box>
+          </SearchSection>
+
+          <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+            <Table>
+              <TableHead>
+                <TableHeadRow>
+                  <TableHeadCell></TableHeadCell>
+                  <TableHeadCell>Clinic Name</TableHeadCell>
+                  <TableHeadCell>Address</TableHeadCell>
+                  <TableHeadCell>Phone</TableHeadCell>
+                  <TableHeadCell>Primary Vet</TableHeadCell>
+                  <TableHeadCell>Actions</TableHeadCell>
+                </TableHeadRow>
+              </TableHead>
+              <TableBody>
+                {paginatedClinics.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                      <BusinessIcon sx={{ fontSize: 80, color: '#ccc', mb: 2 }} />
+                      <Typography variant="h6" color="textSecondary">
+                        No clinics found
                       </Typography>
                       <Typography variant="body2" color="textSecondary">
-                        {clinic.address || 'Address not set'}
+                        Create your first clinic to get started
                       </Typography>
-                      <Box sx={{ mt: 1 }}>
-                        <Chip
-                          label={
-                            clinic.primaryVetId?.toString() === JSON.parse(localStorage.getItem('user') || '{}').id
-                              ? 'Primary Vet'
-                              : 'Staff Member'
-                          }
-                          color={
-                            clinic.primaryVetId?.toString() === JSON.parse(localStorage.getItem('user') || '{}').id
-                              ? 'secondary'
-                              : 'default'
-                          }
-                          size="small"r
-                        />
-                      </Box>
-                    </CardContent>
-                  </ClinicListCard>
-                ))}
-              </Grid>
-
-              {/* Edit Form */}
-              <Grid item xs={12} md={8}>
-                {selectedClinic ? (
-                  <SelectedClinicCard>
-                    <CardHeader>
-                      <BusinessIcon sx={{ fontSize: 40 }} />
-                      <Box>
-                        <Typography variant="h5" fontWeight="bold">
-                          {selectedClinic.name}
-                        </Typography>
-                        <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                          Edit clinic information
-                        </Typography>
-                      </Box>
-                      <EditIcon sx={{ fontSize: 32, ml: 'auto' }} />
-                    </CardHeader>
-
-                    <CardContent sx={{ pt: 6 }}>
-                      <Grid container spacing={4}>
-                        <Grid item xs={12} md={6}>
-                          <TextField
-                            fullWidth
-                            label="Clinic Name"
-                            value={formData.name}
-                            onChange={handleInputChange('name')}
-                            required
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <BusinessIcon color="action" />
-                                </InputAdornment>
-                              ),
-                            }}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12} md={6}>
-                          <TextField
-                            fullWidth
-                            label="Phone Number"
-                            value={formData.phoneNumber}
-                            onChange={handleInputChange('phoneNumber')}
-                            required
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <PhoneIcon color="action" />
-                                </InputAdornment>
-                              ),
-                            }}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12}>
-                          <TextField
-                            fullWidth
-                            label="Address"
-                            value={formData.address}
-                            onChange={handleInputChange('address')}
-                            multiline
-                            rows={3}
-                            required
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
-                                  <LocationOnIcon color="action" />
-                                </InputAdornment>
-                              ),
-                            }}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12}>
-                          <TextField
-                            fullWidth
-                            label="Operating Hours"
-                            value={formData.operatingHours}
-                            onChange={handleInputChange('operatingHours')}
-                            placeholder="e.g., Mon-Fri: 9AM-6PM, Sat: 10AM-4PM"
-                            multiline
-                            rows={2}
-                          />
-                        </Grid>
-
-                        <Grid item xs={12}>
-                          <TextField
-                            fullWidth
-                            label="Clinic Description"
-                            value={formData.description}
-                            onChange={handleInputChange('description')}
-                            multiline
-                            rows={4}
-                            placeholder="Tell pet owners about your clinic..."
-                          />
-                        </Grid>
-
-                        <Grid item xs={12}>
-                          <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: '#8e24aa' }}>
-                            Clinic Location (Optional)
-                          </Typography>
-                          <Grid container spacing={3}>
-                            <Grid item xs={12} sm={6}>
-                              <TextField
-                                fullWidth
-                                label="Longitude"
-                                value={formData.location.lng}
-                                onChange={handleInputChange('location.lng')}
-                                type="number"
-                                step="any"
-                              />
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                              <TextField
-                                fullWidth
-                                label="Latitude"
-                                value={formData.location.lat}
-                                onChange={handleInputChange('location.lat')}
-                                type="number"
-                                step="any"
-                              />
-                            </Grid>
-                          </Grid>
-                        </Grid>
-                      </Grid>
-
-                      <Box sx={{ textAlign: 'center', mt: 6 }}>
-                        <SaveButton onClick={handleSave} disabled={saving}>
-                          {saving ? 'Saving...' : 'Save Changes'}
-                        </SaveButton>
-                      </Box>
-                    </CardContent>
-                  </SelectedClinicCard>
+                    </TableCell>
+                  </TableRow>
                 ) : (
-                  <Paper sx={{ p: 8, textAlign: 'center', borderRadius: 20 }}>
-                    <BusinessIcon sx={{ fontSize: 80, color: '#ccc', mb: 3 }} />
-                    <Typography variant="h6" color="textSecondary">
-                      Select a clinic from the list to edit
-                    </Typography>
-                  </Paper>
+                  paginatedClinics.map((clinic) => (
+                    <React.Fragment key={clinic._id}>
+                      <TableRowStyled>
+                        <TableCell>
+                          <IconButton onClick={() => handleExpandRow(clinic._id)}>
+                            <ExpandMoreIcon
+                              sx={{
+                                transform: expandedRow === clinic._id ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: '0.3s'
+                              }}
+                            />
+                          </IconButton>
+                        </TableCell>
+                        <TableCell>
+                          <Typography fontWeight="bold">{clinic.name}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <LocationOnIcon fontSize="small" color="action" />
+                            <Typography variant="body2">{clinic.address || 'Not set'}</Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <PhoneIcon fontSize="small" color="action" />
+                            <Typography>{clinic.phoneNumber || 'Not set'}</Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography fontWeight="bold">
+                            Dr. {clinic.primaryVetId?.firstName} {clinic.primaryVetId?.lastName}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            color="primary"
+                            onClick={() => handleEdit(clinic._id)}
+                            title="Edit Clinic"
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRowStyled>
+
+                      {/* Expanded Details */}
+                      <TableRow>
+                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                          <Collapse in={expandedRow === clinic._id} timeout="auto" unmountOnExit>
+                            <DetailsCard>
+                              <Grid container spacing={4}>
+                                <Grid item xs={12} md={6}>
+                                  <CardHeaderStyled bgcolor="#2196f3" title="Clinic Details" avatar={<BusinessIcon />} />
+                                  <CardContent>
+                                    <InfoRow>
+                                      <LocationOnIcon />
+                                      <InfoLabel>Full Address:</InfoLabel>
+                                      <InfoValue>{clinic.address || 'Not provided'}</InfoValue>
+                                    </InfoRow>
+                                    <InfoRow>
+                                      <PhoneIcon />
+                                      <InfoLabel>Phone:</InfoLabel>
+                                      <InfoValue>{clinic.phoneNumber || 'Not provided'}</InfoValue>
+                                    </InfoRow>
+                                    <InfoRow>
+                                      <AccessTimeIcon />
+                                      <InfoLabel>Operating Hours:</InfoLabel>
+                                      <InfoValue>{clinic.operatingHours || 'Not specified'}</InfoValue>
+                                    </InfoRow>
+                                  </CardContent>
+                                </Grid>
+
+                                <Grid item xs={12} md={6}>
+                                  <CardHeaderStyled bgcolor="#9c27b0" title="About Clinic" avatar={<DescriptionIcon />} />
+                                  <CardContent>
+                                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+                                      {clinic.description || 'No description provided yet.'}
+                                    </Typography>
+                                  </CardContent>
+                                </Grid>
+                              </Grid>
+                            </DetailsCard>
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  ))
                 )}
-              </Grid>
-            </Grid>
-          )}
-        </ContentArea>
-      </ContentWrapper>
-    </PageContainer>
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <CustomPagination
+            count={filteredClinics.length}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={(e, newPage) => setPage(newPage)}
+          />
+        </ContentContainer>
+      </Box>
+    </Box>
   );
 };
 
-export default ClinicSettings;
+export default ClinicList;

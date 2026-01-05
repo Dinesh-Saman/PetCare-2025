@@ -152,7 +152,7 @@ const Sidebar = () => {
       </Menu>
 
       <SignOutContainer>
-        <MenuItem to="/logout">
+        <MenuItem to="/vet/login">
           <Icon><FaSignOutAlt /></Icon>
           Sign Out
         </MenuItem>

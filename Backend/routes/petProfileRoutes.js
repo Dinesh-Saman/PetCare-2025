@@ -9,7 +9,10 @@ const {
   requestClinicRegistration,
   getPendingRegistrationsByClinic,
   approvePetRegistration,
-  getApprovedRegistrationsByClinic
+  getApprovedRegistrationsByClinic,
+  getRegisteredPetsCountByClinic,
+  getPendingRegistrationsCountByClinic,
+  rejectPetRegistration
 } = require('../controllers/petProfileController');
 
 // Import middleware
@@ -113,6 +116,27 @@ router.get(
   '/clinic/:clinicId/approved',
   protect,
   getApprovedRegistrationsByClinic
+);
+
+// routes/petProfileRoutes.js
+router.get(
+  '/clinic/:clinicId/registered-count',
+  protect,
+  getRegisteredPetsCountByClinic
+);
+
+// routes/petProfileRoutes.js
+router.get(
+  '/clinic/:clinicId/pending-count',
+  protect,
+  getPendingRegistrationsCountByClinic
+);
+
+// routes/petProfileRoutes.js
+router.patch(
+  '/:id/reject',
+  protect,
+  rejectPetRegistration
 );
 
 module.exports = router;

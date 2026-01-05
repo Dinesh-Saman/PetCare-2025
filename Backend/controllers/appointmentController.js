@@ -262,3 +262,52 @@ exports.getAppointmentById = async (req, res) => {
     });
   }
 };
+
+// Get ONLY the count of today's appointments for a vet
+// Fast and lightweight — ideal for dashboard stats
+exports.getTodayAppointmentsCountByVet = async (req, res) => {
+  try {
+    const { vetId } = req.params;
+
+    // === Security: Only allow the vet to see their own count ===
+    if (!req.user || req.user.role !== 'vet') {
+      return res.status(403).json({
+        message: 'Access denied: Only veterinarians can access this data'
+      });
+    }
+
+    if (req.user.id.toString() !== vetId) {
+      return res.status(403).json({
+        message: 'You can only view your own appointment stats'
+      });
+    }
+
+    // Define today's date range (00:00:00 to 23:59:59)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Count appointments that are not canceled/completed
+    const count = await Appointment.countDocuments({
+      vetId,
+      dateTime: { $gte: today, $lt: tomorrow },
+      status: { $nin: ['Canceled', 'Completed'] }
+    });
+
+    res.status(200).json({
+      message: "Today's appointments count retrieved successfully",
+      vetId,
+      todayDate: today.toISOString().split('T')[0],
+      todayAppointmentsCount: count
+    });
+
+  } catch (error) {
+    console.error('Error in getTodayAppointmentsCountByVet:', error);
+    res.status(500).json({
+      message: 'Error fetching today\'s appointments count',
+      error: error.message
+    });
+  }
+};

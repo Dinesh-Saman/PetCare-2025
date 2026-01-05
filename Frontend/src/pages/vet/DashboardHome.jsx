@@ -1,4 +1,6 @@
+// src/pages/vet/DashboardHome.jsx
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { 
   FaPaw, 
@@ -10,11 +12,12 @@ import {
   FaSyringe,
   FaUsers
 } from 'react-icons/fa';
-import { Typography, Box } from '@mui/material';
+import { Typography, Box, CircularProgress } from '@mui/material';
 import Sidebar from '../../components/layout/Sidebar';
-import Header from '../../components/layout/Header';
+import api from '../../services/api';
+import Swal from 'sweetalert2';
 
-// Styled Components — exactly matching AppointmentsList
+// Styled Components — unchanged and beautiful
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
   borderRadius: 12,
@@ -35,7 +38,6 @@ const SearchSection = styled(Box)(({ theme }) => ({
   gap: 20,
 }));
 
-// Page Title
 const PageTitle = styled(Typography)`
   && {
     font-family: 'Georgia', serif;
@@ -48,7 +50,6 @@ const PageTitle = styled(Typography)`
   }
 `;
 
-// Stats Grid
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -68,7 +69,6 @@ const StatsGrid = styled.div`
   }
 `;
 
-// Individual Stat Card — your original design preserved
 const StatCard = styled.div`
   background: white;
   border-radius: 16px;
@@ -128,7 +128,6 @@ const StatLabel = styled.div`
   line-height: 1.5;
 `;
 
-// Quick Actions
 const SectionTitle = styled(Typography)`
   && {
     font-family: 'Inter', sans-serif;
@@ -198,38 +197,139 @@ const ActionTitle = styled.div`
 `;
 
 const DashboardHome = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalPets: 0,
-    todayAppointments: 0,
     pendingRegistrations: 0,
+    todayAppointments: 0,
+    clinicStaff: 0,
     unreadMessages: 0,
     activePatients: 0,
     vaccinationsDue: 0,
-    clinicStaff: 0,
     todayRevenue: 0
+  });
+  const [loading, setLoading] = useState({
+    totalPets: true,
+    pendingRegistrations: true,
+    todayAppointments: true,
+    clinicStaff: true
   });
 
   useEffect(() => {
-    setStats({
-      totalPets: 1247,
-      todayAppointments: 18,
-      pendingRegistrations: 5,
+    const fetchDashboardStats = async () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+          Swal.fire('Error', 'User not found. Please log in again.', 'error');
+          return;
+        }
+
+        const user = JSON.parse(userData);
+        const clinicId = user.clinicId;
+        const vetId = user.id;
+
+        if (!clinicId || !vetId) {
+          Swal.fire('Error', 'Missing clinic or vet information.', 'error');
+          return;
+        }
+
+        // 1. Registered Pets Count
+        try {
+          const regResponse = await api.get(`/pets/clinic/${clinicId}/registered-count`);
+          setStats(prev => ({ ...prev, totalPets: regResponse.data.totalRegisteredPets || 0 }));
+        } catch (err) {
+          console.error('Failed to fetch registered pets:', err);
+          setStats(prev => ({ ...prev, totalPets: 0 }));
+        } finally {
+          setLoading(prev => ({ ...prev, totalPets: false }));
+        }
+
+        // 2. Pending Registrations Count
+        try {
+          const pendingResponse = await api.get(`/pets/clinic/${clinicId}/pending-count`);
+          setStats(prev => ({ ...prev, pendingRegistrations: pendingResponse.data.totalPendingRegistrations || 0 }));
+        } catch (err) {
+          console.error('Failed to fetch pending registrations:', err);
+          setStats(prev => ({ ...prev, pendingRegistrations: 0 }));
+        } finally {
+          setLoading(prev => ({ ...prev, pendingRegistrations: false }));
+        }
+
+        // 3. Today's Appointments Count
+        try {
+          const apptResponse = await api.get(`/appointments/vet/${vetId}/today-count`);
+          setStats(prev => ({ ...prev, todayAppointments: apptResponse.data.todayAppointmentsCount || 0 }));
+        } catch (err) {
+          console.error('Failed to fetch today\'s appointments:', err);
+          setStats(prev => ({ ...prev, todayAppointments: 0 }));
+        } finally {
+          setLoading(prev => ({ ...prev, todayAppointments: false }));
+        }
+
+        // 4. Clinic Staff Count (vets + non-vet staff)
+        try {
+          const staffResponse = await api.get(`/clinics/${clinicId}/staff-count`);
+          setStats(prev => ({ ...prev, clinicStaff: staffResponse.data.totalStaff || 0 }));
+        } catch (err) {
+          console.error('Failed to fetch staff count:', err);
+          setStats(prev => ({ ...prev, clinicStaff: 0 }));
+        } finally {
+          setLoading(prev => ({ ...prev, clinicStaff: false }));
+        }
+
+      } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+      }
+    };
+
+    fetchDashboardStats();
+
+    // Remaining placeholder stats
+    setStats(prev => ({
+      ...prev,
       unreadMessages: 12,
       activePatients: 89,
       vaccinationsDue: 23,
-      clinicStaff: 8,
       todayRevenue: 245000
-    });
+    }));
   }, []);
 
   const statCards = [
-    { label: "Registered Pets", count: stats.totalPets, icon: <FaPaw />, gradient: "#10b981, #059669", color: "#10b981", bgColor: "#d1fae5" },
-    { label: "Today's Appointments", count: stats.todayAppointments, icon: <FaCalendarCheck />, gradient: "#3b82f6, #2563eb", color: "#3b82f6", bgColor: "#dbeafe" },
-    { label: "Pending Registrations", count: stats.pendingRegistrations, icon: <FaClock />, gradient: "#f59e0b, #d97706", color: "#f59e0b", bgColor: "#fef3c7" },
+    { 
+      label: "Registered Pets", 
+      count: loading.totalPets ? <CircularProgress size={24} /> : stats.totalPets, 
+      icon: <FaPaw />, 
+      gradient: "#10b981, #059669", 
+      color: "#10b981", 
+      bgColor: "#d1fae5" 
+    },
+    { 
+      label: "Pending Registrations", 
+      count: loading.pendingRegistrations ? <CircularProgress size={24} /> : stats.pendingRegistrations, 
+      icon: <FaClock />, 
+      gradient: "#f59e0b, #d97706", 
+      color: "#f59e0b", 
+      bgColor: "#fef3c7" 
+    },
+    { 
+      label: "Today's Appointments", 
+      count: loading.todayAppointments ? <CircularProgress size={24} /> : stats.todayAppointments, 
+      icon: <FaCalendarCheck />, 
+      gradient: "#3b82f6, #2563eb", 
+      color: "#3b82f6", 
+      bgColor: "#dbeafe" 
+    },
+    { 
+      label: "Staff Members", 
+      count: loading.clinicStaff ? <CircularProgress size={24} /> : stats.clinicStaff, 
+      icon: <FaUsers />, 
+      gradient: "#64748b, #475569", 
+      color: "#64748b", 
+      bgColor: "#f1f5f9" 
+    },
     { label: "Unread Messages", count: stats.unreadMessages, icon: <FaComments />, gradient: "#8b5cf6, #7c3aed", color: "#8b5cf6", bgColor: "#ede9fe" },
     { label: "Active Patients", count: stats.activePatients, icon: <FaUserInjured />, gradient: "#ef4444, #dc2626", color: "#ef4444", bgColor: "#fee2e2" },
     { label: "Vaccinations Due", count: stats.vaccinationsDue, icon: <FaSyringe />, gradient: "#06b6d4, #0891b2", color: "#06b6d4", bgColor: "#cffafe" },
-    { label: "Staff Members", count: stats.clinicStaff, icon: <FaUsers />, gradient: "#64748b, #475569", color: "#64748b", bgColor: "#f1f5f9" },
     { label: "Today's Revenue", count: `Rs. ${stats.todayRevenue.toLocaleString()}`, icon: <FaStethoscope />, gradient: "#8b5cf6, #7c3aed", color: "#8b5cf6", bgColor: "#ede9fe" },
   ];
 
@@ -237,7 +337,7 @@ const DashboardHome = () => {
     { title: "Today's Schedule", icon: <FaCalendarCheck />, path: "/vet/appointments/today" },
     { title: "Pending Registrations", icon: <FaClock />, path: "/vet/pets/pending" },
     { title: "Owner Chat", icon: <FaComments />, path: "/vet/chat" },
-    { title: "Add Medical Record", icon: <FaStethoscope />, path: "/vet/pets" },
+    { title: "View Registered Pets", icon: <FaPaw />, path: "/vet/pets" },
   ];
 
   return (
@@ -268,7 +368,7 @@ const DashboardHome = () => {
           </SectionTitle>
           <QuickActionsGrid>
             {quickActions.map((action, index) => (
-              <ActionCard key={index} onClick={() => window.location.href = action.path}>
+              <ActionCard key={index} onClick={() => navigate(action.path)}>
                 <ActionIcon>{action.icon}</ActionIcon>
                 <ActionTitle>{action.title}</ActionTitle>
               </ActionCard>
