@@ -1,142 +1,188 @@
 const express = require('express');
 const router = express.Router();
-const {
-  createPet,
-  getPetsByOwner,
-  getPetById,
-  updatePet,
-  deletePet,
-  requestClinicRegistration,
-  getPendingRegistrationsByClinic,
-  approvePetRegistration,
-  getApprovedRegistrationsByClinic,
-  getRegisteredPetsCountByClinic,
-  getPendingRegistrationsCountByClinic,
-  rejectPetRegistration
-} = require('../controllers/petProfileController');
-
-// Import middleware
-const { protect, authorize, authorizeVetForClinicFromPet } = require('../middleware/auth');
+const petController = require('../controllers/petProfileController');
+const Clinic = require('../models/Clinic');
+const { protect, authorize } = require('../middleware/auth');
+const Veterinarian = require('../models/Veterinarian');
 const PetProfile = require('../models/PetProfile');
 
-// Middleware: Ensure the user owns the pet (for owner actions)
-const authorizePetOwner = async (req, res, next) => {
+// ===== VET ROUTES =====
+
+// Add this test endpoint FIRST
+router.get('/test-simple', protect, authorize('vet'), async (req, res) => {
   try {
-    const { id } = req.params; // petId
-    const pet = await PetProfile.findById(id);
-
-    if (!pet) {
-      return res.status(404).json({ message: 'Pet not found' });
-    }
-
-    req.pet = pet; // Attach for controller use if needed
-    next();
-  } catch (error) {
-    res.status(500).json({ message: 'Error in pet ownership check', error: error.message });
-  }
-};
-
-// Get my own pets — with detailed logging
-router.get('/my', protect, authorize('owner'), (req, res, next) => {
-  if (!req.user || !req.user.id) {
-    console.error('No authenticated user found');
-    return res.status(401).json({ message: 'Not authenticated' });
-  }
-
-  // Set ownerId and proceed
-  req.params.ownerId = req.user.id;
-
-  getPetsByOwner(req, res, next);
-});
-
-// Middleware: Ensure the vet belongs to the clinic
-const authorizeVetForClinic = async (req, res, next) => {
-  try {
-    const { clinicId } = req.params;
-
-    if (req.user.role !== 'vet' || req.user.clinicId?.toString() !== clinicId) {
-      return res.status(403).json({
-        message: 'Not authorized: You do not belong to this clinic'
+    console.log('=== TEST SIMPLE ENDPOINT ===');
+    console.log('User ID from token:', req.user.id);
+    
+    // Get veterinarian with clinic populated
+    const veterinarian = await Veterinarian.findById(req.user.id);
+    
+    if (!veterinarian) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Veterinarian not found' 
       });
     }
-
-    next();
+    
+    // Get clinic details
+    const clinic = await Clinic.findById(veterinarian.clinicId);
+    
+    // Return simple response
+    return res.status(200).json({
+      success: true,
+      message: 'Test endpoint works!',
+      vet: {
+        id: veterinarian._id,
+        name: `${veterinarian.firstName} ${veterinarian.lastName}`,
+        clinicId: veterinarian.clinicId
+      },
+      clinic: clinic ? {
+        id: clinic._id,
+        name: clinic.name
+      } : null
+    });
+    
   } catch (error) {
-    res.status(500).json({ message: 'Error in clinic authorization', error: error.message });
+    console.error('Test endpoint error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Server error',
+      error: error.message 
+    });
   }
-};
-
-// Create a new pet
-router.post('/', protect, authorize('owner'), createPet);
-
-// Get all pets for the authenticated owner
-// We override ownerId with req.user.id for security
-router.get('/owner/:ownerId', protect, authorize('owner'), (req, res, next) => {
-  getPetsByOwner(req, res, next);
 });
 
-// Get single pet details
-router.get('/:id', protect, (req, res, next) => {
-  // Allow owner if they own it, or vet if pet is registered with their clinic
-  PetProfile.findById(req.params.id)
-    .then(pet => {
-      if (!pet) return res.status(404).json({ message: 'Pet not found' });
+// Get pending registrations for vet's clinic - SIMPLIFIED
+// Get pending registrations for vet's clinic - UPDATED FOR YOUR SCHEMA
+router.get('/clinic/pending', protect, authorize('vet'), async (req, res) => {
+  try {
+    console.log('=== /clinic/pending ===');
+    console.log('User ID:', req.user.id);
+    
+    // Get veterinarian
+    const veterinarian = await Veterinarian.findOne({ email: req.user.email });
 
-      const isOwner = req.user.role === 'owner' && pet.ownerId.toString() === req.user.id;
-      const isVetFromClinic = req.user.role === 'vet' &&
-        pet.registeredClinicId &&
-        pet.registeredClinicId.toString() === req.user.clinicId;
-
-      next();
+    if (!veterinarian) {
+      console.error('ERROR: Veterinarian not found');
+      return res.status(404).json({ 
+        success: false,
+        message: 'Veterinarian not found' 
+      });
+    }
+    
+    console.log('Vet found:', veterinarian.firstName, veterinarian.lastName);
+    console.log('Vet currentActiveClinicId:', veterinarian.currentActiveClinicId);
+    console.log('Vet clinicId (if exists):', veterinarian.clinicId);
+    console.log('All vet fields:', Object.keys(veterinarian.toObject()));
+    
+    // Check both possible fields
+    const activeClinicId = veterinarian.currentActiveClinicId || veterinarian.clinicId;
+    
+    if (!activeClinicId) {
+      console.error('ERROR: Veterinarian has no active clinic');
+      return res.status(400).json({ 
+        success: false,
+        message: 'Veterinarian is not associated with any clinic' 
+      });
+    }
+    
+    console.log('Using clinicId:', activeClinicId);
+    
+    // Get clinic
+    const clinic = await Clinic.findById(activeClinicId);
+    if (!clinic) {
+      console.error('ERROR: Clinic not found for ID:', activeClinicId);
+      return res.status(404).json({ 
+        success: false,
+        message: 'Clinic not found' 
+      });
+    }
+    
+    console.log('Clinic found:', clinic.name);
+    
+    // Get pending pets
+    const pendingPets = await PetProfile.find({
+      registeredClinicId: activeClinicId,
+      registrationStatus: 'Pending',
+      isDeleted: { $ne: true }
     })
-    .catch(() => res.status(500).json({ message: 'Server error' }));
-}, getPetById);
+      .populate('ownerId', 'firstName lastName email phoneNumber')
+      .populate('registeredClinicId', 'name address phoneNumber')
+      .sort({ createdAt: -1 });
+    
+    console.log(`Found ${pendingPets.length} pending pets`);
+    
+    // Return response
+    return res.status(200).json({
+      success: true,
+      count: pendingPets.length,
+      pendingPets: pendingPets,
+      clinicInfo: {
+        id: clinic._id,
+        name: clinic.name,
+        address: clinic.address
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error in /clinic/pending:', error);
+    return res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// ===== OWNER ROUTES =====
+
+// Get my own pets
+router.get('/my', protect, authorize('owner'), (req, res) => {
+  req.params.ownerId = req.user.id;
+  return petController.getPetsByOwner(req, res);
+});
+
+// Create a new pet
+router.post('/', protect, authorize('owner'), petController.createPet);
+
+// Get all pets for owner
+router.get('/owner/:ownerId', protect, authorize('owner', 'vet'), petController.getPetsByOwner);
+
+// Get single pet details
+router.get('/:id', protect, petController.getPetById);
 
 // Update pet
-router.put('/:id', protect, authorize('owner'), authorizePetOwner, updatePet);
+router.put('/:id', protect, authorize('owner'), petController.updatePet);
 
-// Delete pet (soft delete)
-router.delete('/:id', protect, authorize('owner'), authorizePetOwner, deletePet);
+// Delete pet
+router.delete('/:id', protect, authorize('owner'), petController.deletePet);
 
 // Request clinic registration
-router.post('/:id/request-registration', protect, authorize('owner'), authorizePetOwner, requestClinicRegistration);
+router.post('/:id/request-registration', protect, authorize('owner'), petController.requestClinicRegistration);
 
-// View pending registrations for their clinic
-router.get('/clinic/:clinicId/pending', protect, getPendingRegistrationsByClinic);
+// ===== CLINIC ROUTES (with clinicId) =====
 
-// Approve a pending pet registration
-router.patch(
-  '/:id/approve',
-  protect,
-  approvePetRegistration
-);
+// Get pending registrations for clinic
+router.get('/clinic/:clinicId/pending', protect, petController.getPendingRegistrationsByClinic);
 
-// View approved registrations for the clinic (current vet's clinic)
-router.get(
-  '/clinic/:clinicId/approved',
-  protect,
-  getApprovedRegistrationsByClinic
-);
+// Get approved registrations for clinic
+router.get('/clinic/:clinicId/approved', protect, petController.getApprovedRegistrationsByClinic);
 
-// routes/petProfileRoutes.js
-router.get(
-  '/clinic/:clinicId/registered-count',
-  protect,
-  getRegisteredPetsCountByClinic
-);
+// Get registered pets count for clinic
+router.get('/clinic/:clinicId/registered-count', protect, petController.getRegisteredPetsCountByClinic);
 
-// routes/petProfileRoutes.js
-router.get(
-  '/clinic/:clinicId/pending-count',
-  protect,
-  getPendingRegistrationsCountByClinic
-);
+// Get pending registrations count for clinic
+router.get('/clinic/:clinicId/pending-count', protect, petController.getPendingRegistrationsCountByClinic);
 
-// routes/petProfileRoutes.js
-router.patch(
-  '/:id/reject',
-  protect,
-  rejectPetRegistration
-);
+// ===== REGISTRATION MANAGEMENT =====
+
+// Approve pet registration
+router.patch('/:id/approve', protect, authorize('vet'), petController.approvePetRegistration);
+
+// Reject pet registration
+router.patch('/:id/reject', protect, authorize('vet'), petController.rejectPetRegistration);
+
+// Get registered pets for vet's current clinic
+router.get('/clinic/registered', protect, authorize('vet'), petController.getRegisteredPetsForVetClinic);
 
 module.exports = router;

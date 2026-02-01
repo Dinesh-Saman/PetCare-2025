@@ -185,7 +185,7 @@ const BookAppointment = () => {
         showConfirmButton: false
       });
 
-      navigate('/owner/dashboard');
+      navigate('/owner/profile');
     } catch (error) {
       console.error('Error booking appointment:', error);
       Swal.fire(

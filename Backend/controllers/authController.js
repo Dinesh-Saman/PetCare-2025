@@ -4,10 +4,9 @@ const Veterinarian = require('../models/Veterinarian');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
 
-// Login for both Pet Owners and Veterinarians
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, userType: requestedUserType } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Please provide email and password' });
@@ -15,56 +14,193 @@ exports.login = async (req, res) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check in both collections
-    let user = await PetOwner.findOne({ email: normalizedEmail });
-    let role = 'owner';
+    console.log(`Login attempt: ${normalizedEmail}, Requested type: ${requestedUserType}`);
 
-    if (!user) {
-      user = await Veterinarian.findOne({ email: normalizedEmail, status: 'Active' });
-      role = 'vet';
+    // If userType is specified in request, only check that collection
+    if (requestedUserType === 'vet') {
+      // Only check Veterinarian collection
+      let user = await Veterinarian.findOne({ 
+        email: normalizedEmail,
+        status: 'Active'
+      }).populate('currentActiveClinicId', 'name address phoneNumber');
+      
+      if (!user) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'No active veterinarian found with this email' 
+        });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      // Generate vet token
+      const token = generateToken({
+        id: user._id,
+        userType: 'Veterinarian',
+        email: user.email,
+        role: 'vet'
+      });
+
+      const responseUser = {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: 'vet',
+        phoneNumber: user.phoneNumber || null,
+        address: user.address || null,
+        accessLevel: user.accessLevel || null,
+        currentActiveClinicId: user.currentActiveClinicId || null,
+        clinicId: user.currentActiveClinicId || null,
+        isPrimaryVet: user.isPrimaryVet || false,
+        ownedClinics: user.ownedClinics || []
+      };
+
+      if (user.currentActiveClinicId && typeof user.currentActiveClinicId === 'object') {
+        responseUser.clinic = {
+          id: user.currentActiveClinicId._id,
+          name: user.currentActiveClinicId.name,
+          address: user.currentActiveClinicId.address,
+          phoneNumber: user.currentActiveClinicId.phoneNumber
+        };
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Veterinarian login successful',
+        token,
+        user: responseUser
+      });
+
+    } else if (requestedUserType === 'owner') {
+      // Only check PetOwner collection
+      let user = await PetOwner.findOne({ email: normalizedEmail });
+      
+      if (!user) {
+        return res.status(401).json({ 
+          success: false,
+          message: 'No pet owner found with this email' 
+        });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      // Generate owner token
+      const token = generateToken({
+        id: user._id,
+        userType: 'PetOwner',
+        email: user.email,
+        role: 'owner'
+      });
+
+      const responseUser = {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: 'owner',
+        phoneNumber: user.phoneNumber || null,
+        address: user.address || null
+      };
+
+      return res.status(200).json({
+        success: true,
+        message: 'Pet owner login successful',
+        token,
+        user: responseUser
+      });
+
+    } else {
+      // Auto-detect (backward compatibility)
+      let user = await PetOwner.findOne({ email: normalizedEmail });
+      let userType = 'PetOwner';
+      let role = 'owner';
+
+      if (!user) {
+        user = await Veterinarian.findOne({ 
+          email: normalizedEmail,
+          status: 'Active'
+        }).populate('currentActiveClinicId', 'name address phoneNumber');
+        userType = 'Veterinarian';
+        role = 'vet';
+      }
+
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      const token = generateToken({
+        id: user._id,
+        userType: userType,
+        email: user.email,
+        role: role
+      });
+
+      const responseUser = {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: role,
+        phoneNumber: user.phoneNumber || null,
+        address: user.address || null
+      };
+
+      if (userType === 'Veterinarian') {
+        responseUser.accessLevel = user.accessLevel || null;
+        responseUser.currentActiveClinicId = user.currentActiveClinicId || null;
+        responseUser.clinicId = user.currentActiveClinicId || null;
+        responseUser.isPrimaryVet = user.isPrimaryVet || false;
+        responseUser.ownedClinics = user.ownedClinics || [];
+        
+        if (user.currentActiveClinicId && typeof user.currentActiveClinicId === 'object') {
+          responseUser.clinic = {
+            id: user.currentActiveClinicId._id,
+            name: user.currentActiveClinicId.name,
+            address: user.currentActiveClinicId.address,
+            phoneNumber: user.currentActiveClinicId.phoneNumber
+          };
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Login successful',
+        token,
+        user: responseUser
+      });
     }
 
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    // Compare password
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
-
-    // Generate token
-    const token = generateToken(user._id);
-
-    // Response data
-    const responseUser = {
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      role,
-      // Vet-specific
-      accessLevel: role === 'vet' ? user.accessLevel : null,
-      clinicId: role === 'vet' ? user.clinicId : null,
-      isPrimaryVet: role === 'vet' ? user.isPrimaryVet : null
-    };
-
-    res.status(200).json({
-      message: 'Login successful',
-      token,
-      user: responseUser
-    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error during login', error: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during login', 
+      error: error.message 
+    });
   }
 };
 
 // Get current logged-in user profile
 exports.getMe = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: 'Not authorized, no token' });
+    }
+
     let user = await PetOwner.findById(req.user.id)
-      .select('-passwordHash -__v'); // Exclude password and version
+      .select('-passwordHash -__v');
 
     let role = 'owner';
 
@@ -79,7 +215,7 @@ exports.getMe = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Build response with common + role-specific fields
+    // Build response (unchanged)
     const responseUser = {
       id: user._id,
       firstName: user.firstName,
@@ -90,7 +226,6 @@ exports.getMe = async (req, res) => {
       role,
     };
 
-    // Add vet-specific fields if applicable
     if (role === 'vet') {
       responseUser.accessLevel = user.accessLevel || null;
       responseUser.clinicId = user.clinicId?._id || null;
@@ -102,9 +237,7 @@ exports.getMe = async (req, res) => {
       } : null;
     }
 
-    res.status(200).json({
-      user: responseUser
-    });
+    res.status(200).json({ user: responseUser });
   } catch (error) {
     console.error('Error in getMe:', error);
     res.status(500).json({ 

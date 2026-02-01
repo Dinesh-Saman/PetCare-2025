@@ -27,7 +27,9 @@ import {
   CardContent,
   CardHeader,
   CircularProgress,
-  TablePagination
+  TablePagination,
+  Button,
+  Alert
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -42,6 +44,9 @@ import ScaleIcon from '@mui/icons-material/Scale';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ClinicIcon from '@mui/icons-material/LocalHospital';
+import ErrorIcon from '@mui/icons-material/Error';
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
@@ -86,6 +91,13 @@ const StatusChip = styled(Chip)(({ theme }) => ({
   fontWeight: 'bold',
 }));
 
+const ClinicBadge = styled(Chip)(({ theme }) => ({
+  backgroundColor: '#4caf50',
+  color: 'white',
+  fontWeight: 'bold',
+  marginLeft: theme.spacing(1),
+}));
+
 const DetailsCard = styled(Card)(({ theme }) => ({
   marginTop: theme.spacing(2),
   borderRadius: 16,
@@ -122,59 +134,98 @@ const PendingRegistrations = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(10);
   const [expandedRow, setExpandedRow] = useState(null);
+  const [clinicInfo, setClinicInfo] = useState(null);
+  const [error, setError] = useState(null);
 
-// Inside your useEffect in PendingRegistrations.jsx
+const fetchPendingRegistrations = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    console.log('=== STARTING FETCH ===');
 
-useEffect(() => {
-  const fetchPendingRegistrations = async () => {
+    // Get token
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('No token found');
+      Swal.fire('Error', 'Please log in again.', 'error');
+      window.location.href = '/login';
+      return;
+    }
+
+    // Set auth header
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+    // STEP 1: First test the simple endpoint
+    console.log('Step 1: Testing /pets/test-simple');
     try {
-      setLoading(true);
-
-      // Get clinicId from localStorage
-      const userData = localStorage.getItem('user'); // or whatever key you use
-      if (!userData) {
-        Swal.fire('Error', 'User data not found. Please log in again.', 'error');
-        setLoading(false);
-        return;
+      const testResponse = await api.get('/pets/test-simple');
+      console.log('Test endpoint response:', testResponse.data);
+      
+      if (testResponse.data.success) {
+        console.log('✓ Test passed! Vet clinicId:', testResponse.data.vet.clinicId);
+        console.log('✓ Clinic:', testResponse.data.clinic?.name);
       }
+    } catch (testErr) {
+      console.error('Test endpoint failed:', testErr.response?.data || testErr.message);
+      setError('Test endpoint failed. Please check backend logs.');
+      setLoading(false);
+      return;
+    }
 
-      let clinicId;
-      try {
-        const parsedUser = JSON.parse(userData);
-        clinicId = parsedUser.clinicId;
-      } catch (e) {
-        console.error('Failed to parse user data from localStorage');
-        Swal.fire('Error', 'Invalid user data. Please log in again.', 'error');
-        setLoading(false);
-        return;
+    // STEP 2: Now try the actual endpoint
+    console.log('Step 2: Trying /pets/clinic/pending');
+    try {
+      const response = await api.get('/pets/clinic/pending');
+      console.log('Main endpoint response:', response.data);
+      
+      if (response.data.success) {
+        const petsData = response.data.pendingPets || [];
+        console.log(`✓ Success! Found ${petsData.length} pending pets`);
+        
+        setPendingPets(petsData);
+        setFilteredPets(petsData);
+        setClinicInfo(response.data.clinicInfo || null);
+      } else {
+        setError(response.data.message || 'Request failed');
+        setPendingPets([]);
+        setFilteredPets([]);
       }
-
-      if (!clinicId) {
-        Swal.fire('Error', 'Clinic ID not found. Contact support.', 'error');
-        setLoading(false);
-        return;
+      
+    } catch (apiErr) {
+      console.error('Main endpoint failed:');
+      console.error('Status:', apiErr.response?.status);
+      console.error('Data:', apiErr.response?.data);
+      console.error('Message:', apiErr.message);
+      
+      let msg = 'Failed to load pending registrations';
+      if (apiErr.response?.status === 401) {
+        msg = 'Session expired. Please log in again.';
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setTimeout(() => window.location.href = '/login', 1500);
+      } else if (apiErr.response?.data?.message) {
+        msg = apiErr.response.data.message;
       }
-
-      // Now call the correct backend route with the clinicId
-      const response = await api.get(`/pets/clinic/${clinicId}/pending`);
-
-      const petsData = response.data?.pendingPets || response.data || [];
-
-      setPendingPets(petsData);
-      setFilteredPets(petsData);
-    } catch (error) {
-      console.error('Error fetching pending registrations:', error);
-      const message = error.response?.data?.message || 'Failed to load pending registrations';
-      Swal.fire('Error', message, 'error');
+      
+      setError(msg);
       setPendingPets([]);
       setFilteredPets([]);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  fetchPendingRegistrations();
-}, []);
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    setError('An unexpected error occurred. Please try again.');
+    setPendingPets([]);
+    setFilteredPets([]);
+  } finally {
+    setLoading(false);
+    console.log('=== FETCH COMPLETE ===');
+  }
+};
+
+  useEffect(() => {
+    fetchPendingRegistrations();
+  }, []);
 
   // Search filter
   useEffect(() => {
@@ -189,12 +240,14 @@ useEffect(() => {
         case 'petName':
           return pet.name?.toLowerCase().includes(query);
         case 'ownerName':
-          return `${pet.ownerId?.firstName || ''} ${pet.ownerId?.lastName || ''}`
-            .toLowerCase().includes(query);
+          const ownerName = `${pet.ownerId?.firstName || ''} ${pet.ownerId?.lastName || ''}`.toLowerCase();
+          return ownerName.includes(query);
         case 'species':
           return pet.species?.toLowerCase().includes(query);
         case 'breed':
           return pet.breed?.toLowerCase().includes(query);
+        case 'microchip':
+          return pet.microchipNumber?.toLowerCase().includes(query);
         default:
           return true;
       }
@@ -211,43 +264,71 @@ useEffect(() => {
       showCancelButton: true,
       confirmButtonColor: '#4caf50',
       cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, Approve'
+      confirmButtonText: 'Yes, Approve',
+      cancelButtonText: 'Cancel'
     });
 
     if (result.isConfirmed) {
       try {
-        // You may want a dedicated endpoint, but using patch for now
-        await api.patch(`/pets/${petId}/approve`, { status: 'Approved' }); // Create this route if needed
-
-        setPendingPets(prev => prev.filter(p => p._id !== petId));
-        Swal.fire('Approved!', 'Pet has been registered successfully.', 'success');
+        await api.patch(`/pets/${petId}/approve`);
+        // Update local state
+        const updatedPets = pendingPets.filter(p => p._id !== petId);
+        setPendingPets(updatedPets);
+        setFilteredPets(updatedPets);
+        
+        Swal.fire({
+          title: 'Approved!',
+          text: 'Pet has been registered successfully.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
       } catch (err) {
-        Swal.fire('Error', 'Could not approve registration', 'error');
+        console.error('Error approving pet:', err);
+        Swal.fire('Error', 'Could not approve registration. Please try again.', 'error');
       }
     }
   };
 
-  const handleReject = async (petId) => {
-    const result = await Swal.fire({
-      title: 'Reject Registration?',
-      text: 'This action cannot be undone.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#f44336',
-      confirmButtonText: 'Yes, Reject'
-    });
+const handleReject = async (petId) => {
+  const result = await Swal.fire({
+    title: 'Reject Registration?',
+    text: 'This pet registration request will be rejected.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#f44336',
+    cancelButtonColor: '#666',
+    confirmButtonText: 'Yes, Reject',
+    cancelButtonText: 'Cancel',
+    background: '#ffffff',
+    color: '#333'
+  });
 
-    if (result.isConfirmed) {
-      try {
-        await api.patch(`/pets/${petId}/reject`, { status: 'Rejected' });
-
-        setPendingPets(prev => prev.filter(p => p._id !== petId));
-        Swal.fire('Rejected', 'Registration request rejected.', 'success');
-      } catch (err) {
-        Swal.fire('Error', 'Could not reject registration', 'error');
-      }
+  if (result.isConfirmed) {
+    try {
+      // Reject with a default reason
+      await api.patch(`/pets/${petId}/reject`, { reason: 'Registration rejected by veterinarian' });
+      
+      // Update local state
+      const updatedPets = pendingPets.filter(p => p._id !== petId);
+      setPendingPets(updatedPets);
+      setFilteredPets(updatedPets);
+      
+      Swal.fire({
+        title: 'Rejected!',
+        text: 'Registration request has been rejected.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+        background: '#ffffff',
+        color: '#333'
+      });
+    } catch (err) {
+      console.error('Error rejecting pet:', err);
+      Swal.fire('Error', 'Could not reject registration. Please try again.', 'error');
     }
-  };
+  }
+};
 
   const calculateAge = (dob) => {
     if (!dob) return 'Unknown';
@@ -259,8 +340,21 @@ useEffect(() => {
     return `${age} year${age !== 1 ? 's' : ''}`;
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   const handleExpandRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
+  };
+
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
   };
 
   const paginatedPets = filteredPets.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -271,18 +365,26 @@ useEffect(() => {
       <Box sx={{ flexGrow: 1, p: 3 }}>
         <ContentContainer>
           <SearchSection>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: '#8e24aa', fontFamily: 'Georgia, serif' }}>
-              Pending Pet Registrations
-            </Typography>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: '#8e24aa', fontFamily: 'Georgia, serif', mb: 1 }}>
+                Pending Pet Registrations
+              </Typography>
+            </Box>
 
-            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
               <FormControl sx={{ minWidth: 160 }}>
                 <InputLabel>Search By</InputLabel>
-                <Select value={searchCriteria} onChange={(e) => setSearchCriteria(e.target.value)} label="Search By">
+                <Select 
+                  value={searchCriteria} 
+                  onChange={(e) => setSearchCriteria(e.target.value)} 
+                  label="Search By"
+                  size="small"
+                >
                   <MenuItem value="petName">Pet Name</MenuItem>
                   <MenuItem value="ownerName">Owner Name</MenuItem>
                   <MenuItem value="species">Species</MenuItem>
                   <MenuItem value="breed">Breed</MenuItem>
+                  <MenuItem value="microchip">Microchip</MenuItem>
                 </Select>
               </FormControl>
 
@@ -292,23 +394,79 @@ useEffect(() => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 variant="outlined"
                 sx={{ width: 300 }}
+                size="small"
               />
+
+              <Button
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={fetchPendingRegistrations}
+                sx={{ height: 40 }}
+              >
+                Refresh
+              </Button>
             </Box>
           </SearchSection>
 
-          {pendingPets.length === 0 ? (
+          {error && (
+            <Alert 
+              severity="error" 
+              sx={{ mb: 3 }}
+              action={
+                <Button color="inherit" size="small" onClick={fetchPendingRegistrations}>
+                  Retry
+                </Button>
+              }
+            >
+              {error}
+            </Alert>
+          )}
+
+          {!error && pendingPets.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 12 }}>
               <PetsIcon sx={{ fontSize: 100, color: '#ddd', mb: 3 }} />
-              <Typography variant="h5" color="textSecondary">
+              <Typography variant="h5" color="textSecondary" gutterBottom>
                 No Pending Registrations
               </Typography>
               <Typography variant="body1" color="textSecondary" sx={{ mt: 2 }}>
                 All registration requests have been processed.
               </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 1, fontStyle: 'italic' }}>
+                New registration requests will appear here when submitted by pet owners.
+              </Typography>
+              <Button 
+                variant="outlined" 
+                startIcon={<RefreshIcon />} 
+                onClick={fetchPendingRegistrations}
+                sx={{ mt: 3 }}
+              >
+                Check Again
+              </Button>
             </Box>
-          ) : (
+          ) : !error && (
             <>
-              <TableContainer component={Paper} elevation={6}>
+              <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Typography variant="body1" color="textSecondary">
+                    Showing {filteredPets.length} pending registration{filteredPets.length !== 1 ? 's' : ''}
+                  </Typography>
+                  {clinicInfo && (
+                    <ClinicBadge 
+                      icon={<ClinicIcon />} 
+                      label={clinicInfo.name}
+                      size="small"
+                      sx={{ ml: 2 }}
+                    />
+                  )}
+                </Box>
+                {filteredPets.length !== pendingPets.length && (
+                  <Typography variant="body2" color="textSecondary">
+                    ({pendingPets.length} total)
+                  </Typography>
+                )}
+              </Box>
+              
+              <TableContainer component={Paper} elevation={6} sx={{ mb: 2 }}>
                 <Table>
                   <TableHead>
                     <TableRow>
@@ -326,7 +484,7 @@ useEffect(() => {
                       <React.Fragment key={pet._id}>
                         <TableRowStyled onClick={() => handleExpandRow(pet._id)}>
                           <TableCell>
-                            <IconButton>
+                            <IconButton size="small">
                               <ExpandMoreIcon
                                 sx={{
                                   transform: expandedRow === pet._id ? 'rotate(180deg)' : 'rotate(0deg)',
@@ -343,7 +501,7 @@ useEffect(() => {
                               <Box>
                                 <Typography fontWeight="bold">{pet.name}</Typography>
                                 <Typography variant="body2" color="textSecondary">
-                                  Registration requested
+                                  {pet.microchipNumber ? `Microchip: ${pet.microchipNumber}` : 'No microchip'}
                                 </Typography>
                               </Box>
                             </Box>
@@ -353,7 +511,7 @@ useEffect(() => {
                               {pet.ownerId ? `${pet.ownerId.firstName} ${pet.ownerId.lastName}` : 'N/A'}
                             </Typography>
                             <Typography variant="body2" color="textSecondary">
-                              {pet.ownerId?.phoneNumber || 'No phone'}
+                              {pet.ownerId?.email || 'No email'}
                             </Typography>
                           </TableCell>
                           <TableCell>
@@ -365,17 +523,29 @@ useEffect(() => {
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               {pet.gender === 'Male' ? <MaleIcon color="primary" /> : pet.gender === 'Female' ? <FemaleIcon color="secondary" /> : null}
-                              <Typography>{calculateAge(pet.dateOfBirth)} • {pet.gender || 'Unknown'}</Typography>
+                              <Typography>
+                                {calculateAge(pet.dateOfBirth)} • {pet.gender || 'Unknown'}
+                              </Typography>
                             </Box>
                           </TableCell>
                           <TableCell>
-                            <StatusChip label="Pending" />
+                            <StatusChip label="Pending" size="small" />
                           </TableCell>
                           <TableCell align="center">
-                            <IconButton color="success" onClick={(e) => { e.stopPropagation(); handleApprove(pet._id); }}>
+                            <IconButton 
+                              color="success" 
+                              onClick={(e) => { e.stopPropagation(); handleApprove(pet._id); }}
+                              title="Approve Registration"
+                              size="small"
+                            >
                               <CheckCircleIcon />
                             </IconButton>
-                            <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleReject(pet._id); }}>
+                            <IconButton 
+                              color="error" 
+                              onClick={(e) => { e.stopPropagation(); handleReject(pet._id); }}
+                              title="Reject Registration"
+                              size="small"
+                            >
                               <CancelIcon />
                             </IconButton>
                           </TableCell>
@@ -387,34 +557,111 @@ useEffect(() => {
                               <DetailsCard>
                                 <Grid container spacing={4} sx={{ p: 4 }}>
                                   <Grid item xs={12} md={6}>
-                                    <CardHeader title="Pet Details" sx={{ bgcolor: '#4caf50', color: 'white' }} />
+                                    <CardHeader 
+                                      title="Pet Details" 
+                                      sx={{ 
+                                        bgcolor: '#4caf50', 
+                                        color: 'white',
+                                        borderRadius: '12px 12px 0 0'
+                                      }} 
+                                    />
                                     <CardContent>
                                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
                                         <PetAvatar src={pet.photo} sx={{ width: 120, height: 120, mr: 4 }} />
                                         <Box>
-                                          <Typography variant="h5">{pet.name}</Typography>
-                                          <Typography>{pet.species} • {pet.breed || 'Mixed'}</Typography>
+                                          <Typography variant="h5" gutterBottom>{pet.name}</Typography>
+                                          <Typography variant="body1" gutterBottom>
+                                            {pet.species} • {pet.breed || 'Mixed'}
+                                          </Typography>
+                                          {pet.microchipNumber && (
+                                            <Typography variant="body2" color="textSecondary">
+                                              Microchip: {pet.microchipNumber}
+                                            </Typography>
+                                          )}
                                         </Box>
                                       </Box>
-                                      <InfoRow><CalendarTodayIcon /><InfoLabel>Date of Birth:</InfoLabel><InfoValue>{pet.dateOfBirth ? new Date(pet.dateOfBirth).toLocaleDateString() : 'Unknown'}</InfoValue></InfoRow>
-                                      <InfoRow><ScaleIcon /><InfoLabel>Weight:</InfoLabel><InfoValue>{pet.weight ? `${pet.weight} kg` : 'Not recorded'}</InfoValue></InfoRow>
-                                      <InfoRow><ColorLensIcon /><InfoLabel>Color:</InfoLabel><InfoValue>{pet.color || 'Not specified'}</InfoValue></InfoRow>
+                                      <InfoRow>
+                                        <CalendarTodayIcon />
+                                        <InfoLabel>Date of Birth:</InfoLabel>
+                                        <InfoValue>
+                                          {formatDate(pet.dateOfBirth)}
+                                          {pet.dateOfBirth && ` (${calculateAge(pet.dateOfBirth)})`}
+                                        </InfoValue>
+                                      </InfoRow>
+                                      <InfoRow>
+                                        <ScaleIcon />
+                                        <InfoLabel>Weight:</InfoLabel>
+                                        <InfoValue>{pet.weight ? `${pet.weight} kg` : 'Not recorded'}</InfoValue>
+                                      </InfoRow>
+                                      <InfoRow>
+                                        <ColorLensIcon />
+                                        <InfoLabel>Color:</InfoLabel>
+                                        <InfoValue>{pet.color || 'Not specified'}</InfoValue>
+                                      </InfoRow>
                                     </CardContent>
                                   </Grid>
 
                                   <Grid item xs={12} md={6}>
-                                    <CardHeader title="Owner Information" sx={{ bgcolor: '#2196f3', color: 'white' }} />
+                                    <CardHeader 
+                                      title="Owner Information" 
+                                      sx={{ 
+                                        bgcolor: '#2196f3', 
+                                        color: 'white',
+                                        borderRadius: '12px 12px 0 0'
+                                      }} 
+                                    />
                                     <CardContent>
-                                      <InfoRow><PersonIcon /><InfoLabel>Name:</InfoLabel><InfoValue>{pet.ownerId ? `${pet.ownerId.firstName} ${pet.ownerId.lastName}` : 'N/A'}</InfoValue></InfoRow>
-                                      <InfoRow><PhoneIcon /><InfoLabel>Phone:</InfoLabel><InfoValue>{pet.ownerId?.phoneNumber || 'N/A'}</InfoValue></InfoRow>
-                                      <InfoRow><LocationOnIcon /><InfoLabel>Email:</InfoLabel><InfoValue>{pet.ownerId?.email || 'N/A'}</InfoValue></InfoRow>
+                                      <InfoRow>
+                                        <PersonIcon />
+                                        <InfoLabel>Name:</InfoLabel>
+                                        <InfoValue>{pet.ownerId ? `${pet.ownerId.firstName} ${pet.ownerId.lastName}` : 'N/A'}</InfoValue>
+                                      </InfoRow>
+                                      <InfoRow>
+                                        <PhoneIcon />
+                                        <InfoLabel>Phone:</InfoLabel>
+                                        <InfoValue>{pet.ownerId?.phoneNumber || 'N/A'}</InfoValue>
+                                      </InfoRow>
+                                      <InfoRow>
+                                        <LocationOnIcon />
+                                        <InfoLabel>Email:</InfoLabel>
+                                        <InfoValue>{pet.ownerId?.email || 'N/A'}</InfoValue>
+                                      </InfoRow>
                                     </CardContent>
                                   </Grid>
 
                                   <Grid item xs={12}>
-                                    <CardHeader title="Notes from Owner" sx={{ bgcolor: '#9c27b0', color: 'white' }} />
+                                    <CardHeader 
+                                      title="Additional Information" 
+                                      sx={{ 
+                                        bgcolor: '#9c27b0', 
+                                        color: 'white',
+                                        borderRadius: '12px 12px 0 0'
+                                      }} 
+                                    />
                                     <CardContent>
-                                      <Typography>{pet.notes || 'No additional notes provided by the owner.'}</Typography>
+                                      <Typography variant="h6" gutterBottom>Owner Notes:</Typography>
+                                      <Typography paragraph>
+                                        {pet.notes || 'No additional notes provided by the owner.'}
+                                      </Typography>
+                                      
+                                      <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap', mt: 3 }}>
+                                        <Box>
+                                          <Typography variant="body2" color="textSecondary" gutterBottom>
+                                            Registration Requested:
+                                          </Typography>
+                                          <Typography>
+                                            {formatDate(pet.createdAt)}
+                                          </Typography>
+                                        </Box>
+                                        <Box>
+                                          <Typography variant="body2" color="textSecondary" gutterBottom>
+                                            Clinic:
+                                          </Typography>
+                                          <Typography>
+                                            {pet.registeredClinicId?.name || 'No clinic specified'}
+                                          </Typography>
+                                        </Box>
+                                      </Box>
                                     </CardContent>
                                   </Grid>
                                 </Grid>
@@ -434,7 +681,8 @@ useEffect(() => {
                 count={filteredPets.length}
                 rowsPerPage={rowsPerPage}
                 page={page}
-                onPageChange={(e, newPage) => setPage(newPage)}
+                onPageChange={handlePageChange}
+                sx={{ borderTop: '1px solid #e0e0e0' }}
               />
             </>
           )}

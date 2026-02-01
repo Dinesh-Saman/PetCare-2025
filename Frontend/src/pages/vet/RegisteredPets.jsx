@@ -1,6 +1,6 @@
 // src/pages/vet/RegisteredPets.jsx
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // ← ADD THIS
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import Sidebar from '../../components/layout/Sidebar';
@@ -23,7 +23,7 @@ import {
   IconButton,
   Grid,
   TablePagination,
-  CircularProgress // ← For loading state if needed
+  CircularProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PetsIcon from '@mui/icons-material/Pets';
@@ -72,7 +72,7 @@ const PetAvatar = styled(Avatar)(({ theme }) => ({
 }));
 
 const RegisteredPets = () => {
-  const navigate = useNavigate(); // ← For navigation
+  const navigate = useNavigate();
 
   const [approvedPets, setApprovedPets] = useState([]);
   const [filteredPets, setFilteredPets] = useState([]);
@@ -83,53 +83,129 @@ const RegisteredPets = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(10);
 
-  useEffect(() => {
-    const fetchApprovedRegistrations = async () => {
-      try {
-        setLoading(true);
+useEffect(() => {
+  const fetchRegisteredPets = async () => {
+    try {
+      setLoading(true);
 
-        const userData = localStorage.getItem('user');
-        if (!userData) {
-          Swal.fire('Error', 'User data not found. Please log in again.', 'error');
-          setLoading(false);
-          return;
-        }
-
-        let clinicId;
-        try {
-          const parsedUser = JSON.parse(userData);
-          clinicId = parsedUser.clinicId;
-        } catch (e) {
-          console.error('Failed to parse user data');
-          Swal.fire('Error', 'Invalid user data. Please log in again.', 'error');
-          setLoading(false);
-          return;
-        }
-
-        if (!clinicId) {
-          Swal.fire('Error', 'Clinic ID not found. Contact support.', 'error');
-          setLoading(false);
-          return;
-        }
-
-        const response = await api.get(`/pets/clinic/${clinicId}/approved`);
-        const petsData = response.data?.approvedPets || response.data || [];
-
-        setApprovedPets(petsData);
-        setFilteredPets(petsData);
-      } catch (error) {
-        console.error('Error fetching approved pets:', error);
-        const message = error.response?.data?.message || 'Failed to load registered pets';
-        Swal.fire('Error', message, 'error');
-        setApprovedPets([]);
-        setFilteredPets([]);
-      } finally {
-        setLoading(false);
+      // Check authentication
+      const token = localStorage.getItem('token');
+      if (!token) {
+        Swal.fire('Error', 'Please log in again.', 'error');
+        navigate('/login');
+        return;
       }
-    };
 
-    fetchApprovedRegistrations();
-  }, []);
+      // Set auth header
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Try the simple endpoint first
+      console.log('Trying /pets/clinic/registered endpoint...');
+      try {
+        const response = await api.get('/pets/clinic/registered');
+        console.log('Registered pets response:', response.data);
+        
+        if (response.data.success) {
+          const petsData = response.data.registeredPets || response.data.approvedPets || [];
+          setApprovedPets(petsData);
+          setFilteredPets(petsData);
+          
+          // If clinic info is available, you can store it if needed
+          if (response.data.clinicInfo) {
+            console.log('Clinic info:', response.data.clinicInfo);
+          }
+          
+          setLoading(false);
+          return;
+        }
+      } catch (endpointError) {
+        console.log('Primary endpoint failed, trying alternative...');
+        console.error('Error details:', endpointError.response?.data || endpointError.message);
+      }
+
+      // Alternative: Try with clinicId from user
+      console.log('Trying alternative method...');
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        Swal.fire('Error', 'User data not found. Please log in again.', 'error');
+        setLoading(false);
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      console.log('User object:', user);
+      
+      // Try to get clinicId from various possible locations
+      let clinicId = null;
+      
+      // Check multiple possible field names
+      if (user.clinicId) clinicId = user.clinicId;
+      else if (user.currentActiveClinicId) clinicId = user.currentActiveClinicId;
+      else if (user.clinic && user.clinic._id) clinicId = user.clinic._id;
+      else if (user.clinic && typeof user.clinic === 'string') clinicId = user.clinic;
+      
+      console.log('Extracted clinicId:', clinicId);
+
+      if (clinicId) {
+        console.log(`Trying /pets/clinic/${clinicId}/registered endpoint...`);
+        try {
+          const response = await api.get(`/pets/clinic/${clinicId}/registered`);
+          console.log('Registered pets by clinic response:', response.data);
+          
+          const petsData = response.data.registeredPets || response.data.approvedPets || [];
+          setApprovedPets(petsData);
+          setFilteredPets(petsData);
+        } catch (clinicError) {
+          console.error('Clinic endpoint failed:', clinicError);
+          console.error('Error details:', clinicError.response?.data || clinicError.message);
+          
+          // Last try: old endpoint
+          console.log('Trying old /pets/clinic/:clinicId/approved endpoint...');
+          try {
+            const response = await api.get(`/pets/clinic/${clinicId}/approved`);
+            console.log('Old approved endpoint response:', response.data);
+            
+            const petsData = response.data.approvedPets || response.data || [];
+            setApprovedPets(petsData);
+            setFilteredPets(petsData);
+          } catch (oldError) {
+            console.error('All endpoints failed:', oldError);
+            throw new Error('Could not fetch registered pets');
+          }
+        }
+      } else {
+        console.error('No clinicId found in user object');
+        Swal.fire('Info', 'No clinic association found. If you are a veterinarian, please ensure you are associated with a clinic.', 'info');
+      }
+
+    } catch (error) {
+      console.error('Error fetching registered pets:', error);
+      
+      // User-friendly error message
+      let errorMessage = 'Failed to load registered pets. ';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Session expired. Please log in again.';
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setTimeout(() => navigate('/login'), 1500);
+      } else if (error.response?.data?.message) {
+        errorMessage += error.response.data.message;
+      } else if (error.message) {
+        errorMessage += error.message;
+      }
+      
+      Swal.fire('Error', errorMessage, 'error');
+      setApprovedPets([]);
+      setFilteredPets([]);
+    } finally {
+      setLoading(false);
+      console.log('=== FETCH COMPLETE ===');
+    }
+  };
+
+  fetchRegisteredPets();
+}, [navigate]);
 
   useEffect(() => {
     let filtered = approvedPets;
@@ -173,18 +249,9 @@ const RegisteredPets = () => {
 
   const paginatedPets = filteredPets.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  // Navigate to Pet Profile on row click
   const handleRowClick = (petId) => {
     navigate(`/vet/pets/profile/${petId}`);
   };
-
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress size={60} thickness={4} />
-      </Box>
-    );
-  }
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
@@ -215,15 +282,17 @@ const RegisteredPets = () => {
                 sx={{ width: 300 }}
               />
 
-              <FormControl sx={{ minWidth: 150 }}>
-                <InputLabel>Species</InputLabel>
-                <Select value={speciesFilter} onChange={(e) => setSpeciesFilter(e.target.value)} label="Species">
-                  <MenuItem value="all">All Species</MenuItem>
-                  {getUniqueSpecies().map(s => (
-                    <MenuItem key={s} value={s}>{s}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              {approvedPets.length > 0 && (
+                <FormControl sx={{ minWidth: 150 }}>
+                  <InputLabel>Species</InputLabel>
+                  <Select value={speciesFilter} onChange={(e) => setSpeciesFilter(e.target.value)} label="Species">
+                    <MenuItem value="all">All Species</MenuItem>
+                    {getUniqueSpecies().map(s => (
+                      <MenuItem key={s} value={s}>{s}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
             </Box>
           </SearchSection>
 
@@ -234,11 +303,25 @@ const RegisteredPets = () => {
                 No Registered Pets
               </Typography>
               <Typography variant="body1" color="textSecondary" sx={{ mt: 2 }}>
-                Approved pets will appear here once registered.
+                {loading ? 'Loading...' : 'No approved pets found for your account.'}
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                If you're a primary veterinarian, please contact support to configure your registered pets access.
               </Typography>
             </Box>
           ) : (
             <>
+              <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="body1" color="textSecondary">
+                  Showing {filteredPets.length} registered pet{filteredPets.length !== 1 ? 's' : ''}
+                </Typography>
+                {filteredPets.length !== approvedPets.length && (
+                  <Typography variant="body2" color="textSecondary">
+                    ({approvedPets.length} total)
+                  </Typography>
+                )}
+              </Box>
+              
               <TableContainer component={Paper} elevation={6}>
                 <Table>
                   <TableHead>

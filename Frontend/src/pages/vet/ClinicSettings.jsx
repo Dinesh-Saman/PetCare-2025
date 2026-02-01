@@ -154,14 +154,6 @@ const ClinicList = () => {
 
   const paginatedClinics = filteredClinics.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Typography variant="h5">Loading your clinics...</Typography>
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
       <Sidebar />

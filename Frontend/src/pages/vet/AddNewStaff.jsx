@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/layout/Sidebar';
 import {
   Box, Typography, Button, TextField, FormControl, InputLabel, Select, MenuItem,
-  Paper
+  Paper, CircularProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -110,31 +110,85 @@ const AddNewStaff = () => {
     veterinaryId: '',
     specialization: '',
     accessLevel: 'Normal Access',
-    role: 'Receptionist'
+    role: 'Receptionist',
+    clinicId: ''
   });
 
-  const [clinicId, setClinicId] = useState('');
+  const [clinics, setClinics] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [hasClinic, setHasClinic] = useState(false);
   const navigate = useNavigate();
 
-  // Load clinicId from localStorage when component mounts
+  // Load user data and clinics when component mounts
   useEffect(() => {
-    try {
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        if (user.role === 'vet' && user.clinicId) {
-          setClinicId(user.clinicId);
-        } else {
-          Swal.fire('Access Denied', 'You must be a veterinarian with a clinic to add staff', 'error');
-          navigate('/vet/dashboard');
+    const loadUserAndClinics = async () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (!userData) {
+          Swal.fire('Session Expired', 'Please log in again', 'info');
+          navigate('/login');
+          return;
         }
-      } else {
-        navigate('/login');
+
+        const user = JSON.parse(userData);
+        
+        // Check if user is a veterinarian
+        if (user.role !== 'vet') {
+          Swal.fire('Access Denied', 'Only veterinarians can access this page', 'error');
+          navigate('/login');
+          return;
+        }
+
+        console.log('Vet user detected:', user);
+        
+        // Fetch the veterinarian's clinics
+        const response = await api.get('/vets/my-clinics');
+        
+        if (response.data.clinics && response.data.clinics.length > 0) {
+          const userClinics = response.data.clinics;
+          setClinics(userClinics);
+          setHasClinic(true);
+          
+          // If vet has a clinicId in user object, use it
+          if (user.clinicId) {
+            setFormData(prev => ({ ...prev, clinicId: user.clinicId }));
+          } else if (userClinics.length === 1) {
+            // If only one clinic, select it automatically
+            setFormData(prev => ({ ...prev, clinicId: userClinics[0]._id }));
+          }
+        } else {
+          setHasClinic(false);
+          Swal.fire({
+            title: 'No Clinic Found',
+            text: 'You need to create or be associated with a clinic before adding staff.',
+            icon: 'warning',
+            confirmButtonText: 'Create Clinic',
+            showCancelButton: true,
+            cancelButtonText: 'Stay Here'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate('/vet/clinic-settings');
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Error loading user/clinics:', err);
+        
+        if (err.response?.status === 401) {
+          Swal.fire('Session Expired', 'Please log in again', 'info');
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          navigate('/login');
+        } else {
+          setHasClinic(false);
+          Swal.fire('Error', 'Failed to load clinic information. You can still fill out the form.', 'error');
+        }
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Error reading user from localStorage:', err);
-      navigate('/login');
-    }
+    };
+
+    loadUserAndClinics();
   }, [navigate]);
 
   const handleChange = (e) => {
@@ -142,76 +196,93 @@ const AddNewStaff = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-const handleSubmit = async () => {
-  // Validation
-  const required = ['firstName', 'lastName', 'email', 'password'];
-  if (formData.staffType === 'veterinarian') {
-    required.push('veterinaryId');
-  }
-
-  const missing = required.filter(field => !formData[field]?.trim());
-  if (missing.length > 0) {
-    Swal.fire('Missing Fields', 'Please fill all required fields', 'warning');
-    return;
-  }
-
-  if (!clinicId) {
-    Swal.fire('Error', 'Clinic information not found. Please log in again.', 'error');
-    return;
-  }
-
-  try {
-    // Common base payload — ALWAYS include clinicId and staffType
-    const basePayload = {
-      staffType: formData.staffType,           // ← CRITICAL: Always send this
-      clinicId,
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-      email: formData.email.toLowerCase().trim(),
-      password: formData.password,
-      phoneNumber: formData.phoneNumber?.trim() || ''
-    };
-
-    let payload;
-
+  const handleSubmit = async () => {
+    // Validation
+    const required = ['firstName', 'lastName', 'email', 'password', 'clinicId'];
     if (formData.staffType === 'veterinarian') {
-      payload = {
-        ...basePayload,
-        veterinaryId: formData.veterinaryId.trim(),
-        specialization: formData.specialization?.trim() || '',
-        accessLevel: formData.accessLevel
-      };
-    } else {
-      payload = {
-        ...basePayload,
-        role: formData.role
-      };
+      required.push('veterinaryId');
     }
 
-    // Use the unified endpoint for both types
-    const response = await api.post('/clinics/staff', payload);
+    const missing = required.filter(field => !formData[field]?.trim());
+    if (missing.length > 0) {
+      Swal.fire('Missing Fields', 'Please fill all required fields including clinic selection', 'warning');
+      return;
+    }
 
-    const title = formData.staffType === 'veterinarian'
-      ? `Dr. ${formData.firstName} ${formData.lastName}`
-      : `${formData.firstName} ${formData.lastName} (${formData.role})`;
+    if (!formData.clinicId) {
+      Swal.fire('Error', 'Please select a clinic', 'error');
+      return;
+    }
 
-    Swal.fire({
-      title: 'Success!',
-      text: `${title} has been successfully added to your clinic.`,
-      icon: 'success',
-      timer: 3500,
-      showConfirmButton: false
-    });
+    try {
+      // Common base payload
+      const basePayload = {
+        staffType: formData.staffType,
+        clinicId: formData.clinicId,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.toLowerCase().trim(),
+        password: formData.password,
+        phoneNumber: formData.phoneNumber?.trim() || ''
+      };
 
-    navigate('/vet/staff');
-  } catch (error) {
-    console.error('Error adding staff:', error);
-    const message = error.response?.data?.message || 'Failed to add staff member.';
-    Swal.fire('Error!', message, 'error');
-  }
-};
+      let payload;
+
+      if (formData.staffType === 'veterinarian') {
+        payload = {
+          ...basePayload,
+          veterinaryId: formData.veterinaryId.trim(),
+          specialization: formData.specialization?.trim() || '',
+          accessLevel: formData.accessLevel
+        };
+      } else {
+        payload = {
+          ...basePayload,
+          role: formData.role
+        };
+      }
+
+      // Use the unified endpoint for both types
+      const response = await api.post('/clinics/staff', payload);
+
+      const title = formData.staffType === 'veterinarian'
+        ? `Dr. ${formData.firstName} ${formData.lastName}`
+        : `${formData.firstName} ${formData.lastName} (${formData.role})`;
+
+      // Get selected clinic name for success message
+      const selectedClinic = clinics.find(c => c._id === formData.clinicId);
+      const clinicName = selectedClinic ? selectedClinic.name : 'the clinic';
+
+      Swal.fire({
+        title: 'Success!',
+        html: `${title} has been successfully added to <strong>${clinicName}</strong>.`,
+        icon: 'success',
+        timer: 3500,
+        showConfirmButton: false
+      });
+
+      navigate('/vet/staff');
+    } catch (error) {
+      console.error('Error adding staff:', error);
+      const message = error.response?.data?.message || 'Failed to add staff member.';
+      Swal.fire('Error!', message, 'error');
+    }
+  };
 
   const isVet = formData.staffType === 'veterinarian';
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <Sidebar />
+        <ContentArea>
+          <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+            <CircularProgress size={60} style={{ color: '#8e24aa' }} />
+          </Box>
+        </ContentArea>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -230,37 +301,51 @@ const handleSubmit = async () => {
           <CardBody>
             <BackButton
               startIcon={<ArrowBackIcon />}
-              onClick={() => navigate('/vet/clinic-staff')}
+              onClick={() => navigate('/vet/staff')}
             >
               Back to Staff List
             </BackButton>
 
-            {/* Staff Type Selector */}
-            <div className="row g-4 mb-5">
-              <div className="col-12 col-md-6 offset-md-3">
-                <FormControl fullWidth>
-                  <InputLabel>Staff Type</InputLabel>
-                  <Select
-                    name="staffType"
-                    value={formData.staffType}
-                    onChange={handleChange}
-                    label="Staff Type"
-                  >
-                    <MenuItem value="veterinarian">Veterinarian</MenuItem>
-                    <MenuItem value="receptionist">Receptionist</MenuItem>
-                    <MenuItem value="vetTech">Veterinary Technician</MenuItem>
-                    <MenuItem value="manager">Clinic Manager</MenuItem>
-                    <MenuItem value="assistant">Assistant / Kennel Staff</MenuItem>
-                  </Select>
-                </FormControl>
-              </div>
-            </div>
+            {/* Clinic Warning Banner */}
+            {!hasClinic && (
+              <Box sx={{ 
+                backgroundColor: '#fff3cd', 
+                border: '1px solid #ffeaa7',
+                borderRadius: '8px',
+                p: 2,
+                mb: 3
+              }}>
+                <Typography variant="body1" color="#856404">
+                  ⚠️ <strong>No Clinic Associated</strong> - You need to create or be associated with a clinic before adding staff. 
+                  Please contact your administrator or create a clinic in Clinic Settings.
+                </Typography>
+              </Box>
+            )}
 
-            {/* Main Form */}
+            {/* Main Form - Two Column Layout */}
             <div className="row g-4">
               {/* Left Column */}
               <div className="col-12 col-lg-6">
                 <div className="row g-4">
+                  {/* Staff Type Selector - Moved to left column */}
+                  <div className="col-12">
+                    <FormControl fullWidth>
+                      <InputLabel>Staff Type</InputLabel>
+                      <Select
+                        name="staffType"
+                        value={formData.staffType}
+                        onChange={handleChange}
+                        label="Staff Type"
+                      >
+                        <MenuItem value="veterinarian">Veterinarian</MenuItem>
+                        <MenuItem value="receptionist">Receptionist</MenuItem>
+                        <MenuItem value="vetTech">Veterinary Technician</MenuItem>
+                        <MenuItem value="manager">Clinic Manager</MenuItem>
+                        <MenuItem value="assistant">Assistant / Kennel Staff</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </div>
+
                   <div className="col-12">
                     <TextField fullWidth label="First Name *" name="firstName" value={formData.firstName} onChange={handleChange} required />
                   </div>
@@ -279,6 +364,36 @@ const handleSubmit = async () => {
               {/* Right Column */}
               <div className="col-12 col-lg-6">
                 <div className="row g-4">
+                  {/* Clinic Selection Dropdown - Moved to top of right column */}
+                  <div className="col-12">
+                    <FormControl fullWidth required error={!hasClinic}>
+                      <InputLabel>Select Clinic *</InputLabel>
+                      <Select
+                        name="clinicId"
+                        value={formData.clinicId}
+                        onChange={handleChange}
+                        label="Select Clinic *"
+                        disabled={!hasClinic}
+                      >
+                        {clinics.map((clinic) => (
+                          <MenuItem key={clinic._id} value={clinic._id}>
+                            {clinic.name} - {clinic.address}
+                          </MenuItem>
+                        ))}
+                        {clinics.length === 0 && (
+                          <MenuItem disabled>
+                            No clinics available
+                          </MenuItem>
+                        )}
+                      </Select>
+                      {!hasClinic && (
+                        <Typography variant="caption" color="error">
+                          No clinic associated with your account
+                        </Typography>
+                      )}
+                    </FormControl>
+                  </div>
+
                   <div className="col-12">
                     <TextField fullWidth label="Password *" name="password" type="password" value={formData.password} onChange={handleChange} required />
                   </div>
@@ -287,7 +402,14 @@ const handleSubmit = async () => {
                   {isVet && (
                     <>
                       <div className="col-12">
-                        <TextField fullWidth label="Veterinary License ID *" name="veterinaryId" value={formData.veterinaryId} onChange={handleChange} required />
+                        <TextField 
+                          fullWidth 
+                          label="Veterinary License ID *" 
+                          name="veterinaryId" 
+                          value={formData.veterinaryId} 
+                          onChange={handleChange} 
+                          required 
+                        />
                       </div>
                       <div className="col-12">
                         <TextField fullWidth label="Specialization (e.g., Surgery, Dermatology)" name="specialization" value={formData.specialization} onChange={handleChange} />
@@ -325,9 +447,23 @@ const handleSubmit = async () => {
 
             {/* Submit Button */}
             <Box sx={{ textAlign: 'center', mt: { xs: 6, md: 8 } }}>
-              <SubmitButton onClick={handleSubmit}>
-                Add {isVet ? 'Veterinarian' : 'Staff Member'}
+              <SubmitButton 
+                onClick={handleSubmit} 
+                disabled={!formData.clinicId || !hasClinic}
+                title={!hasClinic ? "No clinic associated with your account" : ""}
+              >
+                {hasClinic ? (
+                  `Add ${isVet ? 'Veterinarian' : 'Staff Member'} to ${clinics.find(c => c._id === formData.clinicId)?.name || 'Clinic'}`
+                ) : (
+                  'Add Staff (No Clinic Available)'
+                )}
               </SubmitButton>
+              
+              {!hasClinic && (
+                <Typography variant="body2" color="error" sx={{ mt: 2 }}>
+                  You need to create or be associated with a clinic before adding staff.
+                </Typography>
+              )}
             </Box>
           </CardBody>
         </FormCard>

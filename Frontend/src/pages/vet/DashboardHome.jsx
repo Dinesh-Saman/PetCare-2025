@@ -5,12 +5,8 @@ import styled from 'styled-components';
 import { 
   FaPaw, 
   FaCalendarCheck, 
-  FaUserInjured, 
   FaClock, 
-  FaComments, 
-  FaStethoscope,
-  FaSyringe,
-  FaUsers
+  FaUsers 
 } from 'react-icons/fa';
 import { Typography, Box, CircularProgress } from '@mui/material';
 import Sidebar from '../../components/layout/Sidebar';
@@ -202,11 +198,7 @@ const DashboardHome = () => {
     totalPets: 0,
     pendingRegistrations: 0,
     todayAppointments: 0,
-    clinicStaff: 0,
-    unreadMessages: 0,
-    activePatients: 0,
-    vaccinationsDue: 0,
-    todayRevenue: 0
+    clinicStaff: 0
   });
   const [loading, setLoading] = useState({
     totalPets: true,
@@ -215,84 +207,141 @@ const DashboardHome = () => {
     clinicStaff: true
   });
 
-  useEffect(() => {
-    const fetchDashboardStats = async () => {
-      try {
-        const userData = localStorage.getItem('user');
-        if (!userData) {
-          Swal.fire('Error', 'User not found. Please log in again.', 'error');
-          return;
-        }
+// Replace the useEffect in your DashboardHome.jsx with this:
 
-        const user = JSON.parse(userData);
-        const clinicId = user.clinicId;
-        const vetId = user.id;
-
-        if (!clinicId || !vetId) {
-          Swal.fire('Error', 'Missing clinic or vet information.', 'error');
-          return;
-        }
-
-        // 1. Registered Pets Count
-        try {
-          const regResponse = await api.get(`/pets/clinic/${clinicId}/registered-count`);
-          setStats(prev => ({ ...prev, totalPets: regResponse.data.totalRegisteredPets || 0 }));
-        } catch (err) {
-          console.error('Failed to fetch registered pets:', err);
-          setStats(prev => ({ ...prev, totalPets: 0 }));
-        } finally {
-          setLoading(prev => ({ ...prev, totalPets: false }));
-        }
-
-        // 2. Pending Registrations Count
-        try {
-          const pendingResponse = await api.get(`/pets/clinic/${clinicId}/pending-count`);
-          setStats(prev => ({ ...prev, pendingRegistrations: pendingResponse.data.totalPendingRegistrations || 0 }));
-        } catch (err) {
-          console.error('Failed to fetch pending registrations:', err);
-          setStats(prev => ({ ...prev, pendingRegistrations: 0 }));
-        } finally {
-          setLoading(prev => ({ ...prev, pendingRegistrations: false }));
-        }
-
-        // 3. Today's Appointments Count
-        try {
-          const apptResponse = await api.get(`/appointments/vet/${vetId}/today-count`);
-          setStats(prev => ({ ...prev, todayAppointments: apptResponse.data.todayAppointmentsCount || 0 }));
-        } catch (err) {
-          console.error('Failed to fetch today\'s appointments:', err);
-          setStats(prev => ({ ...prev, todayAppointments: 0 }));
-        } finally {
-          setLoading(prev => ({ ...prev, todayAppointments: false }));
-        }
-
-        // 4. Clinic Staff Count (vets + non-vet staff)
-        try {
-          const staffResponse = await api.get(`/clinics/${clinicId}/staff-count`);
-          setStats(prev => ({ ...prev, clinicStaff: staffResponse.data.totalStaff || 0 }));
-        } catch (err) {
-          console.error('Failed to fetch staff count:', err);
-          setStats(prev => ({ ...prev, clinicStaff: 0 }));
-        } finally {
-          setLoading(prev => ({ ...prev, clinicStaff: false }));
-        }
-
-      } catch (error) {
-        console.error('Error loading dashboard stats:', error);
+useEffect(() => {
+  const fetchDashboardStats = async () => {
+    try {
+      console.log('=== DASHBOARD DEBUG START ===');
+      
+      // First, check what's in localStorage
+      const userData = localStorage.getItem('user');
+      console.log('Raw userData from localStorage:', userData);
+      
+      if (!userData) {
+        console.error('No user data found in localStorage');
+        Swal.fire('Error', 'User not found. Please log in again.', 'error');
+        return;
       }
-    };
 
-    fetchDashboardStats();
+      // Parse the user data
+      let user;
+      try {
+        user = JSON.parse(userData);
+        console.log('Parsed user object:', user);
+      } catch (parseError) {
+        console.error('Failed to parse user data:', parseError);
+        Swal.fire('Error', 'Invalid user data. Please log in again.', 'error');
+        return;
+      }
 
-    // Remaining placeholder stats
-    setStats(prev => ({
-      ...prev,
-      unreadMessages: 12,
-      activePatients: 89,
-      vaccinationsDue: 23,
-      todayRevenue: 245000
-    }));
-  }, []);
+      // Check if user is a vet
+      if (user.role !== 'vet') {
+        Swal.fire('Error', 'Access denied. Veterinarian account required.', 'error');
+        navigate('/login');
+        return;
+      }
+
+      // 1. Fetch REGISTERED pets count
+      try {
+        console.log('Fetching registered pets...');
+        const registeredResponse = await api.get('/pets/clinic/registered');
+        console.log('Registered pets response:', registeredResponse.data);
+        
+        let registeredCount = 0;
+        if (registeredResponse.data.registeredPets && Array.isArray(registeredResponse.data.registeredPets)) {
+          registeredCount = registeredResponse.data.registeredPets.length;
+        } else if (registeredResponse.data.count !== undefined) {
+          registeredCount = registeredResponse.data.count;
+        }
+        
+        console.log('Registered pets count:', registeredCount);
+        setStats(prev => ({ ...prev, totalPets: registeredCount }));
+      } catch (err) {
+        console.error('Failed to fetch registered pets:', err);
+        console.error('Error details:', err.response?.data || err.message);
+        setStats(prev => ({ ...prev, totalPets: 0 }));
+      } finally {
+        setLoading(prev => ({ ...prev, totalPets: false }));
+      }
+
+      // 2. Fetch PENDING registrations count
+      try {
+        console.log('Fetching pending registrations...');
+        const pendingResponse = await api.get('/pets/clinic/pending');
+        console.log('Pending registrations response:', pendingResponse.data);
+        
+        let pendingCount = 0;
+        if (pendingResponse.data.pendingPets && Array.isArray(pendingResponse.data.pendingPets)) {
+          pendingCount = pendingResponse.data.pendingPets.length;
+        } else if (pendingResponse.data.count !== undefined) {
+          pendingCount = pendingResponse.data.count;
+        }
+        
+        console.log('Pending registrations count:', pendingCount);
+        setStats(prev => ({ ...prev, pendingRegistrations: pendingCount }));
+      } catch (err) {
+        console.error('Failed to fetch pending registrations:', err);
+        console.error('Error details:', err.response?.data || err.message);
+        setStats(prev => ({ ...prev, pendingRegistrations: 0 }));
+      } finally {
+        setLoading(prev => ({ ...prev, pendingRegistrations: false }));
+      }
+
+      // 3. Today's Appointments Count
+      try {
+        const vetId = user.id || user._id || user.userId || user.vetId;
+        console.log('Fetching today appointments for vetId:', vetId);
+        
+        if (vetId) {
+          const apptResponse = await api.get(`/appointments/vet/${vetId}/today-count`);
+          console.log('Today appointments response:', apptResponse.data);
+          setStats(prev => ({ 
+            ...prev, 
+            todayAppointments: apptResponse.data.todayAppointmentsCount || 0 
+          }));
+        } else {
+          setStats(prev => ({ ...prev, todayAppointments: 0 }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch today\'s appointments:', err);
+        console.error('Error details:', err.response?.data || err.message);
+        setStats(prev => ({ ...prev, todayAppointments: 0 }));
+      } finally {
+        setLoading(prev => ({ ...prev, todayAppointments: false }));
+      }
+
+      // 4. Clinic Staff Count
+      try {
+        console.log('Fetching staff count...');
+        const staffResponse = await api.get('/vets/clinics/staff');
+        console.log('Staff response:', staffResponse.data);
+        
+        let staffCount = 0;
+        if (staffResponse.data.totalStaff) {
+          staffCount = staffResponse.data.totalStaff;
+        } else if (staffResponse.data.staff && Array.isArray(staffResponse.data.staff)) {
+          staffCount = staffResponse.data.staff.length;
+        }
+        
+        setStats(prev => ({ ...prev, clinicStaff: staffCount }));
+      } catch (err) {
+        console.error('Failed to fetch staff count:', err);
+        console.error('Error details:', err.response?.data || err.message);
+        setStats(prev => ({ ...prev, clinicStaff: 0 }));
+      } finally {
+        setLoading(prev => ({ ...prev, clinicStaff: false }));
+      }
+
+      console.log('=== DASHBOARD DEBUG END ===');
+
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+    }
+  };
+
+  fetchDashboardStats();
+}, []);
 
   const statCards = [
     { 
@@ -326,18 +375,14 @@ const DashboardHome = () => {
       gradient: "#64748b, #475569", 
       color: "#64748b", 
       bgColor: "#f1f5f9" 
-    },
-    { label: "Unread Messages", count: stats.unreadMessages, icon: <FaComments />, gradient: "#8b5cf6, #7c3aed", color: "#8b5cf6", bgColor: "#ede9fe" },
-    { label: "Active Patients", count: stats.activePatients, icon: <FaUserInjured />, gradient: "#ef4444, #dc2626", color: "#ef4444", bgColor: "#fee2e2" },
-    { label: "Vaccinations Due", count: stats.vaccinationsDue, icon: <FaSyringe />, gradient: "#06b6d4, #0891b2", color: "#06b6d4", bgColor: "#cffafe" },
-    { label: "Today's Revenue", count: `Rs. ${stats.todayRevenue.toLocaleString()}`, icon: <FaStethoscope />, gradient: "#8b5cf6, #7c3aed", color: "#8b5cf6", bgColor: "#ede9fe" },
+    }
   ];
 
   const quickActions = [
     { title: "Today's Schedule", icon: <FaCalendarCheck />, path: "/vet/appointments/today" },
     { title: "Pending Registrations", icon: <FaClock />, path: "/vet/pets/pending" },
-    { title: "Owner Chat", icon: <FaComments />, path: "/vet/chat" },
     { title: "View Registered Pets", icon: <FaPaw />, path: "/vet/pets" },
+    { title: "Manage Staff", icon: <FaUsers />, path: "/vet/staff" },
   ];
 
   return (

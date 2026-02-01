@@ -1,0 +1,77 @@
+.banner-section {
+  position: relative;
+  background-image: url("https://images.unsplash.com/photo-1584466977773-e625c37cdd5b?auto=format&fit=crop&w=1600&q=80");
+  background-size: cover;
+  background-position: center;
+  height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+  overflow: hidden;
+}
+
+.banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 50, 120, 0.7), rgba(0, 100, 200, 0.6));
+}
+
+.banner-content {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+  padding: 20px;
+}
+
+.banner-content h2 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  line-height: 1.3;
+}
+
+.banner-content p {
+  font-size: 1.1rem;
+  color: #e8f0ff;
+  margin-bottom: 25px;
+}
+
+.banner-button {
+  display: inline-block;
+  background: #00aaff;
+  color: white;
+  text-decoration: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.banner-button:hover {
+  background: #0088cc;
+  transform: translateY(-3px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .banner-section {
+    height: 55vh;
+    padding: 40px 20px;
+  }
+
+  .banner-content h2 {
+    font-size: 1.8rem;
+  }
+
+  .banner-content p {
+    font-size: 1rem;
+  }
+
+  .banner-button {
+    padding: 10px 25px;
+    font-size: 0.95rem;
+  }
+}

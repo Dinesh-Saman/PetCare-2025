@@ -68,46 +68,47 @@ const OwnerLogin = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formData.email || !formData.password) {
-      Swal.fire('Error', 'Please fill in all fields', 'warning');
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!formData.email || !formData.password) {
+    Swal.fire('Error', 'Please fill in all fields', 'warning');
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const response = await api.post('/auth/login', {
+      email: formData.email,
+      password: formData.password
+    });
+
+    const { token, user } = response.data;
+
+    if (user.role !== 'owner') {
+      Swal.fire('Access Denied', 'This portal is for pet owners only', 'error');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await api.post('/auth/login', {
-        email: formData.email,
-        password: formData.password
-      });
+    localStorage.setItem('token', token);
+    localStorage.setItem('ownerUser', JSON.stringify(user)); // <-- Changed to 'ownerUser'
+    localStorage.setItem('owner', JSON.stringify(user)); // Keep this
 
-      const { token, user } = response.data;
+    Swal.fire({
+      title: 'Welcome back!',
+      text: `${user.firstName} ${user.lastName}`,
+      icon: 'success',
+      timer: 1500,
+      showConfirmButton: false
+    });
 
-      if (user.role !== 'owner') {
-        Swal.fire('Access Denied', 'This portal is for pet owners only', 'error');
-        setLoading(false);
-        return;
-      }
-
-      localStorage.setItem('token', token);
-      localStorage.setItem('owner', JSON.stringify(user));
-
-      Swal.fire({
-        title: 'Welcome back!',
-        text: `${user.firstName} ${user.lastName}`,
-        icon: 'success',
-        timer: 1500,
-        showConfirmButton: false
-      });
-
-      navigate('/owner/dashboard'); // Change to your owner dashboard route
-    } catch (error) {
-      Swal.fire('Login Failed', error.response?.data?.message || 'Invalid credentials', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+    navigate('/owner/profile');
+  } catch (error) {
+    Swal.fire('Login Failed', error.response?.data?.message || 'Invalid credentials', 'error');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>

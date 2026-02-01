@@ -104,7 +104,7 @@ const OwnerRegister = () => {
         timer: 2000
       });
 
-      navigate('/owner/dashboard');
+      navigate('/owner/profile');
     } catch (error) {
       Swal.fire('Error', error.response?.data?.message || 'Registration failed', 'error');
     } finally {

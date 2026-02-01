@@ -173,7 +173,6 @@ const Select = styled.select`
   background-position: right 20px center;
   background-repeat: no-repeat;
   background-size: 12px;
-  padding-right: 50px;
 `;
 
 const CheckboxContainer = styled.div`

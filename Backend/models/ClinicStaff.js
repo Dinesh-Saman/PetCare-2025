@@ -35,7 +35,7 @@ const clinicStaffSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Active', 'Inactive'],
+    enum: ['Active', 'Inactive','Deleted'],
     default: 'Active'
   }
 }, { timestamps: true });

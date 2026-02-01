@@ -31,6 +31,12 @@ import AddNewStaff from './pages/vet/AddNewStaff';
 import BookAppointment from './pages/owner/BookAppointment';
 import ClinicEdit from './pages/vet/ClinicEdit';
 import PetProfileAdmin from './pages/vet/PetProfile';
+import PetChatbot from './pages/owner/Chatbot';
+import Home from './pages/Home';
+import AboutUs from './pages/About';
+import ContactUs from './pages/Contact';
+import EditClinicStaff from './pages/vet/EditClinicStaff';
+//import EditVet from './pages/vet/EditVet';
 
 function App() {
   // Mock auth - replace with real AuthContext later
@@ -42,7 +48,9 @@ function App() {
 
   return (
     <Routes>
-        <Route path="/" element={<DashboardHome />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/contact" element={<ContactUs />} />
         <Route path="vet/dashboard" element={<DashboardHome />} />
         <Route path="vet/appointments" element={<AppointmentsList />} />
         <Route path="vet/appointments/today" element={<TodaysAppointments />} />
@@ -60,12 +68,16 @@ function App() {
 
         <Route path="login" element={<OwnerLogin />} />
         <Route path="register" element={<OwnerRegister />} />
-        <Route path="/owner/dashboard" element={<OwnerDashboard />} />
+        <Route path="/owner/profile" element={<OwnerDashboard />} />
         <Route path="/owner/pets/new" element={<AddPet />} />
         <Route path="/owner/pets/:id" element={<PetProfile />} />
         <Route path="/owner/pets/:id/edit" element={<EditPet />} />
         <Route path="/owner/appointments" element={<BookAppointment />} />
         <Route path="/owner/chat" element={<OwnerChat/>} />
+        <Route path="/chatbot" element={<PetChatbot/>} />
+
+        <Route path="vet/edit-staff/:id" element={<EditClinicStaff />} /> {/* Add this line */}
+        {/*<Route path="vet/edit-vet/:id" element={<EditVet />}  */}
 
 
         {/* <Route path="appointments/today" element={<AppointmentsToday />} />

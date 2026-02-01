@@ -128,7 +128,7 @@ const AddPet = () => {
         showConfirmButton: false
       });
 
-      navigate('/owner/dashboard');
+      navigate('/owner/profile');
     } catch (error) {
       console.error('Error adding pet:', error);
       Swal.fire(

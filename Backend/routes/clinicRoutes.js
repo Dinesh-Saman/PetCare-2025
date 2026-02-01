@@ -1,5 +1,4 @@
 // clinicRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const {
@@ -13,7 +12,11 @@ const {
   getMyClinic,
   getClinicStaff,   
   addClinicStaff,
-  getClinicStaffCount
+  getClinicStaffCount,
+  getClinicStaffById,
+  updateClinicStaff,
+  deactivateClinicStaff,
+  activateClinicStaff
 } = require('../controllers/clinicController');
 
 const { protect, authorize, authorizeVetAccess } = require('../middleware/auth');
@@ -33,7 +36,7 @@ router.post('/staff', protect, authorize('vet'), authorizeVetAccess('Primary', '
 // === Clinic CRUD - :id routes LAST ===
 router.get('/:id', getClinicById);                    // Now only matches real ObjectIds
 router.put('/:id', updateClinic);
-//router.delete('/:id', protect, authorize('vet'), authorizeClinicPrimaryVet, deleteClinic);
+router.delete('/:id', protect, authorize('vet'), authorizeVetAccess('Primary'), deleteClinic);
 
 router.post('/', protect, authorize('vet'), createClinic);
 
@@ -43,5 +46,10 @@ router.get(
   protect,
   getClinicStaffCount
 );
+
+router.get('/staff/:id', protect, authorize('vet'), authorizeVetAccess('Primary', 'Full Access'), getClinicStaffById);
+router.put('/staff/:id', protect, authorize('vet'), authorizeVetAccess('Primary', 'Full Access'), updateClinicStaff);
+router.patch('/staff/:id/deactivate', protect, authorize('vet'), authorizeVetAccess('Primary', 'Full Access'), deactivateClinicStaff);
+router.patch('/staff/:id/activate', protect, authorize('vet'), authorizeVetAccess('Primary', 'Full Access'), activateClinicStaff);
 
 module.exports = router;

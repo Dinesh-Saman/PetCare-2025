@@ -149,7 +149,7 @@ const EditPet = () => {
         showConfirmButton: false
       });
 
-      navigate(`/owner/dashboard`);
+      navigate(`/owner/profile`);
     } catch (error) {
       console.error('Error updating pet:', error);
       Swal.fire(
@@ -165,7 +165,6 @@ const EditPet = () => {
   if (loading) {
     return (
       <>
-        <Header />
         <FormContainer>
           <Typography variant="h5" color="#666">
             Loading pet details...
@@ -177,7 +176,6 @@ const EditPet = () => {
 
   return (
     <>
-      <Header />
       <FormContainer>
         <FormCard>
           <CardHeader>
@@ -360,7 +358,7 @@ const EditPet = () => {
                   </SubmitButton>
 
                   <CancelButton
-                    onClick={() => navigate(`/owner/pets/${id}`)}
+                    onClick={() => navigate(`/owner/profile`)}
                     disabled={saving}
                   >
                     Cancel
