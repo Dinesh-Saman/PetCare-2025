@@ -175,266 +175,104 @@ const ErrorMessage = styled.div`
 `;
 
 const VetLogin = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError(''); // Clear error when user starts typing
+    setError('');
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  // Validation
-  if (!formData.email || !formData.password) {
-    setError('Please fill in all fields');
-    return;
-  }
+    e.preventDefault();
 
-  if (!/\S+@\S+\.\S+/.test(formData.email)) {
-    setError('Please enter a valid email address');
-    return;
-  }
-
-  setLoading(true);
-  setError('');
-
-  try {
-    console.log('=== VET LOGIN ATTEMPT ===');
-    console.log('Email:', formData.email);
-    
-    // Clear ALL old tokens and user data
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('owner');
-    localStorage.removeItem('vet');
-    sessionStorage.clear();
-    
-    // Remove auth header
-    delete api.defaults.headers.common['Authorization'];
-
-    console.log('Calling /auth/login with:', {
-      email: formData.email,
-      password: '***',
-      userType: 'vet'
-    });
-
-    const response = await api.post('/auth/login', {
-      email: formData.email,
-      password: formData.password,
-      userType: 'vet'
-    });
-
-    console.log('Login response:', response.data);
-    
-    const { token, user } = response.data;
-
-    // VALIDATE: Must be a veterinarian
-    if (!user) {
-      setError('No user data received from server');
-      setLoading(false);
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields');
       return;
     }
 
-    console.log('User data:', user);
-    console.log('User role:', user.role);
-
-    if (user.role !== 'vet') {
-      setError(`This portal is for veterinarians only. You are: ${user.role || 'unknown'}. Please use pet owner login.`);
-      
-      // Clear any partial data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      setLoading(false);
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      setError('Please enter a valid email address');
       return;
     }
 
-    // Decode and verify token
-    console.log('=== TOKEN ANALYSIS ===');
-    const tokenParts = token.split('.');
-    if (tokenParts.length === 3) {
-      try {
-        const payload = JSON.parse(atob(tokenParts[1]));
-        console.log('Full token payload:', payload);
-        console.log('Token id:', payload.id);
-        console.log('Token role:', payload.role);
-        console.log('Token userType:', payload.userType);
-        console.log('All token fields:', Object.keys(payload));
-        
-        // TEMPORARY: Accept token even without role field for debugging
-        if (!payload.role) {
-          console.warn('Token does not have role field. This might be an old token format.');
-          console.log('Accepting token anyway for debugging...');
-        } else if (payload.role !== 'vet') {
-          console.warn(`Token role is ${payload.role}, expected vet`);
-          setError(`Invalid authentication token (role: ${payload.role}). Please try again.`);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setLoading(false);
-          return;
-        }
-      } catch (decodeErr) {
-        console.error('Could not decode token:', decodeErr);
-        console.error('Token string:', token.substring(0, 50) + '...');
-        setError('Authentication error. Invalid token format.');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setLoading(false);
-        return;
-      }
-    } else {
-      console.error('Invalid token format. Expected 3 parts, got:', tokenParts.length);
-      setError('Invalid token format received from server.');
-      setLoading(false);
-      return;
-    }
+    setLoading(true);
+    setError('');
 
-    // Store authentication data - SEPARATE from owner data
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('vet', JSON.stringify(user));
-    
-    // Set default auth header for future requests
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-    // Try a simpler test endpoint first
     try {
-      console.log('Testing simple auth endpoint...');
-      const testRes = await api.get('/auth/me');
-      console.log('Auth test successful:', testRes.data);
-    } catch (verifyError) {
-      console.error('Auth test failed:', verifyError);
-      console.error('Error response:', verifyError.response?.data);
-      
-      // Try the pets test endpoint as fallback
-      try {
-        console.log('Trying pets test endpoint as fallback...');
-        const petsTest = await api.get('/pets/test-simple');
-        console.log('Pets test successful:', petsTest.data);
-      } catch (petsError) {
-        console.error('Pets test also failed:', petsError);
-        setError('Authentication failed. Token validation error.');
-        localStorage.clear();
-        delete api.defaults.headers.common['Authorization'];
+      // Clear only vet-related items
+      localStorage.removeItem('vet_token');
+      localStorage.removeItem('vet_user');
+      localStorage.removeItem('vet');
+
+      delete api.defaults.headers.common['Authorization'];
+
+      const response = await api.post('/auth/login', {
+        email: formData.email,
+        password: formData.password
+      });
+
+      const { token, user } = response.data;
+
+      if (!user || user.role !== 'vet') {
+        setError(`This portal is for veterinarians only. Detected role: ${user?.role || 'none'}`);
         setLoading(false);
         return;
       }
-    }
 
-    // Show success message
-    Swal.fire({
-      title: 'Welcome back, Doctor!',
-      text: `Dr. ${user.firstName} ${user.lastName}`,
-      icon: 'success',
-      timer: 1500,
-      showConfirmButton: false,
-      background: '#ffffff',
-      color: '#333',
-    });
-
-    // Navigate to vet dashboard
-    setTimeout(() => {
-      navigate('/vet/dashboard');
-    }, 1600);
-
-  } catch (error) {
-    console.error('Login error:', error);
-    console.error('Error status:', error.response?.status);
-    console.error('Error data:', error.response?.data);
-    console.error('Error headers:', error.response?.headers);
-    console.error('Full error:', error);
-    
-    let errorMessage = 'Login failed. Please check your credentials.';
-    
-    if (error.response?.status === 401) {
-      errorMessage = 'Invalid email or password.';
-    } else if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.message === 'Network Error') {
-      errorMessage = 'Network error. Please check your connection.';
-    } else if (error.response?.status === 500) {
-      errorMessage = 'Server error. Please try again later.';
-    }
-    
-    setError(errorMessage);
-    
-    // Clear any partial authentication data
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('vet');
-    delete api.defaults.headers.common['Authorization'];
-    
-    Swal.fire({
-      title: 'Login Failed',
-      text: errorMessage,
-      icon: 'error',
-      background: '#ffffff',
-      color: '#333',
-      confirmButtonColor: '#8e24aa',
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Debug function (temporary)
-  const debugAuth = () => {
-    console.log('=== DEBUG AUTH INFO ===');
-    console.log('LocalStorage token:', localStorage.getItem('token'));
-    console.log('LocalStorage user:', localStorage.getItem('user'));
-    console.log('LocalStorage vet:', localStorage.getItem('vet'));
-    console.log('LocalStorage owner:', localStorage.getItem('owner'));
-    
-    const token = localStorage.getItem('token');
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log('Token payload:', payload);
-      } catch (e) {
-        console.error('Could not decode token:', e);
+      // Optional: decode & verify role (can be removed later)
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      if (payload.role !== 'vet') {
+        setError('Token role mismatch - please try again');
+        setLoading(false);
+        return;
       }
+
+      // Store prefixed
+      localStorage.setItem('vet_token', token);
+      localStorage.setItem('vet_user', JSON.stringify(user));
+
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      // Quick auth test
+      await api.get('/auth/me');
+
+      Swal.fire({
+        title: 'Welcome back, Doctor!',
+        text: `Dr. ${user.firstName} ${user.lastName}`,
+        icon: 'success',
+        timer: 1800,
+        showConfirmButton: false
+      });
+
+      setTimeout(() => navigate('/vet/dashboard'), 2000);
+    } catch (err) {
+      let msg = 'Login failed. Please check your credentials.';
+      if (err.response?.status === 401) msg = 'Invalid email or password';
+      if (err.response?.data?.message) msg = err.response.data.message;
+
+      setError(msg);
+
+      localStorage.removeItem('vet_token');
+      localStorage.removeItem('vet_user');
+      localStorage.removeItem('vet');
+      delete api.defaults.headers.common['Authorization'];
+
+      Swal.fire('Login Failed', msg, 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <AuthContainer>
-      {/* Debug button (remove in production) */}
-      <button 
-        onClick={debugAuth}
-        style={{
-          position: 'fixed',
-          top: 10,
-          right: 10,
-          background: '#ff9800',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          fontSize: '12px',
-          padding: '4px 8px',
-          cursor: 'pointer',
-          zIndex: 1000
-        }}
-      >
-        Debug Auth
-      </button>
-
       <AuthCard>
         <LeftSection>
           <div>
-            <h1 style={{ fontSize: '3rem', marginBottom: '16px' }}>PawPal</h1>
-            <h2 style={{ opacity: 0.95, marginBottom: '24px' }}>
-              Veterinary Management System
-            </h2>
-            <p style={{ maxWidth: '300px', margin: '0 auto' }}>
-              Caring for pets, empowering veterinarians.
-            </p>
+            <h1 style={{ fontSize: '3.2rem', marginBottom: '16px' }}>PawPal</h1>
+            <h2 style={{ opacity: 0.95 }}>Veterinary Management</h2>
           </div>
         </LeftSection>
 
@@ -442,11 +280,7 @@ const VetLogin = () => {
           <Title>Veterinarian Login</Title>
           <Subtitle>Access your clinic dashboard</Subtitle>
 
-          {error && (
-            <ErrorMessage>
-              {error}
-            </ErrorMessage>
-          )}
+          {error && <ErrorMessage>{error}</ErrorMessage>}
 
           <Form onSubmit={handleSubmit}>
             <Input
@@ -467,60 +301,19 @@ const VetLogin = () => {
               required
               disabled={loading}
             />
-
             <SubmitButton type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <span style={{ 
-                    display: 'inline-block',
-                    animation: 'spin 1s linear infinite',
-                    marginRight: '8px'
-                  }}>
-                    ⏳
-                  </span>
-                  Signing in...
-                </>
-              ) : 'Sign In'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </SubmitButton>
           </Form>
 
           <RegisterLink>
-            <p style={{ color: '#666', marginBottom: '8px' }}>New to PawPal?</p>
-            <LinkText href="/vet/register">
-              Register as a Veterinarian
-            </LinkText>
+            <p>New to PawPal?</p>
+            <LinkText href="/vet/register">Register as Veterinarian</LinkText>
           </RegisterLink>
-          
-          <div style={{ textAlign: 'center', marginTop: '30px' }}>
-            <p style={{ color: '#666', marginBottom: '8px' }}>Are you a pet owner?</p>
-            <LinkText href="/owner/login">
-              Go to Pet Owner Login
-            </LinkText>
-          </div>
 
-          {/* Debug section - can be removed later */}
-          <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <button 
-              onClick={() => {
-                console.log('Current localStorage:');
-                console.log('Token:', localStorage.getItem('token'));
-                console.log('User:', localStorage.getItem('user'));
-                console.log('Vet:', localStorage.getItem('vet'));
-                console.log('Owner:', localStorage.getItem('owner'));
-              }}
-              style={{
-                background: 'transparent',
-                border: '1px solid #ddd',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                color: '#666',
-                cursor: 'pointer',
-                marginTop: '10px'
-              }}
-            >
-              Debug Storage
-            </button>
+          <div style={{ textAlign: 'center', marginTop: '24px' }}>
+            <p>Pet owner?</p>
+            <LinkText href="/owner/login">Go to Owner Login</LinkText>
           </div>
         </RightSection>
       </AuthCard>

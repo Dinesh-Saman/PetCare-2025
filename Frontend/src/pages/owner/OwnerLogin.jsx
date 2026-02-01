@@ -7,42 +7,41 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PetsIcon from '@mui/icons-material/Pets';
-import Header from '../../components/layout/Header';
 
-const AuthContainer = styled(Box)(({ theme }) => ({
+const AuthContainer = styled(Box)({
   minHeight: '100vh',
   background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: '20px',
-}));
+  padding: '20px'
+});
 
-const AuthCard = styled(Paper)(({ theme }) => ({
+const AuthCard = styled(Paper)({
   width: '100%',
   maxWidth: 480,
   borderRadius: 24,
   boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-  overflow: 'hidden',
-}));
+  overflow: 'hidden'
+});
 
-const CardHeader = styled(Box)(({ theme }) => ({
+const CardHeader = styled(Box)({
   background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
   color: 'white',
   padding: 40,
-  textAlign: 'center',
-}));
+  textAlign: 'center'
+});
 
-const CardBody = styled(Box)(({ theme }) => ({
-  padding: 48,
-}));
+const CardBody = styled(Box)({
+  padding: 48
+});
 
-const LogoIcon = styled(PetsIcon)(({ theme }) => ({
+const LogoIcon = styled(PetsIcon)({
   fontSize: 80,
-  marginBottom: 16,
-}));
+  marginBottom: 16
+});
 
-const SubmitButton = styled(Button)(({ theme }) => ({
+const SubmitButton = styled(Button)({
   background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
   color: 'white',
   padding: '14px',
@@ -52,15 +51,12 @@ const SubmitButton = styled(Button)(({ theme }) => ({
   textTransform: 'none',
   marginTop: 20,
   '&:hover': {
-    background: 'linear-gradient(90deg, #1976d2, #00bcd4)',
-  },
-}));
+    background: 'linear-gradient(90deg, #1976d2, #00bcd4)'
+  }
+});
 
 const OwnerLogin = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -68,113 +64,123 @@ const OwnerLogin = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!formData.email || !formData.password) {
-    Swal.fire('Error', 'Please fill in all fields', 'warning');
-    return;
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  setLoading(true);
-  try {
-    const response = await api.post('/auth/login', {
-      email: formData.email,
-      password: formData.password
-    });
-
-    const { token, user } = response.data;
-
-    if (user.role !== 'owner') {
-      Swal.fire('Access Denied', 'This portal is for pet owners only', 'error');
-      setLoading(false);
+    if (!formData.email || !formData.password) {
+      Swal.fire('Error', 'Please fill in all fields', 'warning');
       return;
     }
 
-    localStorage.setItem('token', token);
-    localStorage.setItem('ownerUser', JSON.stringify(user)); // <-- Changed to 'ownerUser'
-    localStorage.setItem('owner', JSON.stringify(user)); // Keep this
+    setLoading(true);
 
-    Swal.fire({
-      title: 'Welcome back!',
-      text: `${user.firstName} ${user.lastName}`,
-      icon: 'success',
-      timer: 1500,
-      showConfirmButton: false
-    });
+    try {
+      // Clear only owner-related items
+      localStorage.removeItem('owner_token');
+      localStorage.removeItem('owner_user');
+      localStorage.removeItem('owner');
 
-    navigate('/owner/profile');
-  } catch (error) {
-    Swal.fire('Login Failed', error.response?.data?.message || 'Invalid credentials', 'error');
-  } finally {
-    setLoading(false);
-  }
-};
+      delete api.defaults.headers.common['Authorization'];
+
+      const response = await api.post('/auth/login', {
+        email: formData.email,
+        password: formData.password
+      });
+
+      const { token, user } = response.data;
+
+      if (!user || user.role !== 'owner') {
+        Swal.fire('Access Denied', 'This portal is for pet owners only', 'error');
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('owner_token', token);
+      localStorage.setItem('owner_user', JSON.stringify(user));
+
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+      Swal.fire({
+        title: 'Welcome back!',
+        text: `${user.firstName} ${user.lastName}`,
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+      navigate('/owner/profile');
+    } catch (error) {
+      Swal.fire(
+        'Login Failed',
+        error.response?.data?.message || 'Invalid credentials',
+        'error'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <>
-      <AuthContainer>
-        <AuthCard>
-          <CardHeader>
-            <LogoIcon />
-            <Typography variant="h4" fontWeight="bold">
-              Pet Owner Login
-            </Typography>
-            <Typography variant="body1" sx={{ mt: 2, opacity: 0.9 }}>
-              Access your pet's health records and appointments
-            </Typography>
-          </CardHeader>
+    <AuthContainer>
+      <AuthCard>
+        <CardHeader>
+          <LogoIcon />
+          <Typography variant="h4" fontWeight="bold">
+            Pet Owner Login
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 2, opacity: 0.9 }}>
+            Access your pet's health records and appointments
+          </Typography>
+        </CardHeader>
 
-          <CardBody>
-            <form onSubmit={handleSubmit}>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Email Address"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    variant="outlined"
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Password"
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    variant="outlined"
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12}>
-                  <SubmitButton
-                    fullWidth
-                    type="submit"
-                    disabled={loading}
-                  >
-                    {loading ? 'Signing in...' : 'Sign In'}
-                  </SubmitButton>
-                </Grid>
+        <CardBody>
+          <form onSubmit={handleSubmit}>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Email Address"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  variant="outlined"
+                  required
+                  disabled={loading}
+                />
               </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  variant="outlined"
+                  required
+                  disabled={loading}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <SubmitButton fullWidth type="submit" disabled={loading}>
+                  {loading ? 'Signing in...' : 'Sign In'}
+                </SubmitButton>
+              </Grid>
+            </Grid>
 
-              <Box textAlign="center" mt={4}>
-                <Typography variant="body2" color="textSecondary">
-                  New pet owner?{' '}
-                  <Link href="/register" sx={{ color: '#2196f3', fontWeight: 'bold' }}>
-                    Create an account
-                  </Link>
-                </Typography>
-              </Box>
-            </form>
-          </CardBody>
-        </AuthCard>
-      </AuthContainer>
-    </>
+            <Box textAlign="center" mt={4}>
+              <Typography variant="body2" color="textSecondary">
+                New pet owner?{' '}
+                <Link href="/register" sx={{ color: '#2196f3', fontWeight: 'bold' }}>
+                  Create an account
+                </Link>
+              </Typography>
+            </Box>
+          </form>
+        </CardBody>
+      </AuthCard>
+    </AuthContainer>
   );
 };
 

@@ -1,4 +1,4 @@
-// middleware/auth.js - Fix the populate issue
+// middleware/auth.js
 const jwt = require('jsonwebtoken');
 const PetOwner = require('../models/PetOwner');
 const Veterinarian = require('../models/Veterinarian');
@@ -30,12 +30,10 @@ exports.protect = async (req, res, next) => {
     console.log('Token verified successfully:', decoded);
 
     const userId = decoded.id || decoded._id;
-    let userType = decoded.userType;
-    let tokenRole = decoded.role; // Check role from token
-    
+    let role = decoded.role; // This should always exist in a well-formed token
+
     console.log('User ID from token:', userId);
-    console.log('User Type from token:', userType);
-    console.log('Role from token:', tokenRole);
+    console.log('Role from token:', role);
 
     if (!userId) {
       console.error('No user ID found in token');
@@ -45,63 +43,59 @@ exports.protect = async (req, res, next) => {
       });
     }
 
-    // If no userType in token, try to determine it
-    if (!userType) {
-      console.log('No userType in token, trying to determine...');
-      
-      // Try Veterinarian first
+    if (!role || !['owner', 'vet'].includes(role)) {
+      console.log('No valid role in token, attempting to determine from database...');
+
+      // Fallback: try to discover who this user is
       let user = await Veterinarian.findById(userId).select('-passwordHash');
       if (user) {
-        userType = 'Veterinarian';
-        console.log('Found user as Veterinarian');
+        role = 'vet';
+        console.log('Determined role: vet');
       } else {
-        // Try PetOwner
         user = await PetOwner.findById(userId).select('-passwordHash');
         if (user) {
-          userType = 'PetOwner';
-          console.log('Found user as PetOwner');
+          role = 'owner';
+          console.log('Determined role: owner');
         }
       }
-      
-      if (!userType) {
-        console.error('Could not find user in either collection');
+
+      if (!role) {
+        console.error('Could not determine user role from either collection');
         return res.status(401).json({ 
           success: false,
-          message: 'User not found' 
+          message: 'User not found or invalid role' 
         });
       }
     }
 
-    // Fetch user
+    // Fetch user according to role
     let user;
-    if (userType === 'PetOwner') {
+    if (role === 'owner') {
       user = await PetOwner.findById(userId).select('-passwordHash');
       console.log('Fetched PetOwner:', user ? 'Found' : 'Not found');
-    } else if (userType === 'Veterinarian') {
-      // Try to populate currentActiveClinicId instead of clinicId
+    } else if (role === 'vet') {
       try {
         user = await Veterinarian.findById(userId)
           .select('-passwordHash')
           .populate('currentActiveClinicId', 'name address phoneNumber');
-        console.log('Fetched Veterinarian with currentActiveClinicId populate:', user ? 'Found' : 'Not found');
+        console.log('Fetched Veterinarian with populate:', user ? 'Found' : 'Not found');
       } catch (populateError) {
-        console.log('Populate failed, fetching without populate:', populateError.message);
-        // Fallback: fetch without populate
+        console.log('Populate failed:', populateError.message);
         user = await Veterinarian.findById(userId).select('-passwordHash');
-        console.log('Fetched Veterinarian without populate:', user ? 'Found' : 'Not found');
+        console.log('Fetched Veterinarian (no populate):', user ? 'Found' : 'Not found');
       }
     }
 
     if (!user) {
-      console.error(`User not found for ID: ${userId}, Type: ${userType}`);
+      console.error(`User not found for ID: ${userId}, role: ${role}`);
       return res.status(401).json({ 
         success: false,
         message: 'Not authorized, user not found' 
       });
     }
 
-    // Check if veterinarian is active
-    if (userType === 'Veterinarian' && user.status !== 'Active') {
+    // Vet-specific status check
+    if (role === 'vet' && user.status !== 'Active') {
       console.error('Veterinarian is not active:', user.status);
       return res.status(401).json({ 
         success: false,
@@ -109,34 +103,20 @@ exports.protect = async (req, res, next) => {
       });
     }
 
-    // Determine role - IMPORTANT: Use token role if available, otherwise determine from userType
-    let role;
-    if (tokenRole) {
-      role = tokenRole;
-      console.log('Using role from token:', role);
-    } else {
-      role = userType === 'PetOwner' ? 'owner' : 'vet';
-      console.log('Determined role from userType:', role);
-    }
-    
-    console.log('Final user role:', role);
-
-    // Build user object for request
+    // Build lean req.user object (no userType anymore)
     req.user = {
       id: user._id,
       email: user.email,
-      role: role,
-      userType: userType
+      role: role
     };
 
-    // Add vet-specific fields
+    // Vet-specific fields
     if (role === 'vet') {
       req.user.accessLevel = user.accessLevel || null;
-      
-      // Use currentActiveClinicId instead of clinicId
+
       if (user.currentActiveClinicId) {
         if (typeof user.currentActiveClinicId === 'object') {
-          // currentActiveClinicId is populated
+          // Populated
           req.user.clinicId = user.currentActiveClinicId._id;
           req.user.clinic = {
             id: user.currentActiveClinicId._id,
@@ -145,23 +125,20 @@ exports.protect = async (req, res, next) => {
             phoneNumber: user.currentActiveClinicId.phoneNumber
           };
         } else {
-          // currentActiveClinicId is just an ObjectId
+          // Just ObjectId
           req.user.clinicId = user.currentActiveClinicId;
         }
       } else {
         req.user.clinicId = null;
       }
-      
+
       req.user.currentActiveClinicId = user.currentActiveClinicId || null;
-      req.user.isPrimaryVet = user.isPrimaryVet || false;
-      req.user.ownedClinics = user.ownedClinics || [];
+      req.user.isPrimaryVet   = user.isPrimaryVet || false;
+      req.user.ownedClinics   = user.ownedClinics || [];
       
       console.log('Vet clinic info:', req.user.clinic);
     }
 
-
-
-    
     next();
   } catch (error) {
     console.error('=== AUTH MIDDLEWARE ERROR ===');
@@ -190,16 +167,24 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-// Authorize specific roles
+// ────────────────────────────────────────────────
+// Authorize specific roles (owner / vet)
 exports.authorize = (...roles) => {
   return (req, res, next) => {
     console.log('Authorization check - User:', req.user?.id, 'Role:', req.user?.role);
     console.log('Required roles:', roles);
 
-    if (!req.user) {
+    if (!req.user || !req.user.role) {
       return res.status(401).json({ 
         success: false,
         message: 'Not authenticated' 
+      });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        success: false,
+        message: `Forbidden: required role is one of: ${roles.join(', ')}` 
       });
     }
 
@@ -207,8 +192,6 @@ exports.authorize = (...roles) => {
     next();
   };
 };
-
-// Rest of your auth.js...
 
 // Authorize vet access levels (Primary, Full Access, Normal Access)
 exports.authorizeVetAccess = (...levels) => {
@@ -255,11 +238,10 @@ const authorizeVetForClinicFromPet = async (req, res, next) => {
     if (req.user.role !== 'vet' || !req.user.clinicId) {
       return res.status(403).json({
         success: false,
-        message: 'Not authorized: Veterinarian access required'
+        message: 'Not authorized: Veterinarian access required with active clinic'
       });
     }
 
-    // Check if vet's clinic matches pet's registered clinic
     const vetClinicId = req.user.clinicId.toString();
     const petClinicId = pet.registeredClinicId.toString();
 
