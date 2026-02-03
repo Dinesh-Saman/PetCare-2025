@@ -139,7 +139,7 @@ const VetAppointmentsList = () => {
   // Extract vet ID safely from localStorage
   const getCurrentVetId = () => {
     try {
-      const userData = localStorage.getItem('user'); // Change if your key is different
+      const userData = localStorage.getItem('vet_user'); // Change if your key is different
       if (!userData) {
         console.warn('No user found in localStorage');
         return null;

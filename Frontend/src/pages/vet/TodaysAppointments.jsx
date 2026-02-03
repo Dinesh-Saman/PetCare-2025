@@ -130,7 +130,7 @@ const VetTodayAppointments = () => {
   // Get current vet ID from localStorage (same as VetAppointmentsList)
   const getCurrentVetId = () => {
     try {
-      const userData = localStorage.getItem('user');
+      const userData = localStorage.getItem('vet_user');
       if (!userData) return null;
       const user = JSON.parse(userData);
       return user.id || user._id || null;

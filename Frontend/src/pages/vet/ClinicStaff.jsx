@@ -230,26 +230,33 @@ const ClinicStaff = () => {
   };
 
   // Function to get clinic name
-  const getClinicName = (member) => {
-    // Primary vet - look up clinic name from clinics array
-    if (member.details?.isPrimary) {
-      // Primary vet's clinic is a string ID, find it in clinics array
-      if (typeof member.clinic === 'string' && member.clinic && clinics) {
-        const clinic = clinics.find(c => c._id === member.clinic);
-        if (clinic) {
-          return clinic.name;
-        }
-      }
-      return 'Primary Veterinarian';
+const getClinicName = (member) => {
+  const isPrimary = member.isPrimary || member.details?.isPrimary || false;
+
+  if (isPrimary) {
+    if (typeof member.clinic === 'string' && clinics.length > 0) {
+      const found = clinics.find(c => c._id === member.clinic);
+      return found?.name || 'Primary (clinic ID not matched)';
     }
-    
-    // Staff members - they already have clinic object with name
-    if (member.clinic && member.clinic.name) {
+    if (member.clinic?.name) {
       return member.clinic.name;
     }
-    
-    return 'Unassigned';
-  };
+    return 'Primary Veterinarian';
+  }
+
+  // Non-primary vets & staff
+  if (member.clinic?.name) {
+    return member.clinic.name;
+  }
+
+  // Fallback: try matching currentActiveClinicId against clinics list
+  if (member.currentActiveClinicId && clinics.length > 0) {
+    const found = clinics.find(c => c._id === member.currentActiveClinicId);
+    return found?.name || 'Unassigned';
+  }
+
+  return 'Unassigned';
+};
 
   // Filter staff based on search query
   const filteredStaff = staff.filter((member) => {
@@ -569,22 +576,24 @@ const ClinicStaff = () => {
                           <TableCell>
                             {member.type === 'Veterinarian' ? (
                               <>
-                                <Typography fontWeight="bold">{member.details?.licenseId || '—'}</Typography>
+                                <Typography fontWeight="bold">
+                                  {member.details?.licenseId || member.veterinaryId || '—'}
+                                </Typography>
                                 <Typography variant="body2" color="textSecondary">
-                                  {member.details?.specialization || 'General Practice'}
+                                  {member.details?.specialization || member.specialization || 'General Practice'}
                                 </Typography>
                               </>
                             ) : (
                               <Typography fontWeight="bold">
-                                {member.details?.role || '—'}
+                                {member.details?.role || 'Staff Member'}
                               </Typography>
                             )}
                           </TableCell>
 
                           <TableCell>
                             <AccessChip
-                              label={member.details?.accessLevel || 'Basic'}
-                              level={member.details?.accessLevel}
+                              label={member.details?.accessLevel || member.accessLevel || 'Basic'}
+                              level={member.details?.accessLevel || member.accessLevel || 'Basic'}
                               size="small"
                             />
                           </TableCell>

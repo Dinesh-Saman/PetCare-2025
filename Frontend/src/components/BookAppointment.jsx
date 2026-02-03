@@ -31,7 +31,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 const PageContainer = styled(Box)({
   minHeight: '100vh',
   background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #a7f3d0 100%)',
-  padding: '4rem 2rem',
+  padding: '2rem 2rem',
 });
 
 const BookingWrapper = styled(Box)({
@@ -161,7 +161,7 @@ const BookAppointment = () => {
 
   // 1. Check if user is logged in
   useEffect(() => {
-    const ownerData = localStorage.getItem('owner');
+    const ownerData = localStorage.getItem('owner_user');
     let valid = false;
 
     if (ownerData) {
@@ -169,7 +169,7 @@ const BookAppointment = () => {
         JSON.parse(ownerData);
         valid = true;
       } catch (err) {
-        localStorage.removeItem('owner');
+        localStorage.removeItem('owner_user');
       }
     }
 
@@ -181,7 +181,7 @@ const BookAppointment = () => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const ownerData = localStorage.getItem('owner');
+    const ownerData = localStorage.getItem('owner_user');
     if (ownerData) {
       try {
         const parsed = JSON.parse(ownerData);
@@ -411,7 +411,7 @@ const BookAppointment = () => {
       <BookingWrapper>
         <ImageSide>
           <AppointmentImage
-            src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=1200&auto=format&fit=crop&q=80"
+            src="https://images.pexels.com/photos/15005236/pexels-photo-15005236.jpeg"
             alt="Happy pet at vet"
           />
         </ImageSide>
@@ -419,7 +419,7 @@ const BookAppointment = () => {
         <FormSide>
           <HeaderTitle>Book Your Pet's Appointment</HeaderTitle>
           <FormSubtitle>
-            Select your pet, clinic, vet, date & time — we'll take care of the rest.
+            Select your pet, clinic, vet, date & time... we'll take care of the rest.
           </FormSubtitle>
 
           <form onSubmit={handleSubmit}>

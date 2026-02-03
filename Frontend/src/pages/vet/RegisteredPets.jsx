@@ -89,7 +89,7 @@ useEffect(() => {
       setLoading(true);
 
       // Check authentication
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('vet_token');
       if (!token) {
         Swal.fire('Error', 'Please log in again.', 'error');
         navigate('/login');
@@ -125,7 +125,7 @@ useEffect(() => {
 
       // Alternative: Try with clinicId from user
       console.log('Trying alternative method...');
-      const userData = localStorage.getItem('user');
+      const userData = localStorage.getItem('vet_user');
       if (!userData) {
         Swal.fire('Error', 'User data not found. Please log in again.', 'error');
         setLoading(false);
@@ -186,8 +186,8 @@ useEffect(() => {
       
       if (error.response?.status === 401) {
         errorMessage = 'Session expired. Please log in again.';
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.removeItem('vet_token');
+        localStorage.removeItem('vet_user');
         setTimeout(() => navigate('/login'), 1500);
       } else if (error.response?.data?.message) {
         errorMessage += error.response.data.message;
