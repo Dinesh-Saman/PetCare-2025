@@ -38,6 +38,7 @@ import ContactUs from './pages/Contact';
 import EditClinicStaff from './pages/vet/EditClinicStaff';
 import MyAppointments from './pages/owner/MyAppointments';
 //import EditVet from './pages/vet/EditVet';
+import ChatWidget from './components/ChatWidget';
 
 function App() {
   // Mock auth - replace with real AuthContext later
@@ -48,6 +49,7 @@ function App() {
   }
 
   return (
+    <>
     <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<AboutUs />} />
@@ -93,6 +95,8 @@ function App() {
         <Route path="staff" element={<StaffManagement />} /> */}
 
     </Routes>
+    <ChatWidget />
+    </>
   );
 }
 
