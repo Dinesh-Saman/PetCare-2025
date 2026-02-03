@@ -123,7 +123,7 @@ const AddNewStaff = () => {
   useEffect(() => {
     const loadUserAndClinics = async () => {
       try {
-        const userData = localStorage.getItem('user');
+        const userData = localStorage.getItem('vet_user');
         if (!userData) {
           Swal.fire('Session Expired', 'Please log in again', 'info');
           navigate('/login');
@@ -176,8 +176,8 @@ const AddNewStaff = () => {
         
         if (err.response?.status === 401) {
           Swal.fire('Session Expired', 'Please log in again', 'info');
-          localStorage.removeItem('user');
-          localStorage.removeItem('token');
+          localStorage.removeItem('vet_user');
+          localStorage.removeItem('vet_token');
           navigate('/login');
         } else {
           setHasClinic(false);

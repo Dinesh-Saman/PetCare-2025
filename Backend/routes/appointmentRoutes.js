@@ -9,7 +9,8 @@ const {
   cancelAppointment,
   confirmAppointment,
   getAppointmentById,
-  getTodayAppointmentsCountByVet
+  getTodayAppointmentsCountByVet,
+  getMyAppointments 
 } = require('../controllers/appointmentController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -30,7 +31,7 @@ const allowCancel = (req, res, next) => {
 // === Routes ===
 
 // Book appointment (owner only)
-router.post('/book', protect, authorize('owner'), bookAppointment);
+router.post('/book', protect, bookAppointment);
 
 // Get appointments by pet (owner only)
 router.get('/pet/:petId', protect, getAppointmentsByPet);
@@ -57,5 +58,8 @@ router.get(
 
 // Cancel appointment (owner or vet)
 //router.patch('/:id/cancel', protect, allowCancel, cancelAppointment);
+
+// Then add this route (place it after the '/book' route):
+router.get('/owner/my-appointments', protect, authorize('owner'), getMyAppointments);
 
 module.exports = router;

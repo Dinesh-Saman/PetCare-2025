@@ -103,13 +103,18 @@ exports.getMyClinic = async (req, res) => {
 
     let clinics = [];
     
-    // For Primary vets: return all owned clinics
+if (vet.currentActiveClinicId) {
+      // Prevent duplicate if it's already in ownedClinics
+      const activeId = vet.currentActiveClinicId._id.toString();
+      const alreadyIncluded = vet.ownedClinics.some(c => c._id.toString() === activeId);
+
+      if (!alreadyIncluded) {
+        clinics.push(vet.currentActiveClinicId);
+      }
+    }
+
     if (vet.accessLevel === 'Primary' && vet.ownedClinics.length > 0) {
-      clinics = vet.ownedClinics;
-    } 
-    // For non-primary vets: return current active clinic
-    else if (vet.currentActiveClinicId) {
-      clinics = [vet.currentActiveClinicId];
+      clinics = clinics.concat(vet.ownedClinics);
     }
 
     res.status(200).json({
@@ -200,6 +205,8 @@ exports.updateClinic = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+
+    console.log('-------------',req);
 
     // Check authentication
     if (!req.user || req.user.role !== 'vet') {
@@ -387,11 +394,12 @@ exports.addClinicStaff = async (req, res) => {
 
     // Check if creator has access to this clinic
     let hasAccessToClinic = false;
+
+    console.log('creator ',creator.ownedClinics.some(id => id.toString() === clinicId));
     
     if (creator.accessLevel === 'Primary') {
       // Primary vets must own the clinic
-      hasAccessToClinic = creator.ownedClinics && 
-                         creator.ownedClinics.some(id => id.toString() === clinicId);
+      hasAccessToClinic = creator.ownedClinics;
       console.log('Primary vet clinic check:', {
         ownedClinics: creator.ownedClinics,
         hasAccessToClinic

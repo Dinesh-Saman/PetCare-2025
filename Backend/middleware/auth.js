@@ -13,9 +13,6 @@ exports.protect = async (req, res, next) => {
     token = req.headers.authorization.split(' ')[1];
   }
 
-  console.log('=== AUTH MIDDLEWARE START ===');
-  console.log('Token exists:', !!token);
-
   if (!token) {
     console.log('No token provided');
     return res.status(401).json({ 

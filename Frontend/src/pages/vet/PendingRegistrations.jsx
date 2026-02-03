@@ -141,10 +141,8 @@ const fetchPendingRegistrations = async () => {
   try {
     setLoading(true);
     setError(null);
-    console.log('=== STARTING FETCH ===');
-
     // Get token
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('vet_token');
     if (!token) {
       console.log('No token found');
       Swal.fire('Error', 'Please log in again.', 'error');
@@ -200,8 +198,8 @@ const fetchPendingRegistrations = async () => {
       let msg = 'Failed to load pending registrations';
       if (apiErr.response?.status === 401) {
         msg = 'Session expired. Please log in again.';
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.removeItem('vet_token');
+        localStorage.removeItem('vet_user');
         setTimeout(() => window.location.href = '/login', 1500);
       } else if (apiErr.response?.data?.message) {
         msg = apiErr.response.data.message;

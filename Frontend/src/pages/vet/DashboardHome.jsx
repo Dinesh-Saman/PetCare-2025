@@ -13,7 +13,7 @@ import Sidebar from '../../components/layout/Sidebar';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 
-// Styled Components — unchanged and beautiful
+// Styled Components - Optimized for 4 cards per row
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
   borderRadius: 12,
@@ -23,6 +23,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   padding: '30px',
   display: 'flex',
   flexDirection: 'column',
+  overflowX: 'hidden',
 }));
 
 const SearchSection = styled(Box)(({ theme }) => ({
@@ -43,32 +44,43 @@ const PageTitle = styled(Typography)`
     margin-bottom: 40px;
     font-size: 2.8rem;
     letter-spacing: 1px;
+    width: 100%;
   }
 `;
 
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  margin-bottom: 48px;
+  gap: 20px;
+  margin-bottom: 40px;
+  width: 100%;
 
-  @media (max-width: 1400px) {
-    grid-template-columns: repeat(3, 1fr);
+  /* Responsive design that maintains 4 cards as long as possible */
+  @media (max-width: 1600px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
   }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 1200px) {
     grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 `;
 
 const StatCard = styled.div`
   background: white;
   border-radius: 16px;
-  padding: 28px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -77,7 +89,8 @@ const StatCard = styled.div`
   border: 1px solid #e2e8f0;
   position: relative;
   overflow: hidden;
-  min-height: 150px;
+  min-height: 140px;
+  width: 100%;
 
   &:hover {
     transform: translateY(-6px);
@@ -97,12 +110,12 @@ const StatCard = styled.div`
 `;
 
 const IconWrapper = styled.div`
-  font-size: 26px;
+  font-size: 24px;
   margin-bottom: 16px;
   color: ${(props) => props.color || '#475569'};
   background: ${(props) => props.bgColor || '#f1f5f9'};
-  width: 56px;
-  height: 56px;
+  width: 54px;
+  height: 54px;
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -111,10 +124,11 @@ const IconWrapper = styled.div`
 `;
 
 const StatCount = styled.div`
-  font-size: 2.2rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #1e293b;
   margin-bottom: 8px;
+  line-height: 1.2;
 `;
 
 const StatLabel = styled.div`
@@ -138,21 +152,29 @@ const SectionTitle = styled(Typography)`
 const QuickActionsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
+  gap: 20px;
+  width: 100%;
+
+  @media (max-width: 1400px) {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
 
   @media (max-width: 1200px) {
     grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
   }
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 `;
 
 const ActionCard = styled.div`
   background-color: #f8fafc;
   border-radius: 16px;
-  padding: 30px;
+  padding: 24px;
   text-align: center;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
@@ -163,6 +185,7 @@ const ActionCard = styled.div`
   align-items: center;
   justify-content: center;
   height: 140px;
+  width: 100%;
 
   &:hover {
     transform: translateY(-8px);
@@ -190,6 +213,7 @@ const ActionTitle = styled.div`
   font-size: 1.1rem;
   font-weight: 600;
   color: #334155;
+  text-align: center;
 `;
 
 const DashboardHome = () => {
@@ -207,141 +231,139 @@ const DashboardHome = () => {
     clinicStaff: true
   });
 
-// Replace the useEffect in your DashboardHome.jsx with this:
-
-useEffect(() => {
-  const fetchDashboardStats = async () => {
-    try {
-      console.log('=== DASHBOARD DEBUG START ===');
-      
-      // First, check what's in localStorage
-      const userData = localStorage.getItem('user');
-      console.log('Raw userData from localStorage:', userData);
-      
-      if (!userData) {
-        console.error('No user data found in localStorage');
-        Swal.fire('Error', 'User not found. Please log in again.', 'error');
-        return;
-      }
-
-      // Parse the user data
-      let user;
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
       try {
-        user = JSON.parse(userData);
-        console.log('Parsed user object:', user);
-      } catch (parseError) {
-        console.error('Failed to parse user data:', parseError);
-        Swal.fire('Error', 'Invalid user data. Please log in again.', 'error');
-        return;
-      }
-
-      // Check if user is a vet
-      if (user.role !== 'vet') {
-        Swal.fire('Error', 'Access denied. Veterinarian account required.', 'error');
-        navigate('/login');
-        return;
-      }
-
-      // 1. Fetch REGISTERED pets count
-      try {
-        console.log('Fetching registered pets...');
-        const registeredResponse = await api.get('/pets/clinic/registered');
-        console.log('Registered pets response:', registeredResponse.data);
+        console.log('=== DASHBOARD DEBUG START ===');
         
-        let registeredCount = 0;
-        if (registeredResponse.data.registeredPets && Array.isArray(registeredResponse.data.registeredPets)) {
-          registeredCount = registeredResponse.data.registeredPets.length;
-        } else if (registeredResponse.data.count !== undefined) {
-          registeredCount = registeredResponse.data.count;
+        // First, check what's in localStorage
+        const userData = localStorage.getItem('vet_user');
+        console.log('Raw userData from localStorage:', userData);
+        
+        if (!userData) {
+          console.error('No user data found in localStorage');
+          Swal.fire('Error', 'User not found. Please log in again.', 'error');
+          return;
         }
-        
-        console.log('Registered pets count:', registeredCount);
-        setStats(prev => ({ ...prev, totalPets: registeredCount }));
-      } catch (err) {
-        console.error('Failed to fetch registered pets:', err);
-        console.error('Error details:', err.response?.data || err.message);
-        setStats(prev => ({ ...prev, totalPets: 0 }));
-      } finally {
-        setLoading(prev => ({ ...prev, totalPets: false }));
-      }
 
-      // 2. Fetch PENDING registrations count
-      try {
-        console.log('Fetching pending registrations...');
-        const pendingResponse = await api.get('/pets/clinic/pending');
-        console.log('Pending registrations response:', pendingResponse.data);
-        
-        let pendingCount = 0;
-        if (pendingResponse.data.pendingPets && Array.isArray(pendingResponse.data.pendingPets)) {
-          pendingCount = pendingResponse.data.pendingPets.length;
-        } else if (pendingResponse.data.count !== undefined) {
-          pendingCount = pendingResponse.data.count;
+        // Parse the user data
+        let user;
+        try {
+          user = JSON.parse(userData);
+          console.log('Parsed user object:', user);
+        } catch (parseError) {
+          console.error('Failed to parse user data:', parseError);
+          Swal.fire('Error', 'Invalid user data. Please log in again.', 'error');
+          return;
         }
-        
-        console.log('Pending registrations count:', pendingCount);
-        setStats(prev => ({ ...prev, pendingRegistrations: pendingCount }));
-      } catch (err) {
-        console.error('Failed to fetch pending registrations:', err);
-        console.error('Error details:', err.response?.data || err.message);
-        setStats(prev => ({ ...prev, pendingRegistrations: 0 }));
-      } finally {
-        setLoading(prev => ({ ...prev, pendingRegistrations: false }));
-      }
 
-      // 3. Today's Appointments Count
-      try {
-        const vetId = user.id || user._id || user.userId || user.vetId;
-        console.log('Fetching today appointments for vetId:', vetId);
-        
-        if (vetId) {
-          const apptResponse = await api.get(`/appointments/vet/${vetId}/today-count`);
-          console.log('Today appointments response:', apptResponse.data);
-          setStats(prev => ({ 
-            ...prev, 
-            todayAppointments: apptResponse.data.todayAppointmentsCount || 0 
-          }));
-        } else {
+        // Check if user is a vet
+        if (user.role !== 'vet') {
+          Swal.fire('Error', 'Access denied. Veterinarian account required.', 'error');
+          navigate('/login');
+          return;
+        }
+
+        // 1. Fetch REGISTERED pets count
+        try {
+          console.log('Fetching registered pets...');
+          const registeredResponse = await api.get('/pets/clinic/registered');
+          console.log('Registered pets response:', registeredResponse.data);
+          
+          let registeredCount = 0;
+          if (registeredResponse.data.registeredPets && Array.isArray(registeredResponse.data.registeredPets)) {
+            registeredCount = registeredResponse.data.registeredPets.length;
+          } else if (registeredResponse.data.count !== undefined) {
+            registeredCount = registeredResponse.data.count;
+          }
+          
+          console.log('Registered pets count:', registeredCount);
+          setStats(prev => ({ ...prev, totalPets: registeredCount }));
+        } catch (err) {
+          console.error('Failed to fetch registered pets:', err);
+          console.error('Error details:', err.response?.data || err.message);
+          setStats(prev => ({ ...prev, totalPets: 0 }));
+        } finally {
+          setLoading(prev => ({ ...prev, totalPets: false }));
+        }
+
+        // 2. Fetch PENDING registrations count
+        try {
+          console.log('Fetching pending registrations...');
+          const pendingResponse = await api.get('/pets/clinic/pending');
+          console.log('Pending registrations response:', pendingResponse.data);
+          
+          let pendingCount = 0;
+          if (pendingResponse.data.pendingPets && Array.isArray(pendingResponse.data.pendingPets)) {
+            pendingCount = pendingResponse.data.pendingPets.length;
+          } else if (pendingResponse.data.count !== undefined) {
+            pendingCount = pendingResponse.data.count;
+          }
+          
+          console.log('Pending registrations count:', pendingCount);
+          setStats(prev => ({ ...prev, pendingRegistrations: pendingCount }));
+        } catch (err) {
+          console.error('Failed to fetch pending registrations:', err);
+          console.error('Error details:', err.response?.data || err.message);
+          setStats(prev => ({ ...prev, pendingRegistrations: 0 }));
+        } finally {
+          setLoading(prev => ({ ...prev, pendingRegistrations: false }));
+        }
+
+        // 3. Today's Appointments Count
+        try {
+          const vetId = user.id || user._id || user.userId || user.vetId;
+          console.log('Fetching today appointments for vetId:', vetId);
+          
+          if (vetId) {
+            const apptResponse = await api.get(`/appointments/vet/${vetId}/today-count`);
+            console.log('Today appointments response:', apptResponse.data);
+            setStats(prev => ({ 
+              ...prev, 
+              todayAppointments: apptResponse.data.todayAppointmentsCount || 0 
+            }));
+          } else {
+            setStats(prev => ({ ...prev, todayAppointments: 0 }));
+          }
+        } catch (err) {
+          console.error('Failed to fetch today\'s appointments:', err);
+          console.error('Error details:', err.response?.data || err.message);
           setStats(prev => ({ ...prev, todayAppointments: 0 }));
+        } finally {
+          setLoading(prev => ({ ...prev, todayAppointments: false }));
         }
-      } catch (err) {
-        console.error('Failed to fetch today\'s appointments:', err);
-        console.error('Error details:', err.response?.data || err.message);
-        setStats(prev => ({ ...prev, todayAppointments: 0 }));
-      } finally {
-        setLoading(prev => ({ ...prev, todayAppointments: false }));
-      }
 
-      // 4. Clinic Staff Count
-      try {
-        console.log('Fetching staff count...');
-        const staffResponse = await api.get('/vets/clinics/staff');
-        console.log('Staff response:', staffResponse.data);
-        
-        let staffCount = 0;
-        if (staffResponse.data.totalStaff) {
-          staffCount = staffResponse.data.totalStaff;
-        } else if (staffResponse.data.staff && Array.isArray(staffResponse.data.staff)) {
-          staffCount = staffResponse.data.staff.length;
+        // 4. Clinic Staff Count
+        try {
+          console.log('Fetching staff count...');
+          const staffResponse = await api.get('/vets/clinics/staff');
+          console.log('Staff response:', staffResponse.data);
+          
+          let staffCount = 0;
+          if (staffResponse.data.totalStaff) {
+            staffCount = staffResponse.data.totalStaff;
+          } else if (staffResponse.data.staff && Array.isArray(staffResponse.data.staff)) {
+            staffCount = staffResponse.data.staff.length;
+          }
+          
+          setStats(prev => ({ ...prev, clinicStaff: staffCount }));
+        } catch (err) {
+          console.error('Failed to fetch staff count:', err);
+          console.error('Error details:', err.response?.data || err.message);
+          setStats(prev => ({ ...prev, clinicStaff: 0 }));
+        } finally {
+          setLoading(prev => ({ ...prev, clinicStaff: false }));
         }
-        
-        setStats(prev => ({ ...prev, clinicStaff: staffCount }));
-      } catch (err) {
-        console.error('Failed to fetch staff count:', err);
-        console.error('Error details:', err.response?.data || err.message);
-        setStats(prev => ({ ...prev, clinicStaff: 0 }));
-      } finally {
-        setLoading(prev => ({ ...prev, clinicStaff: false }));
+
+        console.log('=== DASHBOARD DEBUG END ===');
+
+      } catch (error) {
+        console.error('Error loading dashboard stats:', error);
       }
+    };
 
-      console.log('=== DASHBOARD DEBUG END ===');
-
-    } catch (error) {
-      console.error('Error loading dashboard stats:', error);
-    }
-  };
-
-  fetchDashboardStats();
-}, []);
+    fetchDashboardStats();
+  }, []);
 
   const statCards = [
     { 
@@ -386,9 +408,19 @@ useEffect(() => {
   ];
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      minHeight: '100vh', 
+      backgroundColor: '#f5f7fa',
+      minWidth: '1200px', // Ensure minimum width for 4 cards
+    }}>
       <Sidebar />
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ 
+        flexGrow: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        width: 'calc(100% - 280px)', // Account for sidebar width
+      }}>
         <ContentContainer>
           <SearchSection>
             <PageTitle variant="h4">

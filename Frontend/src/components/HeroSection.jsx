@@ -5,17 +5,17 @@ const HeroSection = () => {
 
   // High-quality, relevant images for pet care / veterinary theme
   const slides = [
-    "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=1600&h=900&fit=crop",     // Happy dog & owner
-    "https://images.unsplash.com/photo-1581578731547-79b7e2d6a1a9?w=1600&h=900&fit=crop",     // Vet with cat
-    "https://images.unsplash.com/photo-1517849845537-4d257902454a?w=1600&h=900&fit=crop",     // Cute pets
-    "https://images.unsplash.com/photo-1560807707-8cc77767d783?w=1600&h=900&fit=crop",       // Dog at vet / happy moment
+    "https://images.pexels.com/photos/10361804/pexels-photo-10361804.jpeg",     // Happy dog & owner
+    "https://images.pexels.com/photos/32830896/pexels-photo-32830896.jpeg",     // Vet with cat
+    "https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg",     // Cute pets
+    "https://images.pexels.com/photos/3860304/pexels-photo-3860304.jpeg",       // Dog at vet / happy moment
     "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=1600&h=900&fit=crop",     // Family with dog & cat
   ];
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000); // Change slide every 5 seconds
+    }, 4000); // Change slide every 5 seconds
 
     return () => clearInterval(timer);
   }, [slides.length]);
@@ -32,6 +32,7 @@ const HeroSection = () => {
           position: relative;
           height: 550px;
           overflow: hidden;
+          margin-top: 96px;
         }
         .hero-slide {
           position: absolute;
@@ -170,7 +171,7 @@ const HeroSection = () => {
           <div className="hero-content">
             <h1>PetCare Connect</h1>
             <p>
-              Your all-in-one platform for pet health management in Sri Lanka — register pets, book vet appointments, 
+              Your all-in-one platform for pet health management in Sri Lanka. register pets, book vet appointments, 
               chat with veterinarians, track vaccinations & medications, and get instant AI-powered pet care advice.
             </p>
             <button onClick={handleGetStarted} className="hero-button">

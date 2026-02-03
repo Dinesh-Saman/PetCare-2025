@@ -35,7 +35,7 @@ router.post('/staff', protect, authorize('vet'), authorizeVetAccess('Primary', '
 
 // === Clinic CRUD - :id routes LAST ===
 router.get('/:id', getClinicById);                    // Now only matches real ObjectIds
-router.put('/:id', updateClinic);
+router.put('/:id', protect, updateClinic);
 router.delete('/:id', protect, authorize('vet'), authorizeVetAccess('Primary'), deleteClinic);
 
 router.post('/', protect, authorize('vet'), createClinic);
