@@ -1,12 +1,17 @@
+// src/pages/owner/EditPet.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import {
-  Box, Typography, TextField, Button, Paper, Grid, FormControl,
-  InputLabel, Select, MenuItem, InputAdornment
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  InputAdornment,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import PetsIcon from '@mui/icons-material/Pets';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import MaleIcon from '@mui/icons-material/Male';
@@ -15,64 +20,7 @@ import ScaleIcon from '@mui/icons-material/Scale';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import DescriptionIcon from '@mui/icons-material/Description';
-import Header from '../../components/layout/Header';
-
-const FormContainer = styled(Box)(({ theme }) => ({
-  minHeight: '100vh',
-  background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '20px',
-}));
-
-const FormCard = styled(Paper)(({ theme }) => ({
-  width: '100%',
-  maxWidth: 700,
-  borderRadius: 24,
-  boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-  overflow: 'hidden',
-}));
-
-const CardHeader = styled(Box)(({ theme }) => ({
-  background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
-  color: 'white',
-  padding: 40,
-  textAlign: 'center',
-}));
-
-const CardBody = styled(Box)(({ theme }) => ({
-  padding: 48,
-}));
-
-const LogoIcon = styled(PetsIcon)(({ theme }) => ({
-  fontSize: 80,
-  marginBottom: 16,
-}));
-
-const SubmitButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
-  color: 'white',
-  padding: '16px',
-  borderRadius: 30,
-  fontWeight: 'bold',
-  fontSize: '1.2rem',
-  textTransform: 'none',
-  marginTop: 30,
-  '&:hover': {
-    background: 'linear-gradient(90deg, #1976d2, #00bcd4)',
-  },
-}));
-
-const CancelButton = styled(Button)(({ theme }) => ({
-  padding: '16px',
-  borderRadius: 30,
-  fontWeight: 'bold',
-  fontSize: '1.2rem',
-  textTransform: 'none',
-  marginTop: 20,
-  marginLeft: 16,
-}));
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 const EditPet = () => {
   const { id } = useParams();
@@ -164,212 +112,380 @@ const EditPet = () => {
 
   if (loading) {
     return (
-      <>
-        <FormContainer>
-          <Typography variant="h5" color="#666">
-            Loading pet details...
-          </Typography>
-        </FormContainer>
-      </>
+      <div className="loading-container">
+        Loading pet details...
+      </div>
     );
   }
 
   return (
-    <>
-      <FormContainer>
-        <FormCard>
-          <CardHeader>
-            <LogoIcon />
-            <Typography variant="h4" fontWeight="bold">
-              Edit Pet Profile
-            </Typography>
-            <Typography variant="body1" sx={{ mt: 2, opacity: 0.9 }}>
-              Update {pet?.name}'s information
-            </Typography>
-          </CardHeader>
+    <div className="edit-pet-page">
+      <div className="form-wrapper">
+        <div className="form-card">
+          {/* Header */}
+          <div className="card-header">
+            <PetsIcon className="header-icon" />
+            <h1 className="header-title">Edit Pet Profile</h1>
+            <p className="header-subtitle">Update {pet?.name}'s information</p>
+          </div>
 
-          <CardBody>
-            <form onSubmit={handleSubmit}>
-              <Grid container spacing={4}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Pet Name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PetsIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+          {/* Body */}
+          <div className="card-body">
+            <button 
+              className="back-button"
+              onClick={() => navigate(`/owner/profile`)}
+            >
+              <ArrowBackIcon /> Back to Dashboard
+            </button>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Species"
-                    name="species"
-                    value={formData.species}
-                    onChange={handleChange}
-                    required
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Breed (Optional)"
-                    name="breed"
-                    value={formData.breed}
-                    onChange={handleChange}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Gender</InputLabel>
-                    <Select
-                      name="gender"
-                      value={formData.gender}
+            <form onSubmit={handleSubmit} className="pet-form">
+              <div className="form-columns">
+                {/* LEFT COLUMN */}
+                <div className="form-column left">
+                  <div className="field-group">
+                    <TextField
+                      fullWidth
+                      label="Pet Name *"
+                      name="name"
+                      value={formData.name}
                       onChange={handleChange}
-                    >
-                      <MenuItem value="">Select Gender</MenuItem>
-                      <MenuItem value="Male">Male</MenuItem>
-                      <MenuItem value="Female">Female</MenuItem>
-                      <MenuItem value="Other">Other</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
+                      required
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PetsIcon color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Date of Birth"
-                    name="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={handleChange}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <CalendarTodayIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+                  <div className="field-group">
+                    <TextField
+                      fullWidth
+                      label="Species *"
+                      name="species"
+                      value={formData.species}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Weight (kg)"
-                    name="weight"
-                    type="number"
-                    step="0.1"
-                    value={formData.weight}
-                    onChange={handleChange}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <ScaleIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+                  <div className="field-group">
+                    <TextField
+                      fullWidth
+                      label="Breed (Optional)"
+                      name="breed"
+                      value={formData.breed}
+                      onChange={handleChange}
+                    />
+                  </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Color/Markings"
-                    name="color"
-                    value={formData.color}
-                    onChange={handleChange}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <ColorLensIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+                  <div className="field-group">
+                    <FormControl fullWidth>
+                      <InputLabel>Gender</InputLabel>
+                      <Select
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleChange}
+                        label="Gender"
+                      >
+                        <MenuItem value="">Select Gender</MenuItem>
+                        <MenuItem value="Male">
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <MaleIcon sx={{ mr: 1, color: '#3B82F6' }} />
+                            Male
+                          </div>
+                        </MenuItem>
+                        <MenuItem value="Female">
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <FemaleIcon sx={{ mr: 1, color: '#EC4899' }} />
+                            Female
+                          </div>
+                        </MenuItem>
+                        <MenuItem value="Other">Other</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </div>
+                </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Microchip Number"
-                    name="microchipNumber"
-                    value={formData.microchipNumber}
-                    onChange={handleChange}
-                  />
-                </Grid>
+                {/* RIGHT COLUMN */}
+                <div className="form-column right">
+                  <div className="field-group">
+                    <TextField
+                      fullWidth
+                      label="Date of Birth"
+                      name="dateOfBirth"
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={handleChange}
+                      InputLabelProps={{ shrink: true }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <CalendarTodayIcon color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </div>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Photo URL"
-                    name="photo"
-                    value={formData.photo}
-                    onChange={handleChange}
-                    placeholder="Paste updated image link"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PhotoCameraIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+                  <div className="field-group">
+                    <TextField
+                      fullWidth
+                      label="Weight (kg)"
+                      name="weight"
+                      type="number"
+                      step="0.1"
+                      value={formData.weight}
+                      onChange={handleChange}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <ScaleIcon color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </div>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Notes"
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleChange}
-                    multiline
-                    rows={4}
-                    placeholder="Update medical history, behavior, or care instructions..."
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
-                          <DescriptionIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+                  <div className="field-group">
+                    <TextField
+                      fullWidth
+                      label="Color/Markings"
+                      name="color"
+                      value={formData.color}
+                      onChange={handleChange}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <ColorLensIcon color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </div>
 
-                <Grid item xs={12} textAlign="center">
-                  <SubmitButton
-                    type="submit"
-                    disabled={saving}
-                  >
-                    {saving ? 'Saving Changes...' : 'Save Changes'}
-                  </SubmitButton>
+                  <div className="field-group">
+                    <TextField
+                      fullWidth
+                      label="Microchip Number"
+                      name="microchipNumber"
+                      value={formData.microchipNumber}
+                      onChange={handleChange}
+                    />
+                  </div>
 
-                  <CancelButton
-                    onClick={() => navigate(`/owner/profile`)}
-                    disabled={saving}
-                  >
-                    Cancel
-                  </CancelButton>
-                </Grid>
-              </Grid>
+                  <div className="field-group">
+                    <TextField
+                      fullWidth
+                      label="Photo URL"
+                      name="photo"
+                      value={formData.photo}
+                      onChange={handleChange}
+                      placeholder="Paste updated image link"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PhotoCameraIcon color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </div>
+
+                  <div className="field-group">
+                    <TextField
+                      fullWidth
+                      label="Notes"
+                      name="notes"
+                      value={formData.notes}
+                      onChange={handleChange}
+                      multiline
+                      rows={5}
+                      placeholder="Update medical history, behavior, or care instructions..."
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                            <DescriptionIcon color="action" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="form-actions">
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="submit-btn"
+                >
+                  {saving ? 'Saving Changes...' : 'Save Changes'}
+                </Button>
+
+                <Button
+                  onClick={() => navigate(`/owner/profile`)}
+                  disabled={saving}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </Button>
+              </div>
             </form>
-          </CardBody>
-        </FormCard>
-      </FormContainer>
-    </>
+          </div>
+        </div>
+      </div>
+
+      {/* CSS Styles */}
+      <style jsx>{`
+        .edit-pet-page {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+          padding: 40px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .form-wrapper {
+          width: 100%;
+          max-width: 1100px;
+        }
+
+        .form-card {
+          border-radius: 24px;
+          box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+          overflow: hidden;
+          background: white;
+        }
+
+        .card-header {
+          background: linear-gradient(90deg, #2196f3, #21cbf3);
+          color: white;
+          padding: 48px 32px;
+          text-align: center;
+        }
+
+        .header-icon {
+          font-size: 90px;
+          margin-bottom: 20px;
+        }
+
+        .header-title {
+          font-size: 2.5rem;
+          font-weight: 700;
+          margin-bottom: 12px;
+        }
+
+        .header-subtitle {
+          font-size: 1.25rem;
+          opacity: 0.95;
+        }
+
+        .card-body {
+          padding: 48px 40px;
+        }
+
+        @media (max-width: 900px) {
+          .card-body {
+            padding: 32px 24px;
+          }
+        }
+
+        .back-button {
+          background: none;
+          border: none;
+          color: #2196f3;
+          font-weight: 600;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 32px;
+          cursor: pointer;
+        }
+
+        .back-button:hover {
+          text-decoration: underline;
+        }
+
+        .pet-form {
+          display: flex;
+          flex-direction: column;
+          gap: 40px;
+        }
+
+        .form-columns {
+          display: flex;
+          gap: 40px;
+        }
+
+        @media (max-width: 900px) {
+          .form-columns {
+            flex-direction: column;
+            gap: 32px;
+          }
+        }
+
+        .form-column {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .field-group {
+          width: 100%;
+        }
+
+        .form-actions {
+          display: flex;
+          justify-content: center;
+          gap: 24px;
+          flex-wrap: wrap;
+          margin-top: 48px;
+        }
+
+        .submit-btn {
+          background: linear-gradient(90deg, #2196f3, #21cbf3) !important;
+          color: white !important;
+          padding: 14px 48px !important;
+          border-radius: 50px !important;
+          font-weight: bold !important;
+          font-size: 1.2rem !important;
+          text-transform: none !important;
+          box-shadow: 0 8px 25px rgba(33, 150, 243, 0.3) !important;
+          min-width: 280px !important;
+          transition: all 0.3s !important;
+        }
+
+        .submit-btn:hover {
+          background: linear-gradient(90deg, #1976d2, #00bcd4) !important;
+          transform: translateY(-2px) !important;
+          box-shadow: 0 12px 35px rgba(33, 150, 243, 0.4) !important;
+        }
+
+        .cancel-btn {
+          padding: 14px 48px !important;
+          border-radius: 50px !important;
+          font-weight: bold !important;
+          font-size: 1.2rem !important;
+          text-transform: none !important;
+          border: 2px solid #2196f3 !important;
+          color: #2196f3 !important;
+          min-width: 280px !important;
+          background: transparent !important;
+          transition: all 0.3s !important;
+        }
+
+        .cancel-btn:hover {
+          background: rgba(33, 150, 243, 0.08) !important;
+        }
+      `}</style>
+    </div>
   );
 };
 

@@ -311,3 +311,164 @@ exports.getTodayAppointmentsCountByVet = async (req, res) => {
     });
   }
 };
+
+// Get all appointments for the logged-in owner
+exports.getMyAppointments = async (req, res) => {
+  try {
+    // Only owners can access this route
+    if (req.user.role !== 'owner') {
+      return res.status(403).json({
+        message: 'Only pet owners can access their appointments'
+      });
+    }
+
+    const ownerId = req.user.id;
+    
+    // Get query parameters for filtering
+    const { 
+      status, 
+      upcoming, 
+      past,
+      clinicId,
+      startDate,
+      endDate,
+      sortBy = 'dateTime',
+      sortOrder = 'desc' 
+    } = req.query;
+
+    // Build query
+    let query = { ownerId };
+
+    // Filter by status
+    if (status) {
+      query.status = status;
+    }
+
+    // Filter by date range
+    if (startDate || endDate) {
+      query.dateTime = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        query.dateTime.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.dateTime.$lte = end;
+      }
+    } else {
+      // Default filters if no date range
+      if (upcoming === 'true') {
+        query.dateTime = { $gte: new Date() };
+      } else if (past === 'true') {
+        query.dateTime = { $lt: new Date() };
+      }
+    }
+
+    // Filter by clinic
+    if (clinicId) {
+      query.clinicId = clinicId;
+    }
+
+    // Determine sort order
+    const sortDirection = sortOrder === 'asc' ? 1 : -1;
+    const sortOptions = {};
+    sortOptions[sortBy] = sortDirection;
+
+    // Fetch appointments with full details
+    const appointments = await Appointment.find(query)
+      .populate([
+        { 
+          path: 'petId', 
+          select: 'name species breed photo registrationStatus',
+          populate: {
+            path: 'registeredClinicId',
+            select: 'name'
+          }
+        },
+        { 
+          path: 'vetId', 
+          select: 'firstName lastName specialization avatar email phoneNumber' 
+        },
+        { 
+          path: 'clinicId', 
+          select: 'name address phoneNumber operatingHours' 
+        },
+        { 
+          path: 'ownerId', 
+          select: 'firstName lastName email phoneNumber' 
+        }
+      ])
+      .sort(sortOptions);
+
+    // Format the response with additional info
+    const formattedAppointments = appointments.map(appointment => {
+      const appointmentObj = appointment.toObject();
+      
+      // Calculate time ago for past appointments
+      if (appointment.dateTime < new Date()) {
+        const diffMs = new Date() - appointment.dateTime;
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) appointmentObj.timeAgo = 'Today';
+        else if (diffDays === 1) appointmentObj.timeAgo = 'Yesterday';
+        else if (diffDays < 7) appointmentObj.timeAgo = `${diffDays} days ago`;
+        else if (diffDays < 30) appointmentObj.timeAgo = `${Math.floor(diffDays/7)} weeks ago`;
+        else appointmentObj.timeAgo = `${Math.floor(diffDays/30)} months ago`;
+      } else {
+        // Calculate time until appointment
+        const diffMs = appointment.dateTime - new Date();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) appointmentObj.timeUntil = 'Today';
+        else if (diffDays === 1) appointmentObj.timeUntil = 'Tomorrow';
+        else if (diffDays < 7) appointmentObj.timeUntil = `in ${diffDays} days`;
+        else if (diffDays < 30) appointmentObj.timeUntil = `in ${Math.floor(diffDays/7)} weeks`;
+        else appointmentObj.timeUntil = `in ${Math.floor(diffDays/30)} months`;
+      }
+
+      return appointmentObj;
+    });
+
+    // Calculate stats
+    const totalCount = appointments.length;
+    const upcomingCount = appointments.filter(a => a.dateTime >= new Date() && a.status !== 'Canceled' && a.status !== 'Completed').length;
+    const pendingCount = appointments.filter(a => a.status === 'Booked').length;
+    const confirmedCount = appointments.filter(a => a.status === 'Confirmed').length;
+    const canceledCount = appointments.filter(a => a.status === 'Canceled').length;
+    const completedCount = appointments.filter(a => a.status === 'Completed').length;
+
+    res.status(200).json({
+      success: true,
+      count: totalCount,
+      stats: {
+        total: totalCount,
+        upcoming: upcomingCount,
+        pending: pendingCount,
+        confirmed: confirmedCount,
+        canceled: canceledCount,
+        completed: completedCount
+      },
+      filters: {
+        status: status || 'all',
+        upcoming: upcoming || 'false',
+        past: past || 'false',
+        clinicId: clinicId || 'all',
+        dateRange: {
+          start: startDate,
+          end: endDate
+        }
+      },
+      appointments: formattedAppointments
+    });
+
+  } catch (error) {
+    console.error('Error fetching my appointments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching your appointments',
+      error: error.message
+    });
+  }
+};

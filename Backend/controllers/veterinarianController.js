@@ -188,10 +188,13 @@ const createSubAccount = async (req, res) => {
 
 // Get all vets in a clinic (public or internal dashboard)
 const getVetsByClinic = async (req, res) => {
-  try {
+  try { 
     const { clinicId } = req.params;
+    
 
     const clinic = await Clinic.findById(clinicId);
+
+    console.log('-------------------------',clinic)
     if (!clinic) {
       return res.status(404).json({ message: 'Clinic not found' });
     }
@@ -442,53 +445,62 @@ const getClinicStaffStats = async (req, res) => {
 // Get clinics for the logged-in veterinarian
 const getMyClinics = async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.user || !req.user.id) {
-      return res.status(401).json({
-        message: 'Authentication required'
-      });
+      return res.status(401).json({ message: 'Authentication required' });
     }
 
-    // Check if user is a veterinarian
     if (req.user.role !== 'vet') {
-      return res.status(403).json({
-        message: 'Access denied: Only veterinarians can access clinic information'
-      });
+      return res.status(403).json({ message: 'Access denied: Only veterinarians can access clinic information' });
     }
 
     const vetId = req.user.id;
 
-    // Find the veterinarian with owned clinics populated
+    // Populate both fields
     const vet = await Veterinarian.findById(vetId)
       .populate('ownedClinics')
+      .populate('currentActiveClinicId')   // ← important: populate this too!
       .select('firstName lastName accessLevel ownedClinics currentActiveClinicId veterinaryId');
-    
+
     if (!vet) {
-      return res.status(404).json({
-        message: 'Veterinarian not found'
-      });
+      return res.status(404).json({ message: 'Veterinarian not found' });
     }
 
-    // For non-primary vets, they only have currentActiveClinicId
+    // Build clinics list – start with owned (if Primary)
     let clinics = [];
-    if (vet.accessLevel === 'Primary' && vet.ownedClinics.length > 0) {
-      clinics = vet.ownedClinics;
-    } else if (vet.currentActiveClinicId) {
-      clinics = [vet.currentActiveClinicId];
+
+    if (vet.accessLevel === 'Primary' && vet.ownedClinics?.length > 0) {
+      clinics = [...vet.ownedClinics];
     }
+
+    // Always try to add current active clinic (if set)
+    if (vet.currentActiveClinicId) {
+      const activeId = vet.currentActiveClinicId._id.toString();
+
+      // Avoid duplicate if it's already in the owned list
+      const isDuplicate = clinics.some(clinic => clinic._id.toString() === activeId);
+
+      if (!isDuplicate) {
+        clinics.push(vet.currentActiveClinicId);
+      }
+    }
+
+    // Optional: sort by name or some priority if you want
+    // clinics.sort((a, b) => a.name.localeCompare(b.name));
 
     res.status(200).json({
       message: 'Clinics retrieved successfully',
       total: clinics.length,
       clinics,
-      currentActiveClinic: vet.currentActiveClinicId,
+      currentActiveClinic: vet.currentActiveClinicId || null,
+      currentActiveClinicId: vet.currentActiveClinicId?._id || null,
       vetInfo: {
         vetId: vet._id,
         firstName: vet.firstName,
         lastName: vet.lastName,
         accessLevel: vet.accessLevel,
         veterinaryId: vet.veterinaryId,
-        canCreateClinics: vet.accessLevel === 'Primary'
+        canCreateClinics: vet.accessLevel === 'Primary',
+        hasActiveClinic: !!vet.currentActiveClinicId,
       }
     });
   } catch (error) {
@@ -621,132 +633,142 @@ const switchActiveClinic = async (req, res) => {
 const getStaffByPrimaryVet = async (req, res) => {
   try {
     const primaryVetId = req.user?.id;
-
     if (!primaryVetId) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const primaryVet = await Veterinarian.findById(primaryVetId);
+    const primaryVet = await Veterinarian.findById(primaryVetId)
+      .populate('currentActiveClinicId', 'name address phoneNumber');
+
     if (!primaryVet || primaryVet.accessLevel !== 'Primary') {
       return res.status(403).json({ 
         message: 'Only Primary veterinarians can access all staff' 
       });
     }
 
-    console.log('=== GET STAFF BY PRIMARY VET DEBUG ===');
-    console.log('Primary Vet:', `${primaryVet.firstName} ${primaryVet.lastName}`);
-    console.log('Primary Vet ID:', primaryVet._id);
-    console.log('Access Level:', primaryVet.accessLevel);
-    console.log('Owned Clinics:', primaryVet.ownedClinics);
-    console.log('Owned Clinics Count:', primaryVet.ownedClinics?.length || 0);
-
+    // Get owned clinics + current active clinic
     const ownedClinicIds = primaryVet.ownedClinics || [];
+    let clinicIdsToSearch = [...ownedClinicIds];
 
-    // Import ClinicStaff model
-    const ClinicStaff = require('../models/ClinicStaff');
+    if (primaryVet.currentActiveClinicId) {
+      const activeIdStr = primaryVet.currentActiveClinicId._id.toString();
+      if (!clinicIdsToSearch.some(id => id.toString() === activeIdStr)) {
+        clinicIdsToSearch.push(primaryVet.currentActiveClinicId._id);
+      }
+    }
 
-    if (ownedClinicIds.length === 0) {
-      console.log('No clinics found for primary vet');
-      // Return just the primary vet if no clinics
+    console.log('Owned clinic IDs:', ownedClinicIds.map(id => id.toString()));
+    console.log('Searching staff/vets in clinics:', clinicIdsToSearch.map(id => id.toString()));
+
+    if (clinicIdsToSearch.length === 0) {
       return res.status(200).json({
-        message: 'No clinics found. Staff can only be added to clinics.',
+        message: 'No clinics found. Only primary vet is available.',
         totalStaff: 1,
         staff: [formatVetAsStaff(primaryVet, true)],
         clinics: []
       });
     }
 
-    console.log('Searching for veterinarians in clinics:', ownedClinicIds);
-    
-    // Get all veterinarians from owned clinics (including primary vet)
-    const allVets = await Veterinarian.find({
+    const ClinicStaff = require('../models/ClinicStaff');
+
+    // ── Fetch Veterinarians ───────────────────────────────────────────────
+    const vets = await Veterinarian.find({
       $or: [
-        { _id: primaryVetId }, // Include primary vet
+        { _id: primaryVetId }, // Always include primary vet
         { 
-          currentActiveClinicId: { $in: ownedClinicIds },
+          currentActiveClinicId: { $in: clinicIdsToSearch },
           status: 'Active',
-          _id: { $ne: primaryVetId } // Exclude primary vet from this part
+          _id: { $ne: primaryVetId }
         }
       ]
     })
-    .select('-passwordHash')
-    .populate('currentActiveClinicId', 'name address phoneNumber'); // Populate clinic data
+      .select('-passwordHash')
+      .populate('currentActiveClinicId', 'name address phoneNumber');
 
-    console.log('Found veterinarians:', allVets.length);
-    console.log('Veterinarians details:', allVets.map(v => ({
-      name: `${v.firstName} ${v.lastName}`,
-      clinic: v.currentActiveClinicId?.name,
-      clinicId: v.currentActiveClinicId
-    })));
+    console.log(`Found ${vets.length} veterinarians (including primary)`);
 
-    // Get all clinic staff from owned clinics
-    const allClinicStaff = await ClinicStaff.find({
-      clinicId: { $in: ownedClinicIds },
+    // ── Fetch Clinic Staff ────────────────────────────────────────────────
+    const staff = await ClinicStaff.find({
+      clinicId: { $in: clinicIdsToSearch },
       status: 'Active'
     })
-    .select('-passwordHash')
-    .populate('clinicId', 'name address phoneNumber'); // Populate clinic data
+      .select('-passwordHash')
+      .populate('clinicId', 'name address phoneNumber');
 
-    console.log('Found clinic staff:', allClinicStaff.length);
-    console.log('Clinic staff details:', allClinicStaff.map(s => ({
-      name: `${s.firstName} ${s.lastName}`,
-      clinic: s.clinicId?.name,
-      clinicId: s.clinicId
-    })));
+    console.log(`Found ${staff.length} clinic staff members`);
 
-    // Combine and format all staff
-    const combinedStaff = [
-      // Primary vet first
-      {
-        ...formatVetAsStaff(primaryVet, true),
-        clinic: primaryVet.currentActiveClinicId || null
-      },
-      // Other vets
-      ...allVets
-        .filter(vet => vet._id.toString() !== primaryVetId.toString())
-        .map(vet => ({
-          ...formatVetAsStaff(vet, false),
-          clinic: vet.currentActiveClinicId
-        })),
-      // Clinic staff
-      ...allClinicStaff.map(staff => ({
-        _id: staff._id,
-        firstName: staff.firstName,
-        lastName: staff.lastName,
-        email: staff.email,
-        phoneNumber: staff.phoneNumber,
-        veterinaryId: null,
+    // ── Format primary vet ────────────────────────────────────────────────
+    const formattedPrimary = {
+      ...formatVetAsStaff(primaryVet, true),
+      clinic: primaryVet.currentActiveClinicId || null,
+      type: 'Veterinarian',
+      isPrimary: true
+    };
+
+    // ── Format other veterinarians ────────────────────────────────────────
+    const formattedVets = vets
+      .filter(vet => vet._id.toString() !== primaryVetId.toString()) // exclude primary from this list
+      .map(vet => {
+        console.log(
+          `Formatting vet: ${vet.firstName || '?'} ${vet.lastName || '?'} | ` +
+          `ID: ${vet._id} | ` +
+          `Clinic: ${vet.currentActiveClinicId?.name || '(not populated)'}`
+        );
+
+        return {
+          _id: vet._id,
+          firstName: vet.firstName || 'Unknown',
+          lastName: vet.lastName || 'Unknown',
+          email: vet.email || null,
+          phoneNumber: vet.phoneNumber || null,
+          veterinaryId: vet.veterinaryId || null,
+          specialization: vet.specialization || null,
+          accessLevel: vet.accessLevel,
+          status: vet.status,
+          currentActiveClinicId: vet.currentActiveClinicId?._id?.toString() || null,
+          clinic: vet.currentActiveClinicId || null,
+          type: 'Veterinarian',
+          isPrimary: false
+        };
+      });
+
+    // ── Format clinic staff ───────────────────────────────────────────────
+    const formattedStaff = staff.map(s => ({
+      _id: s._id,
+      firstName: s.firstName || 'Unknown',
+      lastName: s.lastName || 'Unknown',
+      email: s.email || null,
+      phoneNumber: s.phoneNumber || null,
+      veterinaryId: null,
+      specialization: null,
+      accessLevel: s.accessLevel,
+      status: s.status,
+      currentActiveClinicId: s.clinicId?._id?.toString() || null,
+      clinic: s.clinicId || null,
+      type: 'Staff',
+      details: {
+        role: s.role,
         specialization: null,
-        accessLevel: staff.accessLevel,
-        status: staff.status,
-        currentActiveClinicId: staff.clinicId?._id,
-        clinic: staff.clinicId, // Add clinic object
-        type: 'Staff',
-        details: {
-          role: staff.role,
-          specialization: null,
-          licenseId: null,
-          isPrimary: false,
-          accessLevel: staff.accessLevel
-        }
-      }))
-    ];
+        licenseId: null,
+        isPrimary: false,
+        accessLevel: s.accessLevel
+      }
+    }));
 
-    console.log('Total combined staff:', combinedStaff.length);
+    // ── Combine everything ────────────────────────────────────────────────
+    const allStaff = [formattedPrimary, ...formattedVets, ...formattedStaff];
 
-    // Get clinic details for display
-    const clinics = await Clinic.find({ _id: { $in: ownedClinicIds } })
+    // ── Fetch clinic details for context ──────────────────────────────────
+    const clinics = await Clinic.find({ _id: { $in: clinicIdsToSearch } })
       .select('name address phoneNumber');
 
-    console.log('Found clinics:', clinics.length);
-    console.log('Clinic names:', clinics.map(c => c.name));
-
+    // ── Final response ────────────────────────────────────────────────────
     res.status(200).json({
       message: 'Staff retrieved successfully',
-      totalStaff: combinedStaff.length,
+      totalStaff: allStaff.length,
       totalClinics: clinics.length,
       clinics,
-      staff: combinedStaff
+      staff: allStaff
     });
 
   } catch (error) {

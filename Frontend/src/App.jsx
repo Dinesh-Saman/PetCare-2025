@@ -36,6 +36,7 @@ import Home from './pages/Home';
 import AboutUs from './pages/About';
 import ContactUs from './pages/Contact';
 import EditClinicStaff from './pages/vet/EditClinicStaff';
+import MyAppointments from './pages/owner/MyAppointments';
 //import EditVet from './pages/vet/EditVet';
 
 function App() {
@@ -66,7 +67,7 @@ function App() {
         <Route path="/vet/clinic-edit/:id" element={<ClinicEdit />} />
         <Route path="/vet/pets/profile/:petId" element={<PetProfileAdmin />} />  
 
-        <Route path="login" element={<OwnerLogin />} />
+        <Route path="owner/login" element={<OwnerLogin />} />
         <Route path="register" element={<OwnerRegister />} />
         <Route path="/owner/profile" element={<OwnerDashboard />} />
         <Route path="/owner/pets/new" element={<AddPet />} />
@@ -75,6 +76,9 @@ function App() {
         <Route path="/owner/appointments" element={<BookAppointment />} />
         <Route path="/owner/chat" element={<OwnerChat/>} />
         <Route path="/chatbot" element={<PetChatbot/>} />
+        <Route path="/owner/my-appointments" element={<MyAppointments/>} />
+
+        
 
         <Route path="vet/edit-staff/:id" element={<EditClinicStaff />} /> {/* Add this line */}
         {/*<Route path="vet/edit-vet/:id" element={<EditVet />}  */}

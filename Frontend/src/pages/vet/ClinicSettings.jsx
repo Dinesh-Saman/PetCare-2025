@@ -183,7 +183,6 @@ const ClinicList = () => {
                   <TableHeadCell>Clinic Name</TableHeadCell>
                   <TableHeadCell>Address</TableHeadCell>
                   <TableHeadCell>Phone</TableHeadCell>
-                  <TableHeadCell>Primary Vet</TableHeadCell>
                   <TableHeadCell>Actions</TableHeadCell>
                 </TableHeadRow>
               </TableHead>
@@ -228,11 +227,6 @@ const ClinicList = () => {
                             <PhoneIcon fontSize="small" color="action" />
                             <Typography>{clinic.phoneNumber || 'Not set'}</Typography>
                           </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography fontWeight="bold">
-                            Dr. {clinic.primaryVetId?.firstName} {clinic.primaryVetId?.lastName}
-                          </Typography>
                         </TableCell>
                         <TableCell>
                           <IconButton
