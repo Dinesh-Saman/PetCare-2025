@@ -7,7 +7,7 @@ function PetChatbotPage() {
     {
       id: Date.now(),
       sender: 'bot',
-      text: `Hello Dinesh! 🐶🐱\n\nI'm your friendly pet health advisor focused on dogs and cats in Sri Lanka.\nYou can ask me about:\n• Vaccination schedules\n• Nutrition & safe foods\n• Common symptoms & prevention\n• Basic first aid\n\nImportant: This is general information only — always consult a real veterinarian for diagnosis or treatment!`,
+      text: `Hello! 🐶🐱\n\nI'm your friendly pet health advisor focused on dogs and cats in Sri Lanka.\nYou can ask me about:\n• Vaccination schedules\n• Nutrition & safe foods\n• Common symptoms & prevention\n• Basic first aid\n\nImportant: This is general information only — always consult a real veterinarian for diagnosis or treatment!`,
     },
   ]);
 

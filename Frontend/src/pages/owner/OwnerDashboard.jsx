@@ -48,16 +48,19 @@ import {
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
   Warning as WarningIcon,
-  PhotoCamera as PhotoCameraIcon,
-  Description as DescriptionIcon,      // ← Add this line
 } from '@mui/icons-material';
 import Navbar from '../../components/Navbar';
 
-// Styled Components (unchanged)
+// ────────────────────────────────────────────────
+// Styled Components
+// ────────────────────────────────────────────────
 const DashboardContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
   background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-  padding: '30px 24px 60px',
+  padding: '90px 24px 80px',
+  [theme.breakpoints.up('md')]: {
+    padding: '110px 40px 100px',
+  },
 }));
 
 const ContentArea = styled(Box)(({ theme }) => ({
@@ -662,7 +665,7 @@ const OwnerDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Edit Profile Dialog */}
+          {/* Edit Profile Dialog (still MUI) */}
           <Dialog 
             open={openEditProfile} 
             onClose={() => setOpenEditProfile(false)} 
@@ -768,223 +771,189 @@ const OwnerDashboard = () => {
             </DialogActions>
           </Dialog>
 
-          {/* Edit Pet Dialog */}
-          <Dialog 
-            open={openEditPet} 
-            onClose={() => setOpenEditPet(false)} 
-            maxWidth="md"
-            fullWidth
-            PaperProps={{
-              sx: {
-                borderRadius: 3,
-                overflow: 'hidden',
-              }
-            }}
-          >
-            <DialogTitle sx={{ 
-              background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
-              color: 'white',
-              py: 3,
-              textAlign: 'center'
-            }}>
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                <PetsIcon sx={{ fontSize: 50 }} />
-              </Box>
-              <Typography variant="h5" fontWeight="bold">
-                Edit Pet Profile
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, mt: 1 }}>
-                Update {selectedPet?.name}'s information
-              </Typography>
-            </DialogTitle>
-            
-            <DialogContent sx={{ py: 4 }}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Pet Name"
-                    name="name"
-                    value={editPetForm.name}
-                    onChange={(e) => setEditPetForm({ ...editPetForm, name: e.target.value })}
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PetsIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+          {/* ────────────────────────────────────────────────
+              Edit Pet Dialog – NOW PURE HTML + CUSTOM CSS
+          ──────────────────────────────────────────────── */}
+          {openEditPet && selectedPet && (
+            <div className="edit-pet-modal-overlay" onClick={() => setOpenEditPet(false)}>
+              <div className="edit-pet-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header">
+                  <span className="modal-icon">🐾</span>
+                  <h2 className="modal-title">Edit Pet Profile</h2>
+                  <p className="modal-subtitle">
+                    Update {selectedPet.name || 'your pet'}'s information
+                  </p>
+                  <button 
+                    className="modal-close-btn"
+                    onClick={() => setOpenEditPet(false)}
+                  >
+                    ×
+                  </button>
+                </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Species"
-                    name="species"
-                    value={editPetForm.species}
-                    onChange={(e) => setEditPetForm({ ...editPetForm, species: e.target.value })}
-                    required
-                  />
-                </Grid>
+                <div className="modal-body">
+                  <form onSubmit={(e) => { e.preventDefault(); handleUpdatePet(); }}>
+                    <div className="form-grid">
+                      <div className="field-group">
+                        <label htmlFor="edit-name">Pet Name *</label>
+                        <div className="input-wrapper">
+                          <span className="input-icon">🐱</span>
+                          <input
+                            id="edit-name"
+                            name="name"
+                            value={editPetForm.name}
+                            onChange={(e) => setEditPetForm({ ...editPetForm, name: e.target.value })}
+                            required
+                            placeholder="Pet name"
+                          />
+                        </div>
+                      </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Breed (Optional)"
-                    name="breed"
-                    value={editPetForm.breed}
-                    onChange={(e) => setEditPetForm({ ...editPetForm, breed: e.target.value })}
-                  />
-                </Grid>
+                      <div className="field-group">
+                        <label htmlFor="edit-species">Species *</label>
+                        <input
+                          id="edit-species"
+                          name="species"
+                          value={editPetForm.species}
+                          onChange={(e) => setEditPetForm({ ...editPetForm, species: e.target.value })}
+                          required
+                          placeholder="Dog, Cat, Rabbit..."
+                        />
+                      </div>
 
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Gender</InputLabel>
-                    <Select
-                      name="gender"
-                      value={editPetForm.gender}
-                      onChange={(e) => setEditPetForm({ ...editPetForm, gender: e.target.value })}
-                      label="Gender"
-                    >
-                      <MenuItem value="">Select Gender</MenuItem>
-                      <MenuItem value="Male">Male</MenuItem>
-                      <MenuItem value="Female">Female</MenuItem>
-                      <MenuItem value="Other">Other</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
+                      <div className="field-group">
+                        <label htmlFor="edit-breed">Breed (optional)</label>
+                        <input
+                          id="edit-breed"
+                          name="breed"
+                          value={editPetForm.breed}
+                          onChange={(e) => setEditPetForm({ ...editPetForm, breed: e.target.value })}
+                          placeholder="Golden Retriever, Siamese..."
+                        />
+                      </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Date of Birth"
-                    name="dateOfBirth"
-                    type="date"
-                    value={editPetForm.dateOfBirth}
-                    onChange={(e) => setEditPetForm({ ...editPetForm, dateOfBirth: e.target.value })}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <CalendarTodayIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+                      <div className="field-group">
+                        <label htmlFor="edit-gender">Gender</label>
+                        <select
+                          id="edit-gender"
+                          name="gender"
+                          value={editPetForm.gender}
+                          onChange={(e) => setEditPetForm({ ...editPetForm, gender: e.target.value })}
+                        >
+                          <option value="">Select Gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Weight (kg)"
-                    name="weight"
-                    type="number"
-                    step="0.1"
-                    value={editPetForm.weight}
-                    onChange={(e) => setEditPetForm({ ...editPetForm, weight: e.target.value })}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <ScaleIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+                      <div className="field-group">
+                        <label htmlFor="edit-dob">Date of Birth</label>
+                        <div className="input-wrapper">
+                          <span className="input-icon">📅</span>
+                          <input
+                            id="edit-dob"
+                            name="dateOfBirth"
+                            type="date"
+                            value={editPetForm.dateOfBirth}
+                            onChange={(e) => setEditPetForm({ ...editPetForm, dateOfBirth: e.target.value })}
+                          />
+                        </div>
+                      </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Color/Markings"
-                    name="color"
-                    value={editPetForm.color}
-                    onChange={(e) => setEditPetForm({ ...editPetForm, color: e.target.value })}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <ColorLensIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+                      <div className="field-group">
+                        <label htmlFor="edit-weight">Weight (kg)</label>
+                        <div className="input-wrapper">
+                          <span className="input-icon">⚖️</span>
+                          <input
+                            id="edit-weight"
+                            name="weight"
+                            type="number"
+                            step="0.1"
+                            value={editPetForm.weight}
+                            onChange={(e) => setEditPetForm({ ...editPetForm, weight: e.target.value })}
+                            placeholder="e.g. 12.5"
+                          />
+                        </div>
+                      </div>
 
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Microchip Number"
-                    name="microchipNumber"
-                    value={editPetForm.microchipNumber}
-                    onChange={(e) => setEditPetForm({ ...editPetForm, microchipNumber: e.target.value })}
-                  />
-                </Grid>
+                      <div className="field-group">
+                        <label htmlFor="edit-color">Color / Markings</label>
+                        <div className="input-wrapper">
+                          <span className="input-icon">🎨</span>
+                          <input
+                            id="edit-color"
+                            name="color"
+                            value={editPetForm.color}
+                            onChange={(e) => setEditPetForm({ ...editPetForm, color: e.target.value })}
+                            placeholder="Black & White, Ginger..."
+                          />
+                        </div>
+                      </div>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Photo URL"
-                    name="photo"
-                    value={editPetForm.photo}
-                    onChange={(e) => setEditPetForm({ ...editPetForm, photo: e.target.value })}
-                    placeholder="Paste updated image link"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PhotoCameraIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
+                      <div className="field-group">
+                        <label htmlFor="edit-microchip">Microchip Number</label>
+                        <input
+                          id="edit-microchip"
+                          name="microchipNumber"
+                          value={editPetForm.microchipNumber}
+                          onChange={(e) => setEditPetForm({ ...editPetForm, microchipNumber: e.target.value })}
+                          placeholder="985123456789012"
+                        />
+                      </div>
 
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Notes"
-                    name="notes"
-                    value={editPetForm.notes}
-                    onChange={(e) => setEditPetForm({ ...editPetForm, notes: e.target.value })}
-                    multiline
-                    rows={4}
-                    placeholder="Update medical history, behavior, or care instructions..."
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
-                          <DescriptionIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </DialogContent>
+                      <div className="field-group full-width">
+                        <label htmlFor="edit-photo">Photo URL (optional)</label>
+                        <div className="input-wrapper">
+                          <span className="input-icon">📷</span>
+                          <input
+                            id="edit-photo"
+                            name="photo"
+                            value={editPetForm.photo}
+                            onChange={(e) => setEditPetForm({ ...editPetForm, photo: e.target.value })}
+                            placeholder="https://example.com/pet.jpg"
+                          />
+                        </div>
+                      </div>
 
-            <DialogActions sx={{ px: 4, pb: 4 }}>
-              <Button 
-                onClick={() => setOpenEditPet(false)}
-                variant="outlined"
-                disabled={savingPet}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleUpdatePet}
-                disabled={savingPet}
-                sx={{ 
-                  background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
-                  color: 'white',
-                  '&:hover': {
-                    background: 'linear-gradient(90deg, #1976d2, #00bcd4)',
-                  }
-                }}
-              >
-                {savingPet ? 'Saving Changes...' : 'Save Changes'}
-              </Button>
-            </DialogActions>
-          </Dialog>
+                      <div className="field-group full-width">
+                        <label htmlFor="edit-notes">Additional Notes</label>
+                        <div className="input-wrapper notes-wrapper">
+                          <span className="input-icon top">📝</span>
+                          <textarea
+                            id="edit-notes"
+                            name="notes"
+                            value={editPetForm.notes}
+                            onChange={(e) => setEditPetForm({ ...editPetForm, notes: e.target.value })}
+                            rows={4}
+                            placeholder="Medical history, allergies, behavior notes..."
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="modal-actions">
+                      <button
+                        type="button"
+                        className="cancel-btn"
+                        onClick={() => setOpenEditPet(false)}
+                        disabled={savingPet}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className={`save-btn ${savingPet ? 'loading' : ''}`}
+                        disabled={savingPet}
+                      >
+                        {savingPet ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Floating Action Button */}
           <Fab
@@ -1007,6 +976,227 @@ const OwnerDashboard = () => {
           </Fab>
         </ContentArea>
       </DashboardContainer>
+
+      {/* ────────────────────────────────────────────────
+          Custom CSS for Edit Pet Modal
+      ──────────────────────────────────────────────── */}
+      <style>{`
+        .edit-pet-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1400;
+          padding: 20px;
+          overflow-y: auto;
+        }
+
+        .edit-pet-modal {
+          width: 100%;
+          max-width: 820px;
+          background: white;
+          border-radius: 24px;
+          box-shadow: 0 25px 70px rgba(0,0,0,0.25);
+          overflow: hidden;
+          position: relative;
+          max-height: 95vh;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .modal-header {
+          background: linear-gradient(90deg, #2196f3, #21cbf3);
+          color: white;
+          padding: 40px 32px;
+          text-align: center;
+          position: relative;
+        }
+
+        .modal-icon {
+          font-size: 70px;
+          display: block;
+          margin-bottom: 16px;
+        }
+
+        .modal-title {
+          font-size: 2.3rem;
+          font-weight: 700;
+          margin: 0 0 10px;
+        }
+
+        .modal-subtitle {
+          font-size: 1.15rem;
+          opacity: 0.92;
+          margin: 0;
+        }
+
+        .modal-close-btn {
+          position: absolute;
+          top: 20px;
+          right: 24px;
+          background: rgba(255,255,255,0.2);
+          border: none;
+          color: white;
+          font-size: 28px;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .modal-close-btn:hover {
+          background: rgba(255,255,255,0.4);
+        }
+
+        .modal-body {
+          padding: 40px;
+          overflow-y: auto;
+          flex: 1;
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 28px;
+        }
+
+        .field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .field-group.full-width {
+          grid-column: 1 / -1;
+        }
+
+        .field-group label {
+          font-weight: 600;
+          color: #374151;
+          font-size: 0.95rem;
+        }
+
+        .input-wrapper {
+          position: relative;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 16px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #6b7280;
+          font-size: 1.3rem;
+          pointer-events: none;
+        }
+
+        .input-icon.top {
+          top: 14px;
+          transform: none;
+        }
+
+        input, select, textarea {
+          width: 100%;
+          padding: 14px 16px 14px 48px;
+          border: 1px solid #d1d5db;
+          border-radius: 12px;
+          font-size: 1rem;
+          transition: all 0.2s;
+          box-sizing: border-box;
+        }
+
+        input:focus, select:focus, textarea:focus {
+          outline: none;
+          border-color: #2196f3;
+          box-shadow: 0 0 0 3px rgba(33,150,243,0.15);
+        }
+
+        textarea {
+          resize: vertical;
+          min-height: 110px;
+          padding-top: 12px;
+          padding-left: 48px;
+        }
+
+        .notes-wrapper textarea {
+          padding-top: 40px;
+        }
+
+        select {
+          padding-left: 16px;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 16px center;
+          background-size: 12px;
+          appearance: none;
+        }
+
+        .modal-actions {
+          display: flex;
+          justify-content: center;
+          gap: 24px;
+          padding: 24px 40px;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .save-btn, .cancel-btn {
+          padding: 14px 48px;
+          border-radius: 50px;
+          font-weight: 700;
+          font-size: 1.1rem;
+          min-width: 220px;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+
+        .save-btn {
+          background: linear-gradient(90deg, #2196f3, #21cbf3);
+          color: white;
+          border: none;
+          box-shadow: 0 6px 20px rgba(33,150,243,0.25);
+        }
+
+        .save-btn:hover:not(:disabled) {
+          background: linear-gradient(90deg, #1976d2, #00bcd4);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 30px rgba(33,150,243,0.35);
+        }
+
+        .save-btn.loading {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .cancel-btn {
+          background: transparent;
+          border: 2px solid #2196f3;
+          color: #2196f3;
+        }
+
+        .cancel-btn:hover:not(:disabled) {
+          background: rgba(33,150,243,0.08);
+        }
+
+        @media (max-width: 768px) {
+          .form-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+          }
+          .modal-body {
+            padding: 32px 24px;
+          }
+          .modal-actions {
+            flex-direction: column;
+            gap: 16px;
+          }
+        }
+      `}</style>
     </>
   );
 };

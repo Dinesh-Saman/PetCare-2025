@@ -43,16 +43,19 @@ import Navbar from '../../components/Navbar';
 const AppointmentsContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
   background: 'linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%)',
-  padding: '30px 24px 60px', // ← reduced top padding (was 80px)
+  padding: '80px 24px 80px', // ← Increased top padding (was 30px → now 80px)
+  [theme.breakpoints.up('md')]: {
+    padding: '100px 40px 100px', // even more generous on larger screens
+  },
 }));
 
 const HeaderCard = styled(Paper)(({ theme }) => ({
   background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
   color: 'white',
-  padding: '28px 40px', // Reduced from '32px 40px'
+  padding: '28px 40px',
   borderRadius: '24px',
   boxShadow: '0 20px 60px rgba(33, 150, 243, 0.3)',
-  marginBottom: '28px', // Reduced from '32px'
+  marginBottom: '28px',
   textAlign: 'center',
 }));
 
@@ -84,7 +87,7 @@ const StatusChip = styled(Chip)(({ theme, status }) => ({
 }));
 
 const StatCard = styled(Paper)(({ theme }) => ({
-  padding: '16px 12px', // Reduced from '20px 16px'
+  padding: '16px 12px',
   borderRadius: '16px',
   background: 'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)',
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
@@ -276,7 +279,7 @@ const MyAppointments = () => {
         </Box>
 
         {/* Stats */}
-        <Grid container spacing={2} justifyContent="space-between">  {/* Changed from spacing={3} to spacing={2} */}
+        <Grid container spacing={2} justifyContent="space-between">
           {Object.entries(stats).map(([key, value]) => (
             <Grid item xs={6} sm={4} md={12 / 5} key={key}>
               <StatCard>
@@ -308,7 +311,7 @@ const MyAppointments = () => {
       <Paper
         sx={{
           p: 3,
-          mb: 4,          // ← reduced from 5
+          mb: 4,
           borderRadius: '20px',
           background: 'white',
           boxShadow: '0 8px 32px rgba(0,0,0,0.06)',
@@ -414,7 +417,7 @@ const MyAppointments = () => {
           </Button>
         </Paper>
       ) : (
-        <Grid container spacing={3}>  {/* ← reduced from spacing={4} */}
+        <Grid container spacing={3}>
           {filteredAppointments.map((appointment) => {
             const formatted = formatDateTime(appointment.dateTime);
 
@@ -467,7 +470,7 @@ const MyAppointments = () => {
                       </Box>
                     </Box>
 
-                    <Divider sx={{ my: 2 }} /> {/* slightly reduced */}
+                    <Divider sx={{ my: 2 }} />
 
                     <Box>
                       <DetailRow>
@@ -507,7 +510,7 @@ const MyAppointments = () => {
                       </DetailRow>
                     </Box>
 
-                    <Box sx={{ mt: 3, display: 'flex', gap: 2 }}> {/* reduced mt from 4 */}
+                    <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
                       {appointment.status === 'Booked' && formatted.isUpcoming && (
                         <>
                           <ActionButton
