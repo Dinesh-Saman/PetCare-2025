@@ -12,6 +12,20 @@ const fs = require('fs/promises');
 dotenv.config();
 
 const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PATCH', 'PUT'],
+    credentials: true
+  }
+});
+
+// Attach io to app for use in controllers
+app.set('socketio', io);
+
 const PORT = process.env.PORT || 5000;
 
 // === Cloudinary Configuration ===
@@ -87,30 +101,30 @@ let currentOllamaModel = OLLAMA_MODEL;
 // Load all documents from pet_data folder
 async function loadPetData() {
   console.log(`📂 Loading pet knowledge from: ${PET_DATA_FOLDER}`);
-  
+
   try {
     // Check if folder exists
     await fs.access(PET_DATA_FOLDER);
     const files = await fs.readdir(PET_DATA_FOLDER);
-    
+
     if (files.length === 0) {
       console.log('⚠️ No files found in pet_data folder');
       return;
     }
-    
+
     let totalQuestions = 0;
-    
+
     // Load each file
     for (const file of files) {
       const filePath = path.join(PET_DATA_FOLDER, file);
-      
+
       try {
         if (file.endsWith('.txt')) {
           const content = await fs.readFile(filePath, 'utf-8');
-          
+
           // Split text file into chunks for better search
           const chunks = splitTextIntoChunks(content, 500);
-          
+
           chunks.forEach((chunk, index) => {
             petKnowledgeBase.push({
               id: `${file}_chunk_${index}`,
@@ -124,13 +138,13 @@ async function loadPetData() {
               }
             });
           });
-          
+
           console.log(`   ✓ Loaded: ${file} (${chunks.length} chunks)`);
-          
+
         } else if (file.endsWith('.json')) {
           const content = await fs.readFile(filePath, 'utf-8');
           const data = JSON.parse(content);
-          
+
           if (Array.isArray(data)) {
             // Handle your Q&A JSON format
             data.forEach((item, index) => {
@@ -166,9 +180,9 @@ async function loadPetData() {
         console.warn(`   ✗ Error processing ${file}:`, fileError.message);
       }
     }
-    
+
     console.log(`✅ Loaded ${petKnowledgeBase.length} knowledge items (${totalQuestions} Q&A pairs)`);
-    
+
   } catch (error) {
     console.error(`❌ Error accessing pet_data folder:`, error.message);
   }
@@ -178,15 +192,15 @@ async function loadPetData() {
 function splitTextIntoChunks(text, chunkSize = 500) {
   const chunks = [];
   let start = 0;
-  
+
   while (start < text.length) {
     let end = start + chunkSize;
-    
+
     // Try to split at sentence boundaries
     if (end < text.length) {
       const lastPeriod = text.lastIndexOf('.', end);
       const lastNewline = text.lastIndexOf('\n', end);
-      
+
       if (lastPeriod > start + chunkSize * 0.5) {
         end = lastPeriod + 1;
       } else if (lastNewline > start + chunkSize * 0.5) {
@@ -195,15 +209,15 @@ function splitTextIntoChunks(text, chunkSize = 500) {
     } else {
       end = text.length;
     }
-    
+
     const chunk = text.substring(start, end).trim();
     if (chunk) {
       chunks.push(chunk);
     }
-    
+
     start = end;
   }
-  
+
   return chunks;
 }
 
@@ -211,14 +225,14 @@ function splitTextIntoChunks(text, chunkSize = 500) {
 async function checkOllama() {
   try {
     console.log('🔍 Checking Ollama connection...');
-    const response = await axios.get(`${OLLAMA_BASE_URL}/api/tags`, { 
-      timeout: 5000 
+    const response = await axios.get(`${OLLAMA_BASE_URL}/api/tags`, {
+      timeout: 5000
     });
-    
+
     if (response.data && response.data.models) {
       const models = response.data.models;
       console.log(`📋 Available models:`, models.map(m => m.name).join(', '));
-      
+
       // Find a working model
       for (const model of models) {
         try {
@@ -227,7 +241,7 @@ async function checkOllama() {
             prompt: "Say 'READY'",
             stream: false
           }, { timeout: 10000 });
-          
+
           if (testResponse.data && testResponse.data.response) {
             currentOllamaModel = model.name;
             isOllamaAvailable = true;
@@ -239,7 +253,7 @@ async function checkOllama() {
           console.log(`   Skipping model ${model.name}: ${testError.message}`);
         }
       }
-      
+
       console.log('⚠️ No working Ollama model found');
       isOllamaAvailable = false;
     }
@@ -257,25 +271,25 @@ function searchKnowledgeBase(query) {
       sources: []
     };
   }
-  
+
   const lowerQuery = query.toLowerCase();
   const queryWords = lowerQuery.split(' ')
     .filter(word => word.length > 2)
     .map(word => word.replace(/[^a-z]/g, ''));
-  
+
   const relevantItems = [];
-  
+
   // Score each knowledge item
   for (const item of petKnowledgeBase) {
     let score = 0;
     const searchText = (item.question ? item.question + ' ' : '') + item.content;
     const lowerContent = searchText.toLowerCase();
-    
+
     // Exact phrase match (highest score)
     if (lowerContent.includes(lowerQuery)) {
       score += 10;
     }
-    
+
     // Word matches
     for (const word of queryWords) {
       if (word.length > 2) {
@@ -284,25 +298,25 @@ function searchKnowledgeBase(query) {
         score += matches * 2;
       }
     }
-    
+
     // Boost Q&A items that match questions
     if (item.type === 'qa_pair' && item.question.toLowerCase().includes(lowerQuery)) {
       score += 5;
     }
-    
+
     // Category-based scoring
     if (lowerQuery.includes('food') || lowerQuery.includes('diet') || lowerQuery.includes('nutrition')) {
       if (lowerContent.includes('food') || lowerContent.includes('diet') || lowerContent.includes('nutrition')) {
         score += 3;
       }
     }
-    
+
     if (lowerQuery.includes('vaccin') || lowerQuery.includes('shot')) {
       if (lowerContent.includes('vaccin') || lowerContent.includes('vaccination')) {
         score += 3;
       }
     }
-    
+
     if (score > 0) {
       relevantItems.push({
         item: item,
@@ -310,13 +324,13 @@ function searchKnowledgeBase(query) {
       });
     }
   }
-  
+
   // Sort by relevance
   relevantItems.sort((a, b) => b.score - a.score);
-  
+
   // Get top 5 most relevant items
   const topItems = relevantItems.slice(0, 5);
-  
+
   if (topItems.length === 0) {
     // Return general information if no matches
     const generalItems = petKnowledgeBase.slice(0, 2);
@@ -325,25 +339,25 @@ function searchKnowledgeBase(query) {
       sources: generalItems.map(item => item.source)
     };
   }
-  
+
   // Combine content from top items
   let context = "";
   const sources = [];
-  
+
   topItems.forEach((result, index) => {
     const item = result.item;
-    
+
     if (item.type === 'qa_pair') {
       context += `Q: ${item.question}\nA: ${item.content.split('Answer: ')[1] || item.content}\n\n`;
     } else {
       context += `${item.content.substring(0, 600)}\n\n`;
     }
-    
+
     if (!sources.includes(item.source)) {
       sources.push(item.source);
     }
   });
-  
+
   return { context, sources };
 }
 
@@ -368,9 +382,9 @@ INSTRUCTIONS:
 6. Always remind users to consult a veterinarian for specific concerns
 
 ANSWER:`;
-    
+
     console.log(`🤖 Sending to Ollama (${currentOllamaModel})...`);
-    
+
     const response = await axios.post(`${OLLAMA_BASE_URL}/api/generate`, {
       model: currentOllamaModel,
       prompt: prompt,
@@ -382,19 +396,19 @@ ANSWER:`;
         repeat_penalty: 1.1
       }
     }, { timeout: 45000 }); // Increased timeout
-    
+
     console.log(`✅ Ollama response received (${response.data.response.length} chars)`);
     return response.data.response;
-    
+
   } catch (error) {
     console.error('❌ Ollama API error:', error.message);
-    
+
     // Check if it's a model not found error
     if (error.message.includes('model') && error.message.includes('not found')) {
       console.log('🔄 Trying to find an alternative model...');
       isOllamaAvailable = false;
     }
-    
+
     throw error;
   }
 }
@@ -411,7 +425,7 @@ async function initializeChatbot() {
 app.post('/api/pet-chatbot', async (req, res) => {
   try {
     const { message } = req.body;
-    
+
     if (!message || typeof message !== 'string') {
       return res.status(400).json({ error: 'Message is required' });
     }
@@ -421,7 +435,7 @@ app.post('/api/pet-chatbot', async (req, res) => {
     // Emergency detection
     const lowerMsg = message.toLowerCase();
     const emergencyKeywords = ['emergency', 'bleeding', 'choking', 'not breathing', 'poison', 'seizure', 'dying', 'urgent'];
-    
+
     if (emergencyKeywords.some(keyword => lowerMsg.includes(keyword))) {
       const emergencyResponse = `🚨 **EMERGENCY DETECTED**
 
@@ -438,7 +452,7 @@ I understand this seems urgent. Please take these immediate steps:
 - Kandy Veterinary Hospital: 081-2222444
 
 ⚠️ **This is an automated emergency alert. Please seek professional veterinary care immediately.**`;
-      
+
       return res.json({
         response: emergencyResponse,
         emergency: true,
@@ -449,13 +463,13 @@ I understand this seems urgent. Please take these immediate steps:
 
     // Search for relevant information
     const searchResult = searchKnowledgeBase(message);
-    
+
     console.log(`🔍 Found ${searchResult.sources.length} relevant sources`);
-    
+
     let response;
     let source;
     let aiGenerated = false;
-    
+
     if (isOllamaAvailable && currentOllamaModel) {
       try {
         console.log(`🤖 Generating AI response with ${currentOllamaModel}...`);
@@ -467,7 +481,7 @@ I understand this seems urgent. Please take these immediate steps:
         console.warn('❌ Ollama failed:', ollamaError.message);
         console.log('📚 Falling back to knowledge base only');
         response = `**Based on our pet health knowledge base:**\n\n`;
-        
+
         // Format the knowledge base results nicely
         const qaPairs = searchResult.context.split('\n\n').filter(item => item.trim());
         qaPairs.forEach((qa, index) => {
@@ -479,14 +493,14 @@ I understand this seems urgent. Please take these immediate steps:
             response += `${qa}\n\n`;
           }
         });
-        
+
         source = 'knowledge_base_only';
         aiGenerated = false;
       }
     } else {
       console.log('📚 Using knowledge base only (no AI)');
       response = `**Based on our pet health knowledge base:**\n\n`;
-      
+
       // Format the knowledge base results nicely
       const qaPairs = searchResult.context.split('\n\n').filter(item => item.trim());
       qaPairs.forEach((qa, index) => {
@@ -498,16 +512,16 @@ I understand this seems urgent. Please take these immediate steps:
           response += `${qa}\n\n`;
         }
       });
-      
+
       source = 'knowledge_base_only';
       aiGenerated = false;
     }
-    
+
     // Add disclaimer (but not if it's already in the AI response)
     if (!response.includes('Disclaimer') && !response.includes('consult a veterinarian')) {
       response += "\n---\n**Disclaimer:** This information is from our pet health knowledge base and should not replace professional veterinary advice. Always consult a veterinarian for your pet's specific needs in Sri Lanka.";
     }
-    
+
     res.json({
       response: response,
       source: source,
@@ -519,7 +533,7 @@ I understand this seems urgent. Please take these immediate steps:
 
   } catch (err) {
     console.error('❌ Chatbot error:', err.message);
-    
+
     // Simple fallback
     const fallbackResponse = `I'm having trouble accessing our knowledge base right now. 
 
@@ -532,7 +546,7 @@ For immediate assistance with pet health questions in Sri Lanka, please contact:
 
 Please try again in a few minutes or contact a veterinarian directly.`;
 
-    res.status(500).json({ 
+    res.status(500).json({
       response: fallbackResponse,
       error: 'Service error',
       fallback: true
@@ -544,7 +558,7 @@ Please try again in a few minutes or contact a veterinarian directly.`;
 app.get('/api/test-ollama', async (req, res) => {
   try {
     const testPrompt = "What are safe foods for dogs? Answer in 2 sentences.";
-    
+
     const response = await axios.post(`${OLLAMA_BASE_URL}/api/generate`, {
       model: currentOllamaModel,
       prompt: testPrompt,
@@ -554,7 +568,7 @@ app.get('/api/test-ollama', async (req, res) => {
         num_predict: 200
       }
     }, { timeout: 15000 });
-    
+
     res.json({
       success: true,
       model: currentOllamaModel,
@@ -577,7 +591,7 @@ app.post('/api/reload-knowledge', async (req, res) => {
   try {
     petKnowledgeBase = [];
     await loadPetData();
-    
+
     res.json({
       success: true,
       message: 'Knowledge base reloaded',
@@ -623,8 +637,8 @@ app.use((err, req, res, next) => {
 });
 
 app.use((req, res) => {
-  res.status(404).json({ 
-    message: 'Route not found', 
+  res.status(404).json({
+    message: 'Route not found',
     url: req.originalUrl,
     availableEndpoints: {
       chatbot: 'POST /api/pet-chatbot',
@@ -637,8 +651,22 @@ app.use((req, res) => {
 // Start server
 async function startServer() {
   await initializeChatbot();
-  
-  const server = app.listen(PORT, () => {
+
+  // Socket.IO handlers
+  io.on('connection', (socket) => {
+    console.log('🔌 New client connected:', socket.id);
+
+    socket.on('join', (userId) => {
+      console.log(`👤 User joined room: ${userId}`);
+      socket.join(userId);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 Client disconnected');
+    });
+  });
+
+  server.listen(PORT, () => {
     console.log(`\n🚀 Server running on port ${PORT}`);
     console.log(`📁 Data folder: ${PET_DATA_FOLDER}`);
     console.log(`📚 Knowledge base: ${petKnowledgeBase.length} items loaded`);
@@ -663,4 +691,4 @@ startServer().catch(err => {
   process.exit(1);
 });
 
-module.exports = app;
+module.exports = { app, server, io };

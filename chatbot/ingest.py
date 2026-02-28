@@ -1,35 +1,78 @@
-from langchain_community.vectorstores import Chroma
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.chat_models import ChatOllama
-from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.prompts import PromptTemplate
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain   # ← added
-from langchain_classic.chains import create_retrieval_chain                         # ← if needed later
 import sys
 from pathlib import Path
-
+import json
+from langchain_community.vectorstores import Chroma
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, JSONLoader
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 
 def ingest():
-    # Get the doc
-    pdf_path = Path(__file__).resolve().parent.parent / "pdf" / "6.pdf"
-    if not pdf_path.exists():
-        print(f"PDF not found at {pdf_path}", file=sys.stderr)
-        sys.exit(1)
-    loader = PyPDFLoader(str(pdf_path))
-    pages = loader.load_and_split()
-    # Split the pages by char
+    base_dir = Path(__file__).resolve().parent.parent
+    pdf_dir = base_dir / "pdf"
+    pet_data_dir = base_dir / "Backend" / "pet_data"
+    persist_dir = base_dir / "chatbot" / "sql_chroma_db"
+
+    all_docs = []
+    
+    # 1. Ingest all PDFs
+    if pdf_dir.exists():
+        print(f"Reading PDFs from {pdf_dir}...")
+        for pdf_file in pdf_dir.glob("*.pdf"):
+            try:
+                loader = PyPDFLoader(str(pdf_file))
+                all_docs.extend(loader.load())
+                print(f"  ✓ Loaded {pdf_file.name}")
+            except Exception as e:
+                print(f"  ✗ Error loading {pdf_file.name}: {e}")
+
+    # 2. Ingest JSON and TXT from pet_data
+    if pet_data_dir.exists():
+        print(f"Reading pet data from {pet_data_dir}...")
+        for data_file in pet_data_dir.iterdir():
+            try:
+                if data_file.suffix == '.txt':
+                    loader = TextLoader(str(data_file), encoding='utf-8')
+                    all_docs.extend(loader.load())
+                    print(f"  ✓ Loaded {data_file.name}")
+                elif data_file.suffix == '.json':
+                    with open(data_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        if isinstance(data, list):
+                            for item in data:
+                                content = ""
+                                if 'question' in item and 'answer' in item:
+                                    content = f"Question: {item['question']}\nAnswer: {item['answer']}"
+                                else:
+                                    content = json.dumps(item)
+                                all_docs.append(Document(page_content=content, metadata={"source": data_file.name}))
+                    print(f"  ✓ Loaded {data_file.name}")
+            except Exception as e:
+                print(f"  ✗ Error loading {data_file.name}: {e}")
+
+    if not all_docs:
+        print("No documents found to ingest!")
+        return
+
+    # Split documents
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1024,
+        chunk_size=800,
         chunk_overlap=100,
         length_function=len,
         add_start_index=True,
     )
-    chunks = text_splitter.split_documents(pages)
-    print(f"Split {len(pages)} documents into {len(chunks)} chunks.")
-    #
-    embedding = FastEmbedEmbeddings()
-    #Create vector store
-    Chroma.from_documents(documents=chunks,  embedding=embedding, persist_directory="./sql_chroma_db")
+    chunks = text_splitter.split_documents(all_docs)
+    print(f"Split {len(all_docs)} documents into {len(chunks)} chunks.")
 
-ingest()
+    # Create vector store
+    embedding = FastEmbedEmbeddings()
+    print(f"Persisting to {persist_dir}...")
+    Chroma.from_documents(
+        documents=chunks, 
+        embedding=embedding, 
+        persist_directory=str(persist_dir)
+    )
+    print("✅ Ingestion complete.")
+
+if __name__ == "__main__":
+    ingest()

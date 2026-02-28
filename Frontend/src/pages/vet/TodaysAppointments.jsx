@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
-  Paper, TextField, MenuItem, FormControl, Select, InputLabel, TablePagination, 
+import {
+  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, TextField, MenuItem, FormControl, Select, InputLabel, TablePagination,
   Avatar, Chip, IconButton, Collapse, Grid, Card, CardContent, CardHeader
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -79,11 +79,11 @@ const PetAvatar = styled(Avatar)(({ theme }) => ({
 const StatusChip = styled(Chip)(({ status }) => ({
   fontWeight: 'bold',
   color: 'white',
-  backgroundColor: 
+  backgroundColor:
     status === 'Confirmed' ? '#4caf50' :
-    status === 'Booked' ? '#2196f3' :
-    status === 'Canceled' ? '#f44336' :
-    status === 'Completed' ? '#9c27b0' : '#ff9800',
+      status === 'Booked' ? '#2196f3' :
+        status === 'Canceled' ? '#f44336' :
+          status === 'Completed' ? '#9c27b0' : '#ff9800',
 }));
 
 const DetailsCard = styled(Card)(({ theme }) => ({
@@ -156,6 +156,51 @@ const VetTodayAppointments = () => {
   };
 
   useEffect(() => {
+    if (!vetId) return;
+
+    // Connect and join room
+    connectSocket(vetId);
+
+    // Listen for new appointments
+    socket.on('newAppointment', (newApp) => {
+      if (isToday(newApp.dateTime)) {
+        setAppointments(prev => {
+          // Check if already exists
+          if (prev.find(a => a._id === newApp._id)) return prev;
+
+          const updated = [...prev, newApp];
+          updated.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+
+          Swal.fire({
+            title: 'New Appointment!',
+            text: `A new appointment for ${newApp.petId?.name || 'a pet'} has been booked.`,
+            icon: 'info',
+            toast: true,
+            position: 'top-end',
+            timer: 4000,
+            showConfirmButton: false
+          });
+
+          return updated;
+        });
+      }
+    });
+
+    // Listen for status changes (e.g., owner canceled)
+    socket.on('appointmentStatusChanged', (updatedApp) => {
+      setAppointments(prev =>
+        prev.map(app => app._id === updatedApp._id ? updatedApp : app)
+      );
+    });
+
+    return () => {
+      socket.off('newAppointment');
+      socket.off('appointmentStatusChanged');
+      disconnectSocket();
+    };
+  }, [vetId]);
+
+  useEffect(() => {
     if (!vetId) {
       Swal.fire({
         title: 'Access Denied',
@@ -219,7 +264,7 @@ const VetTodayAppointments = () => {
     if (result.isConfirmed) {
       try {
         await api.patch(`/appointments/${id}/confirm`);
-        setAppointments(prev => prev.map(app => 
+        setAppointments(prev => prev.map(app =>
           app._id === id ? { ...app, status: 'Confirmed' } : app
         ));
         Swal.fire('Confirmed!', 'Appointment confirmed.', 'success');
@@ -243,7 +288,7 @@ const VetTodayAppointments = () => {
     if (result.isConfirmed) {
       try {
         await api.patch(`/appointments/${id}/cancel`);
-        setAppointments(prev => prev.map(app => 
+        setAppointments(prev => prev.map(app =>
           app._id === id ? { ...app, status: 'Canceled' } : app
         ));
         Swal.fire('Canceled!', 'Appointment canceled.', 'success');
@@ -387,7 +432,7 @@ const VetTodayAppointments = () => {
                         </TableCell>
                         <TableCell>
                           <Typography fontWeight="bold">
-                            {app.petId?.ownerId 
+                            {app.petId?.ownerId
                               ? `${app.petId.ownerId.firstName} ${app.petId.ownerId.lastName}`
                               : 'N/A'}
                           </Typography>
@@ -426,7 +471,7 @@ const VetTodayAppointments = () => {
                                         <Typography variant="h6">{app.petId?.name}</Typography>
                                         <Typography>{app.petId?.species} • {app.petId?.breed}</Typography>
                                         <Typography color="textSecondary">
-                                          Owner: {app.petId?.ownerId 
+                                          Owner: {app.petId?.ownerId
                                             ? `${app.petId.ownerId.firstName} ${app.petId.ownerId.lastName}`
                                             : 'N/A'}
                                         </Typography>

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/ChatWidget.css";
+import { useAuth } from "../context/AuthContext";
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 // Import the image (make sure to place your image in the correct folder)
 import vetIcon from "../assets/vet-girl.png"; // Update this path to your actual image
@@ -8,6 +10,7 @@ const BOT_WELCOME = "Hi! I'm Dr. Sara. Ask me about pet care, appointments, or c
 const OFFLINE_REPLY = "Thanks for your message. I can help with appointments, pet care tips, or direct you to clinic contacts. (offline)";
 
 const ChatWidget = () => {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -64,7 +67,15 @@ const ChatWidget = () => {
     } finally {
       setLoading(false);
     }
-  }; 
+  };
+
+  const handleResetChat = () => {
+    const initial = [{ id: Date.now(), from: "bot", text: BOT_WELCOME }];
+    setMessages(initial);
+    localStorage.setItem("petcare_chat_messages", JSON.stringify(initial));
+  };
+
+  if (!user) return null;
 
   return (
     <div>
@@ -74,9 +85,9 @@ const ChatWidget = () => {
             <div className="chat-header">
               <div className="chat-title">
                 <div className="bot-avatar">
-                  <img 
-                    src={vetIcon} 
-                    alt="Dr. Sara" 
+                  <img
+                    src={vetIcon}
+                    alt="Dr. Sara"
                     className="vet-icon"
                   />
                 </div>
@@ -85,13 +96,24 @@ const ChatWidget = () => {
                   <div className="status">Online</div>
                 </div>
               </div>
-              <button
-                className="close-btn"
-                onClick={() => setOpen(false)}
-                aria-label="Minimize chat"
-              >
-                —
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  className="reset-btn"
+                  onClick={handleResetChat}
+                  aria-label="Reset chat"
+                  style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', opacity: 0.8 }}
+                  title="Clear Chat"
+                >
+                  <DeleteOutlineIcon fontSize="small" />
+                </button>
+                <button
+                  className="close-btn"
+                  onClick={() => setOpen(false)}
+                  aria-label="Minimize chat"
+                >
+                  —
+                </button>
+              </div>
             </div>
 
             <div className="chat-body" ref={listRef}>
@@ -132,7 +154,7 @@ const ChatWidget = () => {
               >
                 {loading ? '…' : '➤'}
               </button>
-            </div> 
+            </div>
             <div className="chat-footer">Type a question or ask for pet care tips ✅</div>
           </div>
         ) : (
@@ -143,9 +165,9 @@ const ChatWidget = () => {
             title="Chat with Dr. Sara"
           >
             <div className="launch-icon">
-              <img 
-                src={vetIcon} 
-                alt="Chat with Dr. Sara" 
+              <img
+                src={vetIcon}
+                alt="Chat with Dr. Sara"
                 className="vet-icon-launch"
               />
             </div>

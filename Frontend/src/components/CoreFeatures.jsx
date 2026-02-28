@@ -17,19 +17,19 @@ const CoreFeatures = () => {
       image: "https://brookvillevet.net/wp-content/uploads/2024/08/request-an-appointment-iStock-1413492609.webp", // Owner with pet booking vibe
       title: "Easy Appointment Booking",
       description: "Find nearby clinics, book, reschedule or cancel vet appointments with real-time availability and reminders.",
-      color: "#3b82f6" // blue – trust & reliability
+      color: "#10b981"
     },
     {
       image: "https://pilina.vet/wp-content/uploads/2024/09/PV-Home-Hero.webp", // Owner & dog at beach – warm connection
       title: "Vet Chat & Consult",
       description: "Secure in-app chat with your registered veterinarian for advice, follow-ups, and questions about your pet.",
-      color: "#8b5cf6" // purple – communication & care
+      color: "#10b981"
     },
     {
       image: "https://images.pexels.com/photos/4929241/pexels-photo-4929241.jpeg", // Cat with laptop – AI/tech feel
       title: "AI Pet Health Assistant",
       description: "Get instant, reliable guidance on nutrition, vaccinations, symptoms, and preventive care from our Sri Lanka-adapted AI chatbot.",
-      color: "#f59e0b" // amber – helpful & friendly
+      color: "#10b981"
     }
   ];
 
@@ -57,14 +57,7 @@ const CoreFeatures = () => {
   }, []);
 
   const handleCardClick = (index) => {
-    if (index === 0) {
-      navigate("/add-pet");       // or "/pet-profiles"
-    } else if (index === 1) {
-      navigate("/appointments");  // or "/book-appointment"
-    } else if (index === 2) {
-      navigate("/messages");      // or "/vet-chat"
-    }
-    // index === 3 (AI Assistant) remains non-clickable or can link to chatbot page
+    // Click effects removed
   };
 
   return (
@@ -166,27 +159,6 @@ const CoreFeatures = () => {
           right: 0;
           height: 4px;
           background: linear-gradient(90deg, var(--card-color), transparent);
-          transform: scaleX(0);
-          transform-origin: left;
-          transition: transform 0.4s ease;
-        }
-
-        .service-card:hover::before {
-          transform: scaleX(1);
-        }
-
-        .service-card.clickable {
-          cursor: pointer;
-        }
-
-        .service-card.clickable:hover {
-          transform: translateY(-12px);
-          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
-        }
-
-        .service-card:hover {
-          transform: translateY(-10px);
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
         }
 
         .icon-wrapper {
@@ -200,33 +172,10 @@ const CoreFeatures = () => {
           position: relative;
         }
 
-        .icon-wrapper::after {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.25) 100%);
-          opacity: 0;
-          transition: opacity 0.4s ease;
-        }
-
-        .service-card:hover .icon-wrapper::after {
-          opacity: 1;
-        }
-
         .icon-wrapper img {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transition: transform 0.4s ease;
-        }
-
-        .service-card:hover .icon-wrapper {
-          transform: scale(1.03);
-          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-        }
-
-        .service-card:hover .icon-wrapper img {
-          transform: scale(1.08);
         }
 
         .service-card h3 {
@@ -261,14 +210,6 @@ const CoreFeatures = () => {
           border-radius: 20px;
           font-size: 0.75rem;
           font-weight: 600;
-          opacity: 0;
-          transform: scale(0);
-          transition: all 0.3s ease;
-        }
-
-        .service-card:hover .feature-badge {
-          opacity: 1;
-          transform: scale(1);
         }
 
         @media (max-width: 1024px) {
@@ -304,13 +245,10 @@ const CoreFeatures = () => {
           {features.map((feature, index) => (
             <div
               key={index}
-              className={`service-card ${visibleCards.includes(index) ? 'visible' : ''} ${
-                index < 3 ? 'clickable' : ''
-              }`}
+              className={`service-card ${visibleCards.includes(index) ? 'visible' : ''}`}
               style={{
                 '--card-color': feature.color,
               }}
-              onClick={() => handleCardClick(index)}
             >
               <span className="feature-badge">Powered by Care</span>
               <div className="icon-wrapper">

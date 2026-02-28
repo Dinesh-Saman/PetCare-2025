@@ -12,12 +12,9 @@ import {
   Shield,
   HeartHandshake,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
-  const handleNavigation = (path) => {
-    console.log(`Navigate to: ${path}`);
-  };
-
   // Get current year for copyright
   const currentYear = new Date().getFullYear();
 
@@ -212,8 +209,9 @@ const Footer = () => {
           font-family: inherit;
           text-align: left;
           width: 100%;
+          text-decoration: none;
         }
-        
+
         .pawpal-link-button::before {
           content: '🐾';
           position: absolute;
@@ -653,7 +651,7 @@ const Footer = () => {
       <div className="pawpal-footer-wrapper">
         <footer className="pawpal-footer">
           <div className="pawpal-footer-top-border"></div>
-          
+
           <div className="pawpal-footer-main">
             {/* About Section */}
             <div className="pawpal-footer-section">
@@ -667,9 +665,9 @@ const Footer = () => {
                 </div>
               </div>
               <p className="pawpal-description">
-                Your trusted partner in pet wellness. PawPal offers comprehensive 
-                pet care management solutions including health tracking, appointment 
-                scheduling, nutrition planning, and 24/7 veterinary support. 
+                Your trusted partner in pet wellness. PawPal offers comprehensive
+                pet care management solutions including health tracking, appointment
+                scheduling, nutrition planning, and 24/7 veterinary support.
                 Because every pet deserves the best care.
               </p>
               <div className="pawpal-trust-badges">
@@ -689,51 +687,22 @@ const Footer = () => {
               <h3 className="pawpal-section-title">Quick Links</h3>
               <ul className="pawpal-link-list">
                 <li>
-                  <button className="pawpal-link-button" onClick={() => handleNavigation('/')}>
-                    Home
-                  </button>
+                  <Link to="/" className="pawpal-link-button">Home</Link>
                 </li>
                 <li>
-                  <button className="pawpal-link-button" onClick={() => handleNavigation('/about')}>
-                    About Us
-                  </button>
+                  <Link to="/about" className="pawpal-link-button">About Us</Link>
                 </li>
                 <li>
-                  <button className="pawpal-link-button" onClick={() => handleNavigation('/services')}>
-                    Our Services
-                  </button>
-                </li>
-                <li>
-                  <button className="pawpal-link-button" onClick={() => handleNavigation('/contact')}>
-                    Contact Us
-                  </button>
-                </li>
-                <li>
-                  <button className="pawpal-link-button" onClick={() => handleNavigation('/blog')}>
-                    Pet Care Blog
-                  </button>
+                  <Link to="/contact" className="pawpal-link-button">Contact Us</Link>
                 </li>
               </ul>
             </div>
 
-            {/* Contact Section */}
+            {/* Connect Section */}
             <div className="pawpal-footer-section pawpal-contact-section">
               <div className="pawpal-contact-content">
-                <h3 className="pawpal-section-title">Contact Us</h3>
-                <div className="pawpal-contact-items">
-                  <div className="pawpal-contact-item">
-                    <div className="pawpal-contact-icon"><MapPin size={18} /></div>
-                    <span>123 Pet Care Avenue,<br />Colombo 05, Sri Lanka</span>
-                  </div>
-                  <div className="pawpal-contact-item">
-                    <div className="pawpal-contact-icon"><Phone size={18} /></div>
-                    <span>+94 11 234 5678<br />Emergency: +94 77 890 1234</span>
-                  </div>
-                  <div className="pawpal-contact-item">
-                    <div className="pawpal-contact-icon"><Mail size={18} /></div>
-                    <span>hello@pawpal.lk<br />support@pawpal.lk</span>
-                  </div>
-                </div>
+                <h3 className="pawpal-section-title">Connect With Us</h3>
+
                 <div className="pawpal-social-icons">
                   <a href="#" aria-label="Facebook" className="pawpal-social-icon">
                     <Facebook size={20} />
@@ -751,9 +720,9 @@ const Footer = () => {
                 <div className="pawpal-newsletter">
                   <p className="pawpal-newsletter-title">Join Our Pet Community</p>
                   <form className="pawpal-newsletter-form">
-                    <input 
-                      type="email" 
-                      placeholder="Your email address" 
+                    <input
+                      type="email"
+                      placeholder="Your email address"
                       className="pawpal-newsletter-input"
                     />
                     <button type="submit" className="pawpal-newsletter-button">

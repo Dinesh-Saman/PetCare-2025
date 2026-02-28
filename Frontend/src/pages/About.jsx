@@ -1,9 +1,9 @@
 import React from "react";
-import { 
-  Heart, 
-  Shield, 
-  Users, 
-  Target, 
+import {
+  Heart,
+  Shield,
+  Users,
+  Target,
   CheckCircle,
   MapPin,
   Award,
@@ -15,7 +15,7 @@ const AboutUs = () => {
   return (
     <>
       <Navbar />
-      
+
       <style>{`
         .about-page {
           min-height: 100vh;
@@ -26,7 +26,7 @@ const AboutUs = () => {
         /* Hero Section with Clean Image */
         .about-hero {
           padding: 8rem 2rem 6rem;
-          background: url('https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=1600&h=800&fit=crop&q=80');
+          background: url('https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=1600&h=800&fit=crop&q=80');
           background-size: cover;
           background-position: center;
           color: white;
@@ -697,7 +697,7 @@ const AboutUs = () => {
               Revolutionizing Pet Care in Sri Lanka
             </h1>
             <p className="hero-subtitle">
-              Pawpal is Sri Lanka's premier digital platform connecting pet owners with veterinary care, 
+              Pawpal is Sri Lanka's premier digital platform connecting pet owners with veterinary care,
               combining cutting-edge technology with compassionate pet health management.
             </p>
           </div>
@@ -711,7 +711,7 @@ const AboutUs = () => {
                 Our <span className="mission-highlight">Mission</span> & Vision
               </h2>
               <p className="mission-text">
-                At Pawpal, we're on a mission to transform pet healthcare in Sri Lanka by making 
+                At Pawpal, we're on a mission to transform pet healthcare in Sri Lanka by making
                 veterinary services accessible, affordable, and comprehensive for every pet owner.
               </p>
               <div className="mission-points">
@@ -742,36 +742,6 @@ const AboutUs = () => {
                     <p>Creating a supportive ecosystem for pet owners and veterinary professionals</p>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div className="mission-stats">
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <Users size={28} />
-                </div>
-                <div className="stat-number">10,000+</div>
-                <div className="stat-label">Pet Owners Served</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <CheckCircle size={28} />
-                </div>
-                <div className="stat-number">50+</div>
-                <div className="stat-label">Partner Clinics</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <MapPin size={28} />
-                </div>
-                <div className="stat-number">25</div>
-                <div className="stat-label">Cities Covered</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-icon">
-                  <Award size={28} />
-                </div>
-                <div className="stat-number">98%</div>
-                <div className="stat-label">Satisfaction Rate</div>
               </div>
             </div>
           </div>
@@ -817,163 +787,13 @@ const AboutUs = () => {
           </div>
         </section>
 
-        {/* Our Story */}
-        <section className="story-section">
-          <div className="story-container">
-            <div className="story-header">
-              <h2>Our Journey</h2>
-              <p className="section-subtitle">
-                From concept to Sri Lanka's leading pet care platform
-              </p>
-            </div>
-            <div className="story-timeline">
-              <div className="story-item">
-                <div className="story-year">2022</div>
-                <div className="story-content">
-                  <h3>Foundation</h3>
-                  <p>Pawpal was founded by veterinary professionals and tech experts who identified gaps in Sri Lanka's pet healthcare accessibility.</p>
-                </div>
-              </div>
-              <div className="story-item">
-                <div className="story-year">2023</div>
-                <div className="story-content">
-                  <h3>Platform Launch</h3>
-                  <p>Launched the first version with basic pet profiles and appointment booking across Colombo and Kandy.</p>
-                </div>
-              </div>
-              <div className="story-item">
-                <div className="story-year">2024</div>
-                <div className="story-content">
-                  <h3>Nationwide Expansion</h3>
-                  <p>Expanded to 25+ cities, introduced AI health assistant, and partnered with 50+ veterinary clinics.</p>
-                </div>
-              </div>
-              <div className="story-item">
-                <div className="story-year">2025</div>
-                <div className="story-content">
-                  <h3>Industry Recognition</h3>
-                  <p>Recognized as Sri Lanka's fastest-growing pet tech platform, serving over 10,000 happy pets and owners.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Team Section - 4 Members in One Line */}
-        <section className="team-section">
-          <div className="section-header">
-            <h2>Meet Our Leadership</h2>
-            <p className="section-subtitle">
-              The passionate team behind Pawpal's success
-            </p>
-          </div>
-          <div className="team-grid">
-            <div className="team-card">
-              <img 
-                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop" 
-                alt="Dr. Chaminda Perera" 
-                className="team-image"
-              />
-              <div className="team-info">
-                <h3>Dr. Chaminda Perera</h3>
-                <div className="team-role">Chief Veterinary Officer</div>
-                <p className="team-bio">15+ years of veterinary experience, former head of Colombo Animal Hospital.</p>
-                <div className="team-social">
-                  <a href="#" className="social-link">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-                    </svg>
-                  </a>
-                  <a href="#" className="social-link">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-            <div className="team-card">
-              <img 
-                src="https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop" 
-                alt="Nimali Fernando" 
-                className="team-image"
-              />
-              <div className="team-info">
-                <h3>Nimali Fernando</h3>
-                <div className="team-role">CEO & Co-founder</div>
-                <p className="team-bio">Tech entrepreneur with background in healthcare innovation and business strategy.</p>
-                <div className="team-social">
-                  <a href="#" className="social-link">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-                    </svg>
-                  </a>
-                  <a href="#" className="social-link">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-            <div className="team-card">
-              <img 
-                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop" 
-                alt="Rajitha Silva" 
-                className="team-image"
-              />
-              <div className="team-info">
-                <h3>Rajitha Silva</h3>
-                <div className="team-role">CTO</div>
-                <p className="team-bio">Software architect specializing in healthcare platforms and AI integration.</p>
-                <div className="team-social">
-                  <a href="#" className="social-link">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-                    </svg>
-                  </a>
-                  <a href="#" className="social-link">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-            <div className="team-card">
-              <img 
-                src="https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop" 
-                alt="Dr. Anoma Weerasinghe" 
-                className="team-image"
-              />
-              <div className="team-info">
-                <h3>Dr. Anoma Weerasinghe</h3>
-                <div className="team-role">Head of Veterinary Partnerships</div>
-                <p className="team-bio">Building relationships with veterinary clinics nationwide for better pet care access.</p>
-                <div className="team-social">
-                  <a href="#" className="social-link">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
-                    </svg>
-                  </a>
-                  <a href="#" className="social-link">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* CTA Section */}
         <section className="cta-section">
           <div className="cta-overlay"></div>
           <div className="cta-container">
             <h2 className="cta-title">Join Our Pet Care Revolution</h2>
             <p className="cta-subtitle">
-              Whether you're a pet owner looking for better care or a veterinarian wanting to 
+              Whether you're a pet owner looking for better care or a veterinarian wanting to
               modernize your practice, Pawpal has something for you.
             </p>
             <div className="cta-buttons">

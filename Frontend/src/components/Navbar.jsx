@@ -30,89 +30,34 @@ import {
   ExitToApp as LogoutIcon,
   Login as LoginIcon,
   HowToReg as RegisterIcon,
+  Pets as PetsIcon,
   Close as CloseIcon,
   ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
-import LoginPopup from './LoginPopup';
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [loginPopupOpen, setLoginPopupOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = () => {
-      const ownerData = localStorage.getItem('owner_user');
-      const ownerToken = localStorage.getItem('owner_token');
-      
-      if (ownerData && ownerToken) {
-        try {
-          const parsed = JSON.parse(ownerData);
-          if (parsed?.id && (parsed.role === 'owner' || parsed.userType === 'PetOwner')) {
-            setIsLoggedIn(true);
-            const fullName = `${parsed.firstName || ''} ${parsed.lastName || ''}`.trim();
-            setUserName(fullName || 'Pet Owner');
-            return;
-          }
-        } catch (err) {
-          console.warn('Invalid owner_user data', err);
-        }
-      }
-      setIsLoggedIn(false);
-      setUserName('');
-    };
-
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
-  }, [location]);
+  const { user, openAuthModal, logout } = useAuth();
+  const isLoggedIn = !!user;
+  const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '';
 
   const toggleDrawer = (open) => () => setDrawerOpen(open);
-
-  const openLoginPopup = () => {
-    setLoginPopupOpen(true);
-    if (drawerOpen) setDrawerOpen(false);
-  };
-
-  const closeLoginPopup = () => setLoginPopupOpen(false);
-
-  const handleLoginSuccess = (user) => {
-    setIsLoggedIn(true);
-    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-    setUserName(fullName || 'Pet Owner');
-  };
 
   const handleProfileMenuOpen = (event) => setAnchorEl(event.currentTarget);
 
   const handleProfileMenuClose = () => setAnchorEl(null);
 
   const handleLogout = () => {
-    localStorage.removeItem('owner_token');
-    localStorage.removeItem('owner_user');
-    localStorage.removeItem('owner');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    setIsLoggedIn(false);
-    setUserName('');
+    logout();
     setAnchorEl(null);
     setDrawerOpen(false);
-    
-    Swal.fire({
-      title: 'Logged Out',
-      text: 'You have been successfully logged out.',
-      icon: 'success',
-      timer: 1500,
-      showConfirmButton: false
-    });
-    
     navigate('/');
   };
 
@@ -256,7 +201,7 @@ const Navbar = () => {
             <Button
               fullWidth
               variant="contained"
-              onClick={() => { toggleDrawer(false)(); openLoginPopup(); }}
+              onClick={() => { toggleDrawer(false)(); openAuthModal('login'); }}
               startIcon={<LoginIcon />}
               sx={{
                 py: 1.5,
@@ -270,9 +215,7 @@ const Navbar = () => {
             <Button
               fullWidth
               variant="contained"
-              component={Link}
-              to="/register"
-              onClick={toggleDrawer(false)}
+              onClick={() => { toggleDrawer(false)(); openAuthModal('register'); }}
               startIcon={<RegisterIcon />}
               sx={{
                 py: 1.5,
@@ -305,23 +248,23 @@ const Navbar = () => {
           boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
         }}
       >
-          <Toolbar
-            sx={{
-              maxWidth: '1400px',
-              width: '100%',
-              mx: 'auto',
-              px: { xs: 2, md: 4 },
+        <Toolbar
+          sx={{
+            maxWidth: '1400px',
+            width: '100%',
+            mx: 'auto',
+            px: { xs: 2, md: 4 },
 
-              minHeight: 80, // 👈 mobile height
-              '@media (min-width:600px)': {
-                minHeight: 96, // 👈 desktop height
-              },
-            }}
-          >
+            minHeight: 80, // 👈 mobile height
+            '@media (min-width:600px)': {
+              minHeight: 96, // 👈 desktop height
+            },
+          }}
+        >
 
           {/* Logo + Drawer Toggle */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton color="inherit" edge="start" onClick={toggleDrawer(true)} sx={{ mr: 1 }}>
+            <IconButton color="inherit" edge="start" onClick={toggleDrawer(true)} sx={{ mr: 1, display: { md: 'none' } }}>
               <MenuIcon />
             </IconButton>
             <Box
@@ -401,6 +344,21 @@ const Navbar = () => {
                   {userName.split(' ')[0] || 'Profile'}
                 </Button>
 
+                <Button
+                  component={Link}
+                  to="/owner/pets/new"
+                  variant="outlined"
+                  startIcon={<PetsIcon />}
+                  sx={{
+                    color: 'white',
+                    borderColor: 'rgba(255,255,255,0.5)',
+                    textTransform: 'none',
+                    display: { xs: 'none', md: 'flex' },
+                  }}
+                >
+                  Register your pets
+                </Button>
+
                 <IconButton
                   color="inherit"
                   onClick={handleLogout}
@@ -412,7 +370,7 @@ const Navbar = () => {
             ) : (
               <>
                 <Button
-                  onClick={openLoginPopup}
+                  onClick={() => openAuthModal('login')}
                   sx={{
                     color: 'white',
                     textTransform: 'none',
@@ -422,8 +380,7 @@ const Navbar = () => {
                   Login
                 </Button>
                 <Button
-                  component={Link}
-                  to="/register"
+                  onClick={() => openAuthModal('register')}
                   variant="contained"
                   sx={{
                     background: 'rgba(255,255,255,0.25)',
@@ -477,11 +434,6 @@ const Navbar = () => {
       </Drawer>
 
       {/* Login Popup */}
-      <LoginPopup
-        open={loginPopupOpen}
-        onClose={closeLoginPopup}
-        onLoginSuccess={handleLoginSuccess}
-      />
     </>
   );
 };

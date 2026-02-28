@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import api from '../../services/api';
 import {
   AppBar,
   Toolbar,
@@ -331,7 +332,7 @@ const PetManagerHeader = () => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [mobileMenuAnchor, setMobileMenuAnchor] = useState(null);
-  
+
   // Mock data
   const user = {
     name: 'Dr. Sarah Wilson',
@@ -339,13 +340,13 @@ const PetManagerHeader = () => {
     clinic: 'City Vet Clinic',
     initials: 'SW'
   };
-  
+
   const stats = {
     appointments: 12,
     patients: 5,
     reminders: 3
   };
-  
+
   const navItems = [
     { label: 'Dashboard', icon: <DashboardIcon fontSize="small" />, path: '/' },
     { label: 'Patients', icon: <Pets fontSize="small" />, path: '/patients' },
@@ -355,7 +356,7 @@ const PetManagerHeader = () => {
     { label: 'Inventory', icon: <Inventory fontSize="small" />, path: '/inventory' },
     { label: 'Reports', icon: <Assessment fontSize="small" />, path: '/reports' },
   ];
-  
+
   const profileMenuItems = [
     { label: 'My Profile', icon: <AccountCircle />, path: '/profile' },
     { label: 'Schedule', icon: <CalendarToday />, path: '/schedule' },
@@ -375,6 +376,24 @@ const PetManagerHeader = () => {
     setAnchorEl(null);
     setMobileMenuAnchor(null);
   };
+
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const fetchUnreadChats = async () => {
+      try {
+        const response = await api.get('/chat/list');
+        const chats = response.data.chats || [];
+        // Assuming chats come with an unreadCount or we count those with recent messages needing action. 
+        // For simplicity, sum up 'unread' field if it exists, otherwise just show 0 or length as a placeholder until deeply implemented
+        const count = chats.reduce((acc, chat) => acc + (chat.unreadCount || 0), 0);
+        setUnreadCount(count);
+      } catch (err) {
+        console.error('Error fetching unread chats for badge:', err);
+      }
+    };
+    fetchUnreadChats();
+  }, []);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -454,8 +473,8 @@ const PetManagerHeader = () => {
 
               {/* Notifications */}
               <Tooltip title="Notifications" arrow>
-                <IconButton sx={{ color: '#555' }}>
-                  <NotificationBadge badgeContent={stats.reminders} max={99}>
+                <IconButton sx={{ color: '#555' }} onClick={() => navigate('/owner/chat')}>
+                  <NotificationBadge badgeContent={unreadCount} max={99}>
                     <NotificationsIcon />
                   </NotificationBadge>
                 </IconButton>

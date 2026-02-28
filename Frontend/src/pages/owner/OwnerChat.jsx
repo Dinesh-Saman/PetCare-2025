@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import {
@@ -110,6 +111,11 @@ const InputArea = styled(Box)(({ theme }) => ({
 }));
 
 const OwnerChat = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const initialPetId = searchParams.get('petId');
+
   const [chatList, setChatList] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -120,8 +126,35 @@ const OwnerChat = () => {
   useEffect(() => {
     const fetchChatList = async () => {
       try {
-        const response = await api.get('/chat/list'); // Your getUserChatList endpoint
-        setChatList(response.data.chats || []);
+        const response = await api.get('/chat/list');
+        const chats = response.data.chats || [];
+        setChatList(chats);
+
+        if (initialPetId) {
+          const existingChat = chats.find(c => c.petId === initialPetId);
+          if (existingChat) {
+            setSelectedChat(existingChat);
+          } else {
+            // Fetch pet details to create a new empty chat object for the list
+            try {
+              const petRes = await api.get(`/pets/${initialPetId}`);
+              const pet = petRes.data.pet || petRes.data;
+              const newChat = {
+                petId: pet._id,
+                petName: pet.name,
+                petPhoto: pet.photo,
+                latestMessage: null
+              };
+              setChatList([newChat, ...chats]);
+              setSelectedChat(newChat);
+
+              // Remove query param without refreshing to avoid re-triggering logic
+              navigate('/owner/chat', { replace: true });
+            } catch (err) {
+              console.error("Failed to load initial pet chat context", err);
+            }
+          }
+        }
       } catch (error) {
         console.error('Error fetching chat list:', error);
         Swal.fire('Error', 'Could not load conversations', 'error');
@@ -129,7 +162,7 @@ const OwnerChat = () => {
     };
 
     fetchChatList();
-  }, []);
+  }, [initialPetId, navigate]);
 
   // Fetch messages when a pet is selected
   useEffect(() => {
@@ -168,8 +201,8 @@ const OwnerChat = () => {
       scrollToBottom();
 
       // Update chat list preview
-      setChatList(prev => prev.map(chat => 
-        chat.petId === selectedChat.petId 
+      setChatList(prev => prev.map(chat =>
+        chat.petId === selectedChat.petId
           ? { ...chat, latestMessage: { content: newMessage.trim(), timestamp: new Date(), senderType: 'Owner' } }
           : chat
       ));
@@ -320,10 +353,10 @@ const OwnerChat = () => {
                     </InputArea>
                   </>
                 ) : (
-                  <Box sx={{ 
-                    flexGrow: 1, 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <Box sx={{
+                    flexGrow: 1,
+                    display: 'flex',
+                    alignItems: 'center',
                     justifyContent: 'center',
                     color: '#999'
                   }}>

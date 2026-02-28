@@ -1,16 +1,16 @@
-// PetChatbotPage.jsx
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import { IconButton, Tooltip } from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 function PetChatbotPage() {
-  const [messages, setMessages] = useState([
-    {
-      id: Date.now(),
-      sender: 'bot',
-      text: `Hello! 🐶🐱\n\nI'm your friendly pet health advisor focused on dogs and cats in Sri Lanka.\nYou can ask me about:\n• Vaccination schedules\n• Nutrition & safe foods\n• Common symptoms & prevention\n• Basic first aid\n\nImportant: This is general information only — always consult a real veterinarian for diagnosis or treatment!`,
-    },
-  ]);
+  const initialMessage = {
+    id: Date.now(),
+    sender: 'bot',
+    text: `Hello! 🐶🐱\n\nI'm your friendly pet health advisor focused on dogs and cats in Sri Lanka.\nYou can ask me about:\n• Vaccination schedules\n• Nutrition & safe foods\n• Common symptoms & prevention\n• Basic first aid\n\nImportant: This is general information only — always consult a real veterinarian for diagnosis or treatment!`,
+  };
 
+  const [messages, setMessages] = useState([initialMessage]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,6 +19,10 @@ function PetChatbotPage() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleResetChat = () => {
+    setMessages([initialMessage]);
   };
 
   useEffect(() => {
@@ -269,9 +273,16 @@ function PetChatbotPage() {
       `}</style>
 
       <div className="chat-container">
-        <header className="header">
-          <h1>PetCare Advisor</h1>
-          <p>Dogs & Cats • Sri Lanka • Preventive Care</p>
+        <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1>PetCare Advisor</h1>
+            <p>Dogs & Cats • Sri Lanka • Preventive Care</p>
+          </div>
+          <Tooltip title="Reset Chat">
+            <IconButton onClick={handleResetChat} sx={{ color: 'white', '&:hover': { backgroundColor: 'rgba(255,255,255,0.2)' } }}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
         </header>
 
         <div className="messages-area">

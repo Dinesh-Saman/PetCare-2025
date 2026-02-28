@@ -26,10 +26,11 @@ import {
   Collapse,
   FormControl,
   InputLabel,
-  Select,
-  MenuItem,
+  Switch,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, alpha } from '@mui/material/styles';
 import {
   ExpandMore as ExpandMoreIcon,
   Pets as PetsIcon,
@@ -48,103 +49,125 @@ import {
   CheckCircle as CheckCircleIcon,
   Pending as PendingIcon,
   Warning as WarningIcon,
+  Security as SecurityIcon,
+  QrCode as QrCodeIcon,
 } from '@mui/icons-material';
 import Navbar from '../../components/Navbar';
+import AddPetModal from './AddPet';
+import { useAuth } from '../../context/AuthContext';
 
 // ────────────────────────────────────────────────
 // Styled Components
 // ────────────────────────────────────────────────
 const DashboardContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
-  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-  padding: '90px 24px 80px',
+  background: 'linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%)',
+  padding: '100px 24px 80px',
   [theme.breakpoints.up('md')]: {
-    padding: '110px 40px 100px',
+    padding: '120px 40px 100px',
   },
-}));
-
-const ContentArea = styled(Box)(({ theme }) => ({
-  maxWidth: '1600px',
-  margin: '0 auto',
 }));
 
 const WelcomeCard = styled(Card)(({ theme }) => ({
-  borderRadius: '20px',
-  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  borderRadius: '32px',
+  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
   color: 'white',
-  boxShadow: '0 20px 60px rgba(102, 126, 234, 0.25)',
-  marginBottom: '40px',
+  boxShadow: '0 20px 50px rgba(79, 70, 229, 0.3)',
+  marginBottom: '48px',
   position: 'relative',
-  overflow: 'visible',
+  overflow: 'hidden',
+  border: 'none',
   '&::before': {
     content: '""',
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.15) 0%, transparent 70%)',
+    top: -100,
+    right: -100,
+    width: '300px',
+    height: '300px',
+    background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
+    borderRadius: '50%',
+  },
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: -50,
+    left: -50,
+    width: '200px',
+    height: '200px',
+    background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
+    borderRadius: '50%',
   },
 }));
 
-const PetCard = styled(Card)(({ theme }) => ({
-  borderRadius: '16px',
-  background: theme.palette.background.paper,
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-  border: '1px solid rgba(102, 126, 234, 0.12)',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+const GlassCard = styled(Card)(({ theme }) => ({
+  background: 'rgba(255, 255, 255, 0.8)',
+  backdropFilter: 'blur(12px)',
+  borderRadius: '24px',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
+  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-5px)',
+    boxShadow: '0 15px 40px rgba(0, 0, 0, 0.1)',
+  },
+}));
+
+const PetCard = styled(GlassCard)(({ theme }) => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: '0 20px 60px rgba(102, 126, 234, 0.18)',
-    borderColor: '#667eea',
-  },
+  overflow: 'hidden',
 }));
 
-const StatsCard = styled(Card)(({ theme, color }) => ({
-  borderRadius: '16px',
-  padding: '24px',
-  background: theme.palette.background.paper,
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-  border: '1px solid',
-  borderColor: color ? `rgba(${color.replace('#', '')}, 0.12)` : 'rgba(102, 126, 234, 0.12)',
+const StatsCard = styled(GlassCard)(({ theme, color }) => ({
+  padding: '28px',
   height: '100%',
-  transition: 'all 0.3s ease',
   position: 'relative',
-  overflow: 'hidden',
-  '&::before': {
+  '&::after': {
     content: '""',
     position: 'absolute',
     top: 0,
     left: 0,
-    width: '100%',
-    height: '4px',
-    background: color ? `linear-gradient(90deg, ${color}33, ${color})` : 'linear-gradient(90deg, #667eea, #764ba2)',
+    width: '6px',
+    height: '100%',
+    background: color || '#4f46e5',
   },
 }));
 
 const StatusBadge = styled(Box)(({ theme, status }) => ({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: '6px',
-  padding: '6px 12px',
-  borderRadius: '20px',
+  padding: '6px 14px',
+  borderRadius: '30px',
   fontSize: '0.75rem',
-  fontWeight: 600,
-  background:
-    status === 'Approved' ? 'rgba(16, 185, 129, 0.1)' :
-    status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' :
-    'rgba(239, 68, 68, 0.1)',
-  color:
-    status === 'Approved' ? '#10B981' :
-    status === 'Pending' ? '#F59E0B' :
-    '#EF4444',
-  border:
-    status === 'Approved' ? '1px solid rgba(16, 185, 129, 0.2)' :
-    status === 'Pending' ? '1px solid rgba(245, 158, 11, 0.2)' :
-    '1px solid rgba(239, 68, 68, 0.2)',
+  fontWeight: 700,
+  letterSpacing: '0.5px',
+  textTransform: 'uppercase',
+  background: status === 'Approved' ? alpha('#10b981', 0.15) :
+    status === 'Pending' ? alpha('#f59e0b', 0.15) : alpha('#ef4444', 0.15),
+  color: status === 'Approved' ? '#059669' :
+    status === 'Pending' ? '#d97706' : '#dc2626',
+  border: `1px solid ${status === 'Approved' ? alpha('#10b981', 0.3) :
+    status === 'Pending' ? alpha('#f59e0b', 0.3) : alpha('#ef4444', 0.3)}`,
+}));
+
+const GlassDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiDialog-paper': {
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(16px)',
+    borderRadius: '32px',
+    border: '1px solid rgba(255, 255, 255, 0.4)',
+    boxShadow: '0 25px 70px rgba(0, 0, 0, 0.2)',
+    overflow: 'hidden',
+  },
+}));
+
+const ModalHeader = styled(Box)(({ theme }) => ({
+  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+  padding: '40px 32px',
+  color: 'white',
+  textAlign: 'center',
+  position: 'relative',
 }));
 
 const OwnerDashboard = () => {
@@ -156,6 +179,7 @@ const OwnerDashboard = () => {
   const [expandedPet, setExpandedPet] = useState(null);
   const [openEditProfile, setOpenEditProfile] = useState(false);
   const [openEditPet, setOpenEditPet] = useState(false);
+  const [openAddPet, setOpenAddPet] = useState(false);
   const [selectedPet, setSelectedPet] = useState(null);
   const [stats, setStats] = useState({
     totalPets: 0,
@@ -188,32 +212,6 @@ const OwnerDashboard = () => {
   useEffect(() => {
     const fetchOwnerData = async () => {
       try {
-        setLoading(true);
-
-        const token = localStorage.getItem('owner_token');
-        const ownerDataStr = localStorage.getItem('owner_user');
-
-        if (!token || !ownerDataStr) {
-          navigate('/owner/login');
-          return;
-        }
-
-        const ownerData = JSON.parse(ownerDataStr);
-        setOwner(ownerData);
-        setEditForm({
-          firstName: ownerData.firstName || '',
-          lastName: ownerData.lastName || '',
-          phoneNumber: ownerData.phoneNumber || '',
-          address: ownerData.address || '',
-          email: ownerData.email || '',
-        });
-
-        const petsRes = await api.get('/pets/my');
-        const petsData = petsRes.data.pets || petsRes.data || [];
-        setPets(petsData);
-
-        const approved = petsData.filter(p => p.registrationStatus === 'Approved').length;
-        const pending = petsData.filter(p => p.registrationStatus === 'Pending').length;
 
         setStats({
           totalPets: petsData.length,
@@ -285,7 +283,6 @@ const OwnerDashboard = () => {
       gender: pet.gender || '',
       color: pet.color || '',
       weight: pet.weight || '',
-      microchipNumber: pet.microchipNumber || '',
       photo: pet.photo || '',
       notes: pet.notes || ''
     });
@@ -302,8 +299,8 @@ const OwnerDashboard = () => {
 
     try {
       const response = await api.put(`/pets/${selectedPet._id}`, editPetForm);
-      
-      setPets(pets.map(pet => 
+
+      setPets(pets.map(pet =>
         pet._id === selectedPet._id ? { ...pet, ...response.data } : pet
       ));
 
@@ -395,41 +392,51 @@ const OwnerDashboard = () => {
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
-                    onClick={() => navigate('/owner/pets/new')}
+                    onClick={() => setOpenAddPet(true)}
                     size="large"
                     sx={{
                       background: 'rgba(255,255,255,0.2)',
                       backdropFilter: 'blur(10px)',
                       border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '16px',
                       px: 4,
                       py: 1.5,
-                      fontSize: '1.1rem',
-                      '&:hover': { 
+                      fontSize: '1rem',
+                      fontWeight: 700,
+                      textTransform: 'none',
+                      color: 'white',
+                      '&:hover': {
                         background: 'rgba(255,255,255,0.3)',
-                        transform: 'translateY(-2px)'
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
                       }
                     }}
                   >
-                    Add New Pet
+                    Add Pawpal
                   </Button>
                   <Button
                     variant="outlined"
                     onClick={() => setOpenEditProfile(true)}
                     size="large"
                     sx={{
-                      borderColor: 'rgba(255,255,255,0.3)',
+                      borderColor: 'rgba(255,255,255,0.4)',
+                      background: 'rgba(255,255,255,0.1)',
+                      backdropFilter: 'blur(5px)',
                       color: 'white',
+                      borderRadius: '16px',
                       px: 4,
                       py: 1.5,
-                      fontSize: '1.1rem',
-                      '&:hover': { 
-                        borderColor: 'white', 
-                        background: 'rgba(255,255,255,0.1)',
+                      fontSize: '1rem',
+                      fontWeight: 700,
+                      textTransform: 'none',
+                      '&:hover': {
+                        borderColor: 'white',
+                        background: 'rgba(255,255,255,0.2)',
                         transform: 'translateY(-2px)'
                       }
                     }}
                   >
-                    Edit Profile
+                    Manage Profile
                   </Button>
                 </Stack>
               </Box>
@@ -445,14 +452,14 @@ const OwnerDashboard = () => {
                   <Typography variant="h3" fontWeight="800" color="#667eea">
                     {stats.totalPets}
                   </Typography>
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={100} 
-                    sx={{ 
-                      height: 6, 
-                      borderRadius: 4, 
-                      backgroundColor: 'rgba(102,126,234,0.12)', 
-                      '& .MuiLinearProgress-bar': { backgroundColor: '#667eea' } 
+                  <LinearProgress
+                    variant="determinate"
+                    value={100}
+                    sx={{
+                      height: 6,
+                      borderRadius: 4,
+                      backgroundColor: 'rgba(102,126,234,0.12)',
+                      '& .MuiLinearProgress-bar': { backgroundColor: '#667eea' }
                     }}
                   />
                 </Stack>
@@ -487,25 +494,32 @@ const OwnerDashboard = () => {
           </Grid>
 
           {/* My Pets Section */}
-          <Card sx={{ borderRadius: 4, boxShadow: '0 10px 40px rgba(0,0,0,0.08)', mb: 6 }}>
-            <CardContent sx={{ p: { xs: 3, md: 4 } }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-                <Typography variant="h5" fontWeight="700">
-                  My Pets ({pets.length})
+          <GlassCard sx={{ mb: 6 }}>
+            <CardContent sx={{ p: { xs: 4, md: 5 } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5, flexWrap: 'wrap', gap: 3 }}>
+                <Typography variant="h4" fontWeight="800" sx={{ color: '#1e293b' }}>
+                  Your Pawpals <PetsIcon sx={{ verticalAlign: 'middle', ml: 1, color: '#4f46e5' }} />
                 </Typography>
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
-                  onClick={() => navigate('/owner/pets/new')}
-                  sx={{ 
-                    minWidth: 140,
-                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                  onClick={() => setOpenAddPet(true)}
+                  sx={{
+                    borderRadius: '50px',
+                    px: 4,
+                    py: 1.2,
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                    boxShadow: '0 10px 25px rgba(79, 70, 229, 0.3)',
+                    textTransform: 'none',
+                    fontSize: '1rem',
+                    fontWeight: 700,
                     '&:hover': {
-                      background: 'linear-gradient(135deg, #5a6fd8, #6a4090)',
+                      background: 'linear-gradient(135deg, #4338ca 0%, #6d28d9 100%)',
+                      transform: 'translateY(-2px)'
                     }
                   }}
                 >
-                  Add Pet
+                  Register New Pet
                 </Button>
               </Box>
 
@@ -532,10 +546,10 @@ const OwnerDashboard = () => {
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
-                    onClick={() => navigate('/owner/pets/new')}
-                    sx={{ 
-                      background: 'linear-gradient(135deg, #667eea, #764ba2)', 
-                      px: 5, 
+                    onClick={() => setOpenAddPet(true)}
+                    sx={{
+                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                      px: 5,
                       py: 1.5,
                       '&:hover': {
                         background: 'linear-gradient(135deg, #5a6fd8, #6a4090)',
@@ -550,112 +564,62 @@ const OwnerDashboard = () => {
                   {pets.map((pet) => (
                     <Grid item xs={12} sm={6} md={4} key={pet._id}>
                       <PetCard>
-                        <CardContent sx={{ p: 3 }}>
-                          <Stack spacing={2.5}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              <Avatar
-                                src={pet.photo}
-                                sx={{
-                                  width: 72,
-                                  height: 72,
-                                  border: '3px solid',
-                                  borderColor: getStatusColor(pet.registrationStatus),
-                                  fontSize: 32,
-                                  bgcolor: getStatusColor(pet.registrationStatus) + '20',
-                                }}
-                              >
-                                {pet.name?.charAt(0)?.toUpperCase() || 'P'}
-                              </Avatar>
-                              <Box sx={{ flex: 1 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography variant="h6" fontWeight="700" noWrap>
-                                    {pet.name || 'Unnamed'}
-                                  </Typography>
-                                  <StatusBadge status={pet.registrationStatus || 'Pending'}>
-                                    {pet.registrationStatus === 'Approved' ? <CheckCircleIcon sx={{ fontSize: 14 }} /> :
-                                     pet.registrationStatus === 'Pending' ? <PendingIcon sx={{ fontSize: 14 }} /> :
-                                     <WarningIcon sx={{ fontSize: 14 }} />}
-                                    {pet.registrationStatus || 'Pending'}
-                                  </StatusBadge>
-                                </Box>
-                                <Typography variant="body2" color="text.secondary" noWrap>
-                                  {pet.species || '—'} • {pet.breed || 'Mixed'}
-                                </Typography>
-                              </Box>
+                        <CardContent sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                          <Box sx={{ position: 'relative', mb: 2 }}>
+                            <Avatar
+                              src={pet.photo}
+                              sx={{
+                                width: 100,
+                                height: 100,
+                                border: '4px solid',
+                                borderColor: getStatusColor(pet.registrationStatus),
+                                fontSize: 40,
+                                bgcolor: getStatusColor(pet.registrationStatus) + '20',
+                                boxShadow: '0 8px 20px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              {pet.name?.charAt(0)?.toUpperCase() || 'P'}
+                            </Avatar>
+                            <Box sx={{ position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)' }}>
+                              <StatusBadge status={pet.registrationStatus || 'Pending'} sx={{ mb: 0, fontSize: '0.75rem', px: 1.5, py: 0.5 }}>
+                                {pet.registrationStatus === 'Approved' ? <CheckCircleIcon sx={{ fontSize: 12 }} /> :
+                                  pet.registrationStatus === 'Pending' ? <PendingIcon sx={{ fontSize: 12 }} /> :
+                                    <WarningIcon sx={{ fontSize: 12 }} />}
+                                {pet.registrationStatus || 'Pending'}
+                              </StatusBadge>
                             </Box>
+                          </Box>
 
-                            <Grid container spacing={1.5}>
-                              <Grid item xs={6}>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                  {pet.gender === 'Male' ? <MaleIcon sx={{ color: '#3B82F6', fontSize: 18 }} /> : <FemaleIcon sx={{ color: '#EC4899', fontSize: 18 }} />}
-                                  <Typography variant="body2">{pet.gender || '—'}</Typography>
-                                </Stack>
-                              </Grid>
-                              <Grid item xs={6}>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                  <CalendarTodayIcon sx={{ color: '#10B981', fontSize: 18 }} />
-                                  <Typography variant="body2">{calculateAge(pet.dateOfBirth)}</Typography>
-                                </Stack>
-                              </Grid>
-                            </Grid>
+                          <Typography variant="h5" fontWeight="800" sx={{ mt: 2, mb: 1, color: '#1f2937' }} noWrap>
+                            {pet.name || 'Unnamed'}
+                          </Typography>
 
-                            <Box sx={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between', 
-                              alignItems: 'center',
-                              pt: 1.5,
-                              borderTop: 1,
-                              borderColor: 'divider'
-                            }}>
-                              <Button
-                                size="small"
-                                onClick={() => togglePetExpand(pet._id)}
-                                endIcon={<ExpandMoreIcon sx={{ 
-                                  transform: expandedPet === pet._id ? 'rotate(180deg)' : 'rotate(0deg)', 
-                                  transition: '0.3s' 
-                                }} />}
-                              >
-                                {expandedPet === pet._id ? 'Less' : 'Details'}
-                              </Button>
-                              <Stack direction="row" spacing={0.5}>
-                                <Tooltip title="Edit">
-                                  <IconButton 
-                                    size="small" 
-                                    onClick={() => handleOpenEditPet(pet)}
-                                    sx={{ color: '#F59E0B' }}
-                                  >
-                                    <EditIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Delete">
-                                  <IconButton 
-                                    size="small" 
-                                    onClick={() => handleDeletePet(pet._id, pet.name)}
-                                    sx={{ color: '#EF4444' }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </Stack>
-                            </Box>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }} noWrap>
+                            {pet.species || '—'}
+                          </Typography>
 
-                            <Collapse in={expandedPet === pet._id}>
-                              <Box sx={{ pt: 2, borderTop: 1, borderColor: 'divider' }}>
-                                <Stack spacing={1.5}>
-                                  {pet.microchipNumber && (
-                                    <Typography variant="body2">
-                                      <strong>Microchip:</strong> {pet.microchipNumber}
-                                    </Typography>
-                                  )}
-                                  {pet.notes && (
-                                    <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                      "{pet.notes}"
-                                    </Typography>
-                                  )}
-                                </Stack>
-                              </Box>
-                            </Collapse>
-                          </Stack>
+                          <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', gap: 1 }}>
+                            <Button
+                              variant="outlined"
+                              size="medium"
+                              fullWidth
+                              onClick={() => navigate(`/owner/pets/${pet._id}`)}
+                              sx={{
+                                borderRadius: '12px',
+                                textTransform: 'none',
+                                fontWeight: '600',
+                                borderColor: '#e5e7eb',
+                                color: '#4b5563',
+                                '&:hover': {
+                                  borderColor: '#2196f3',
+                                  color: '#2196f3',
+                                  bgcolor: 'transparent'
+                                }
+                              }}
+                            >
+                              View Profile
+                            </Button>
+                          </Box>
                         </CardContent>
                       </PetCard>
                     </Grid>
@@ -663,297 +627,371 @@ const OwnerDashboard = () => {
                 </Grid>
               )}
             </CardContent>
-          </Card>
+          </GlassCard>
 
-          {/* Edit Profile Dialog (still MUI) */}
-          <Dialog 
-            open={openEditProfile} 
-            onClose={() => setOpenEditProfile(false)} 
+          {/* Edit Profile Dialog */}
+          <GlassDialog
+            open={openEditProfile}
+            onClose={() => { setOpenEditProfile(false); setTwoFactorData(null); setTwoFactorToken(''); }}
+            maxWidth="sm"
+            fullWidth
+          >
+            <ModalHeader>
+              <Avatar sx={{ width: 70, height: 70, bgcolor: 'rgba(255,255,255,0.2)', mx: 'auto', mb: 2 }}>
+                <PersonIcon sx={{ fontSize: 40 }} />
+              </Avatar>
+              <Typography variant="h4" fontWeight="800">Edit Profile</Typography>
+              <Typography variant="subtitle1" sx={{ opacity: 0.8 }}>Manage your account settings and security</Typography>
+            </ModalHeader>
+
+            <DialogContent sx={{ p: 4 }}>
+              <Tabs
+                value={activeTab}
+                onChange={(e, v) => { setActiveTab(v); setTwoFactorData(null); }}
+                variant="fullWidth"
+                sx={{
+                  mb: 4,
+                  '& .MuiTab-root': { fontWeight: 700, textTransform: 'none', fontSize: '1rem' },
+                  '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0' }
+                }}
+              >
+                <Tab label="Profile Details" icon={<PersonIcon />} iconPosition="start" />
+                <Tab label="Security" icon={<SecurityIcon />} iconPosition="start" />
+              </Tabs>
+              {activeTab === 0 ? (
+                <Stack spacing={4} sx={{ mt: 2 }}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="First Name"
+                        value={editForm.firstName}
+                        onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start"><PersonIcon color="action" /></InputAdornment>,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Last Name"
+                        value={editForm.lastName}
+                        onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start"><PersonIcon color="action" /></InputAdornment>,
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><EmailIcon color="action" /></InputAdornment>,
+                    }}
+                  />
+
+                  <TextField
+                    fullWidth
+                    label="Phone Number"
+                    value={editForm.phoneNumber}
+                    onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><PhoneIcon color="action" /></InputAdornment>,
+                    }}
+                  />
+
+                  <TextField
+                    fullWidth
+                    label="Address"
+                    value={editForm.address}
+                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    multiline
+                    rows={3}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><LocationOnIcon color="action" /></InputAdornment>,
+                    }}
+                  />
+                </Stack>
+              ) : (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="h6" gutterBottom display="flex" alignItems="center" gap={1}>
+                    <SecurityIcon color="primary" /> Two-Factor Authentication
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Enhance your account security by requiring a 6-digit code from your authenticator app when you sign in.
+                  </Typography>
+
+                  <Box sx={{
+                    p: 3,
+                    borderRadius: 3,
+                    bgcolor: owner?.isTwoFactorEnabled ? alpha('#10B981', 0.05) : alpha('#64748b', 0.05),
+                    border: '1px solid',
+                    borderColor: owner?.isTwoFactorEnabled ? alpha('#10B981', 0.2) : alpha('#64748b', 0.2),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        {owner?.isTwoFactorEnabled ? '2FA is Enabled' : '2FA is Disabled'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {owner?.isTwoFactorEnabled
+                          ? 'Your account is protected with an extra layer of security.'
+                          : 'We recommend enabling this for better protection.'}
+                      </Typography>
+                    </Box>
+                    <Switch
+                      checked={!!owner?.isTwoFactorEnabled}
+                      onChange={(e) => e.target.checked ? setup2FA() : disable2FA()}
+                      disabled={tfaLoading}
+                      color="success"
+                    />
+                  </Box>
+
+                  {twoFactorData && !owner?.isTwoFactorEnabled && (
+                    <Box sx={{ mt: 4, textAlign: 'center' }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Step 1: Scan this QR code with Google Authenticator
+                      </Typography>
+                      <Box sx={{
+                        p: 2,
+                        display: 'inline-block',
+                        bgcolor: 'white',
+                        borderRadius: 2,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                        mb: 3
+                      }}>
+                        <img src={twoFactorData.qrCode} alt="2FA QR Code" style={{ width: 180, height: 180 }} />
+                      </Box>
+
+                      <Typography variant="subtitle2" gutterBottom>
+                        Step 2: Enter the 6-digit code to verify
+                      </Typography>
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mb: 2 }}>
+                        <TextField
+                          size="small"
+                          label="6-digit code"
+                          value={twoFactorToken}
+                          onChange={(e) => setTwoFactorToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                          sx={{ width: 160 }}
+                        />
+                        <Button
+                          variant="contained"
+                          onClick={enable2FA}
+                          disabled={twoFactorToken.length !== 6 || tfaLoading}
+                          sx={{ background: '#10B981' }}
+                        >
+                          Verify
+                        </Button>
+                      </Box>
+                      <Button size="small" variant="text" color="error" onClick={() => setTwoFactorData(null)}>
+                        Cancel Setup
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </DialogContent>
+            <DialogActions sx={{ p: 4, pt: 0 }}>
+              <Button
+                onClick={() => { setOpenEditProfile(false); setTwoFactorData(null); setTwoFactorToken(''); }}
+                sx={{ borderRadius: '12px', fontWeight: 700, color: 'text.secondary' }}
+              >
+                Cancel
+              </Button>
+              {activeTab === 0 && (
+                <Button
+                  variant="contained"
+                  onClick={handleUpdateProfile}
+                  sx={{
+                    borderRadius: '12px',
+                    fontWeight: 700,
+                    px: 4,
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                    boxShadow: '0 8px 20px rgba(79, 70, 229, 0.25)',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #4338ca 0%, #6d28d9 100%)',
+                    }
+                  }}
+                >
+                  Save Changes
+                </Button>
+              )}
+            </DialogActions>
+          </GlassDialog>
+
+          {/* Edit Pet Dialog */}
+          <GlassDialog
+            open={openEditPet}
+            onClose={() => setOpenEditPet(false)}
             maxWidth="md"
             fullWidth
           >
-            <DialogTitle sx={{ 
-              background: 'linear-gradient(135deg, #667eea, #764ba2)',
-              color: 'white',
-              py: 3,
-              textAlign: 'center'
-            }}>
-              <Typography variant="h5" fontWeight="700">
-                Edit Profile
-              </Typography>
-            </DialogTitle>
-            <DialogContent sx={{ 
-              pt: 8,
-              pb: 6,
-              px: { xs: 3, sm: 4 }
-            }}>
-              <Stack spacing={4} sx={{ mt: 2 }}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="First Name"
-                      value={editForm.firstName}
-                      onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                      InputProps={{
-                        startAdornment: <InputAdornment position="start"><PersonIcon color="action" /></InputAdornment>,
-                      }}
-                      sx={{ mt: 1 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      label="Last Name"
-                      value={editForm.lastName}
-                      onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                      InputProps={{
-                        startAdornment: <InputAdornment position="start"><PersonIcon color="action" /></InputAdornment>,
-                      }}
-                      sx={{ mt: 1 }}
-                    />
-                  </Grid>
+            <ModalHeader>
+              <Avatar src={selectedPet?.photo} sx={{ width: 80, height: 80, border: '4px solid rgba(255,255,255,0.3)', mx: 'auto', mb: 2 }}>
+                <PetsIcon />
+              </Avatar>
+              <Typography variant="h4" fontWeight="800">Edit {selectedPet?.name}</Typography>
+              <Typography variant="subtitle1" sx={{ opacity: 0.8 }}>Update your furry friend's information</Typography>
+            </ModalHeader>
+
+            <DialogContent sx={{ p: 4 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Pet Name"
+                    value={editPetForm.name}
+                    onChange={(e) => setEditPetForm({ ...editPetForm, name: e.target.value })}
+                  />
                 </Grid>
-
-                <TextField
-                  fullWidth
-                  label="Email"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><EmailIcon color="action" /></InputAdornment>,
-                  }}
-                />
-
-                <TextField
-                  fullWidth
-                  label="Phone Number"
-                  value={editForm.phoneNumber}
-                  onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><PhoneIcon color="action" /></InputAdornment>,
-                  }}
-                />
-
-                <TextField
-                  fullWidth
-                  label="Address"
-                  value={editForm.address}
-                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                  multiline
-                  rows={3}
-                  InputProps={{
-                    startAdornment: <InputAdornment position="start"><LocationOnIcon color="action" /></InputAdornment>,
-                  }}
-                />
-              </Stack>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Species"
+                    value={editPetForm.species}
+                    onChange={(e) => setEditPetForm({ ...editPetForm, species: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Breed"
+                    value={editPetForm.breed}
+                    onChange={(e) => setEditPetForm({ ...editPetForm, breed: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Gender</InputLabel>
+                    <select
+                      style={{
+                        padding: '16.5px 14px',
+                        borderRadius: '12px',
+                        border: '1px solid #c4c4c4',
+                        fontSize: '1rem',
+                        background: 'transparent'
+                      }}
+                      value={editPetForm.gender}
+                      onChange={(e) => setEditPetForm({ ...editPetForm, gender: e.target.value })}
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Date of Birth"
+                    type="date"
+                    InputLabelProps={{ shrink: true }}
+                    value={editPetForm.dateOfBirth}
+                    onChange={(e) => setEditPetForm({ ...editPetForm, dateOfBirth: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Weight (kg)"
+                    type="number"
+                    value={editPetForm.weight}
+                    onChange={(e) => setEditPetForm({ ...editPetForm, weight: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Color / Markings"
+                    value={editPetForm.color}
+                    onChange={(e) => setEditPetForm({ ...editPetForm, color: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Additional Notes"
+                    multiline
+                    rows={4}
+                    value={editPetForm.notes}
+                    onChange={(e) => setEditPetForm({ ...editPetForm, notes: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    sx={{
+                      borderRadius: '12px',
+                      py: 2,
+                      borderStyle: 'dashed',
+                      borderColor: '#4f46e5',
+                      color: '#4f46e5'
+                    }}
+                  >
+                    Change Photo
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          formData.append('upload_preset', 'petcare_preset');
+                          try {
+                            const response = await fetch('https://api.cloudinary.com/v1_1/dtt1ytuzj/image/upload', {
+                              method: 'POST',
+                              body: formData,
+                            });
+                            const data = await response.json();
+                            setEditPetForm({ ...editPetForm, photo: data.secure_url });
+                            Swal.fire({ title: 'Image Uploaded', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                          } catch (error) {
+                            Swal.fire('Error', 'Failed to upload image', 'error');
+                          }
+                        }
+                      }}
+                    />
+                  </Button>
+                </Grid>
+              </Grid>
             </DialogContent>
-            <DialogActions 
-              sx={{ 
-                px: 4, 
-                pb: 6,
-                pt: 2 
-              }}
-            >
-              <Button 
-                onClick={() => setOpenEditProfile(false)}
-                variant="outlined"
+
+            <DialogActions sx={{ p: 4, pt: 0 }}>
+              <Button
+                onClick={() => setOpenEditPet(false)}
+                sx={{ borderRadius: '12px', fontWeight: 700, color: 'text.secondary' }}
               >
                 Cancel
               </Button>
               <Button
                 variant="contained"
-                onClick={handleUpdateProfile}
-                sx={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
+                onClick={handleUpdatePet}
+                disabled={savingPet}
+                sx={{
+                  borderRadius: '12px',
+                  fontWeight: 700,
+                  px: 4,
+                  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #4338ca 0%, #6d28d9 100%)',
+                  }
+                }}
               >
-                Save Changes
+                {savingPet ? 'Saving...' : 'Save Changes'}
               </Button>
             </DialogActions>
-          </Dialog>
-
-          {/* ────────────────────────────────────────────────
-              Edit Pet Dialog – NOW PURE HTML + CUSTOM CSS
-          ──────────────────────────────────────────────── */}
-          {openEditPet && selectedPet && (
-            <div className="edit-pet-modal-overlay" onClick={() => setOpenEditPet(false)}>
-              <div className="edit-pet-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                  <span className="modal-icon">🐾</span>
-                  <h2 className="modal-title">Edit Pet Profile</h2>
-                  <p className="modal-subtitle">
-                    Update {selectedPet.name || 'your pet'}'s information
-                  </p>
-                  <button 
-                    className="modal-close-btn"
-                    onClick={() => setOpenEditPet(false)}
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="modal-body">
-                  <form onSubmit={(e) => { e.preventDefault(); handleUpdatePet(); }}>
-                    <div className="form-grid">
-                      <div className="field-group">
-                        <label htmlFor="edit-name">Pet Name *</label>
-                        <div className="input-wrapper">
-                          <span className="input-icon">🐱</span>
-                          <input
-                            id="edit-name"
-                            name="name"
-                            value={editPetForm.name}
-                            onChange={(e) => setEditPetForm({ ...editPetForm, name: e.target.value })}
-                            required
-                            placeholder="Pet name"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="field-group">
-                        <label htmlFor="edit-species">Species *</label>
-                        <input
-                          id="edit-species"
-                          name="species"
-                          value={editPetForm.species}
-                          onChange={(e) => setEditPetForm({ ...editPetForm, species: e.target.value })}
-                          required
-                          placeholder="Dog, Cat, Rabbit..."
-                        />
-                      </div>
-
-                      <div className="field-group">
-                        <label htmlFor="edit-breed">Breed (optional)</label>
-                        <input
-                          id="edit-breed"
-                          name="breed"
-                          value={editPetForm.breed}
-                          onChange={(e) => setEditPetForm({ ...editPetForm, breed: e.target.value })}
-                          placeholder="Golden Retriever, Siamese..."
-                        />
-                      </div>
-
-                      <div className="field-group">
-                        <label htmlFor="edit-gender">Gender</label>
-                        <select
-                          id="edit-gender"
-                          name="gender"
-                          value={editPetForm.gender}
-                          onChange={(e) => setEditPetForm({ ...editPetForm, gender: e.target.value })}
-                        >
-                          <option value="">Select Gender</option>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-
-                      <div className="field-group">
-                        <label htmlFor="edit-dob">Date of Birth</label>
-                        <div className="input-wrapper">
-                          <span className="input-icon">📅</span>
-                          <input
-                            id="edit-dob"
-                            name="dateOfBirth"
-                            type="date"
-                            value={editPetForm.dateOfBirth}
-                            onChange={(e) => setEditPetForm({ ...editPetForm, dateOfBirth: e.target.value })}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="field-group">
-                        <label htmlFor="edit-weight">Weight (kg)</label>
-                        <div className="input-wrapper">
-                          <span className="input-icon">⚖️</span>
-                          <input
-                            id="edit-weight"
-                            name="weight"
-                            type="number"
-                            step="0.1"
-                            value={editPetForm.weight}
-                            onChange={(e) => setEditPetForm({ ...editPetForm, weight: e.target.value })}
-                            placeholder="e.g. 12.5"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="field-group">
-                        <label htmlFor="edit-color">Color / Markings</label>
-                        <div className="input-wrapper">
-                          <span className="input-icon">🎨</span>
-                          <input
-                            id="edit-color"
-                            name="color"
-                            value={editPetForm.color}
-                            onChange={(e) => setEditPetForm({ ...editPetForm, color: e.target.value })}
-                            placeholder="Black & White, Ginger..."
-                          />
-                        </div>
-                      </div>
-
-                      <div className="field-group">
-                        <label htmlFor="edit-microchip">Microchip Number</label>
-                        <input
-                          id="edit-microchip"
-                          name="microchipNumber"
-                          value={editPetForm.microchipNumber}
-                          onChange={(e) => setEditPetForm({ ...editPetForm, microchipNumber: e.target.value })}
-                          placeholder="985123456789012"
-                        />
-                      </div>
-
-                      <div className="field-group full-width">
-                        <label htmlFor="edit-photo">Photo URL (optional)</label>
-                        <div className="input-wrapper">
-                          <span className="input-icon">📷</span>
-                          <input
-                            id="edit-photo"
-                            name="photo"
-                            value={editPetForm.photo}
-                            onChange={(e) => setEditPetForm({ ...editPetForm, photo: e.target.value })}
-                            placeholder="https://example.com/pet.jpg"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="field-group full-width">
-                        <label htmlFor="edit-notes">Additional Notes</label>
-                        <div className="input-wrapper notes-wrapper">
-                          <span className="input-icon top">📝</span>
-                          <textarea
-                            id="edit-notes"
-                            name="notes"
-                            value={editPetForm.notes}
-                            onChange={(e) => setEditPetForm({ ...editPetForm, notes: e.target.value })}
-                            rows={4}
-                            placeholder="Medical history, allergies, behavior notes..."
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="modal-actions">
-                      <button
-                        type="button"
-                        className="cancel-btn"
-                        onClick={() => setOpenEditPet(false)}
-                        disabled={savingPet}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className={`save-btn ${savingPet ? 'loading' : ''}`}
-                        disabled={savingPet}
-                      >
-                        {savingPet ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          )}
+          </GlassDialog>
 
           {/* Floating Action Button */}
           <Fab
@@ -964,239 +1002,28 @@ const OwnerDashboard = () => {
               bottom: 32,
               right: 32,
               background: 'linear-gradient(135deg, #667eea, #764ba2)',
-              '&:hover': { 
+              '&:hover': {
                 background: 'linear-gradient(135deg, #5a6fd8, #6a4090)',
                 transform: 'scale(1.1)'
               },
               transition: 'all 0.3s ease'
             }}
-            onClick={() => navigate('/owner/pets/new')}
+            onClick={() => setOpenAddPet(true)}
           >
             <AddIcon />
           </Fab>
+
+          <AddPetModal
+            open={openAddPet}
+            onClose={() => setOpenAddPet(false)}
+            onPetAdded={(newPet) => {
+              // Basic optimistic update or re-fetch logic:
+              setPets([...pets, { ...newPet, _id: Date.now().toString(), registrationStatus: 'Pending' }]);
+            }}
+          />
         </ContentArea>
       </DashboardContainer>
 
-      {/* ────────────────────────────────────────────────
-          Custom CSS for Edit Pet Modal
-      ──────────────────────────────────────────────── */}
-      <style>{`
-        .edit-pet-modal-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.6);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1400;
-          padding: 20px;
-          overflow-y: auto;
-        }
-
-        .edit-pet-modal {
-          width: 100%;
-          max-width: 820px;
-          background: white;
-          border-radius: 24px;
-          box-shadow: 0 25px 70px rgba(0,0,0,0.25);
-          overflow: hidden;
-          position: relative;
-          max-height: 95vh;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .modal-header {
-          background: linear-gradient(90deg, #2196f3, #21cbf3);
-          color: white;
-          padding: 40px 32px;
-          text-align: center;
-          position: relative;
-        }
-
-        .modal-icon {
-          font-size: 70px;
-          display: block;
-          margin-bottom: 16px;
-        }
-
-        .modal-title {
-          font-size: 2.3rem;
-          font-weight: 700;
-          margin: 0 0 10px;
-        }
-
-        .modal-subtitle {
-          font-size: 1.15rem;
-          opacity: 0.92;
-          margin: 0;
-        }
-
-        .modal-close-btn {
-          position: absolute;
-          top: 20px;
-          right: 24px;
-          background: rgba(255,255,255,0.2);
-          border: none;
-          color: white;
-          font-size: 28px;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-        }
-
-        .modal-close-btn:hover {
-          background: rgba(255,255,255,0.4);
-        }
-
-        .modal-body {
-          padding: 40px;
-          overflow-y: auto;
-          flex: 1;
-        }
-
-        .form-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 28px;
-        }
-
-        .field-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .field-group.full-width {
-          grid-column: 1 / -1;
-        }
-
-        .field-group label {
-          font-weight: 600;
-          color: #374151;
-          font-size: 0.95rem;
-        }
-
-        .input-wrapper {
-          position: relative;
-        }
-
-        .input-icon {
-          position: absolute;
-          left: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #6b7280;
-          font-size: 1.3rem;
-          pointer-events: none;
-        }
-
-        .input-icon.top {
-          top: 14px;
-          transform: none;
-        }
-
-        input, select, textarea {
-          width: 100%;
-          padding: 14px 16px 14px 48px;
-          border: 1px solid #d1d5db;
-          border-radius: 12px;
-          font-size: 1rem;
-          transition: all 0.2s;
-          box-sizing: border-box;
-        }
-
-        input:focus, select:focus, textarea:focus {
-          outline: none;
-          border-color: #2196f3;
-          box-shadow: 0 0 0 3px rgba(33,150,243,0.15);
-        }
-
-        textarea {
-          resize: vertical;
-          min-height: 110px;
-          padding-top: 12px;
-          padding-left: 48px;
-        }
-
-        .notes-wrapper textarea {
-          padding-top: 40px;
-        }
-
-        select {
-          padding-left: 16px;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 16px center;
-          background-size: 12px;
-          appearance: none;
-        }
-
-        .modal-actions {
-          display: flex;
-          justify-content: center;
-          gap: 24px;
-          padding: 24px 40px;
-          border-top: 1px solid #e5e7eb;
-        }
-
-        .save-btn, .cancel-btn {
-          padding: 14px 48px;
-          border-radius: 50px;
-          font-weight: 700;
-          font-size: 1.1rem;
-          min-width: 220px;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .save-btn {
-          background: linear-gradient(90deg, #2196f3, #21cbf3);
-          color: white;
-          border: none;
-          box-shadow: 0 6px 20px rgba(33,150,243,0.25);
-        }
-
-        .save-btn:hover:not(:disabled) {
-          background: linear-gradient(90deg, #1976d2, #00bcd4);
-          transform: translateY(-2px);
-          box-shadow: 0 12px 30px rgba(33,150,243,0.35);
-        }
-
-        .save-btn.loading {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        .cancel-btn {
-          background: transparent;
-          border: 2px solid #2196f3;
-          color: #2196f3;
-        }
-
-        .cancel-btn:hover:not(:disabled) {
-          background: rgba(33,150,243,0.08);
-        }
-
-        @media (max-width: 768px) {
-          .form-grid {
-            grid-template-columns: 1fr;
-            gap: 24px;
-          }
-          .modal-body {
-            padding: 32px 24px;
-          }
-          .modal-actions {
-            flex-direction: column;
-            gap: 16px;
-          }
-        }
-      `}</style>
     </>
   );
 };

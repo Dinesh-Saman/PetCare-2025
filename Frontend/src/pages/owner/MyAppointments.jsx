@@ -21,6 +21,10 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PetsIcon from '@mui/icons-material/Pets';
@@ -39,13 +43,14 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import InfoIcon from '@mui/icons-material/Info';
 
 import Navbar from '../../components/Navbar';
+import socket, { connectSocket, disconnectSocket } from '../../services/socket';
 
 const AppointmentsContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
   background: 'linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%)',
-  padding: '80px 24px 80px', // ← Increased top padding (was 30px → now 80px)
+  padding: '80px 24px 80px',
   [theme.breakpoints.up('md')]: {
-    padding: '100px 40px 100px', // even more generous on larger screens
+    padding: '100px 40px 100px',
   },
 }));
 
@@ -78,10 +83,10 @@ const StatusChip = styled(Chip)(({ theme, status }) => ({
   borderRadius: '20px',
   background:
     status === 'Booked' ? 'linear-gradient(135deg, #2196f3, #64b5f6)' :
-    status === 'Confirmed' ? 'linear-gradient(135deg, #4CAF50, #8BC34A)' :
-    status === 'Canceled' ? 'linear-gradient(135deg, #f44336, #e57373)' :
-    status === 'Completed' ? 'linear-gradient(135deg, #9C27B0, #BA68C8)' :
-    'linear-gradient(135deg, #FF9800, #FFB74D)',
+      status === 'Confirmed' ? 'linear-gradient(135deg, #4CAF50, #8BC34A)' :
+        status === 'Canceled' ? 'linear-gradient(135deg, #f44336, #e57373)' :
+          status === 'Completed' ? 'linear-gradient(135deg, #9C27B0, #BA68C8)' :
+            'linear-gradient(135deg, #FF9800, #FFB74D)',
   color: 'white',
   boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
 }));
@@ -105,13 +110,13 @@ const ActionButton = styled(Button)(({ theme, color }) => ({
   fontWeight: '600',
   padding: '10px 24px',
   background: color === 'cancel' ? 'linear-gradient(135deg, #f44336, #e57373)' :
-             color === 'confirm' ? 'linear-gradient(135deg, #4CAF50, #8BC34A)' :
-             'linear-gradient(135deg, #2196f3, #64b5f6)',
+    color === 'confirm' ? 'linear-gradient(135deg, #4CAF50, #8BC34A)' :
+      'linear-gradient(135deg, #2196f3, #64b5f6)',
   color: 'white',
   '&:hover': {
     background: color === 'cancel' ? 'linear-gradient(135deg, #d32f2f, #e53935)' :
-               color === 'confirm' ? 'linear-gradient(135deg, #388E3C, #43A047)' :
-               'linear-gradient(135deg, #1976d2, #42a5f5)',
+      color === 'confirm' ? 'linear-gradient(135deg, #388E3C, #43A047)' :
+        'linear-gradient(135deg, #1976d2, #42a5f5)',
     transform: 'translateY(-2px)',
   },
 }));
@@ -142,9 +147,10 @@ const MyAppointments = () => {
   const [cancelDialog, setCancelDialog] = useState({ open: false, appointment: null, reason: '' });
   const [viewDialog, setViewDialog] = useState({ open: false, appointment: null });
   const [filterStatus, setFilterStatus] = useState('all');
+  const [sortOption, setSortOption] = useState('dateAsc');
 
   const statusOptions = [
-    { value: 'all', label: 'All Appointments', color: '#2196f3' },
+    { value: 'all', label: 'All', color: '#2196f3' },
     { value: 'upcoming', label: 'Upcoming', color: '#4CAF50' },
     { value: 'Booked', label: 'Pending', color: '#FF9800' },
     { value: 'Confirmed', label: 'Confirmed', color: '#4CAF50' },
@@ -152,28 +158,47 @@ const MyAppointments = () => {
     { value: 'Completed', label: 'Completed', color: '#9C27B0' },
   ];
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const response = await api.get('/appointments/owner/my-appointments');
       setAppointments(response.data.appointments || []);
       setStats(response.data.stats || stats);
     } catch (error) {
       console.error('Error fetching appointments:', error);
-      Swal.fire({
-        title: 'Error',
-        text: error.response?.data?.message || 'Could not load appointments',
-        icon: 'error',
-        confirmButtonColor: '#2196f3',
-      });
+      if (showLoading) {
+        Swal.fire({
+          title: 'Error',
+          text: error.response?.data?.message || 'Could not load appointments',
+          icon: 'error',
+          confirmButtonColor: '#2196f3',
+        });
+      }
       setAppointments([]);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      const userId = user.id || user._id;
+      if (userId) {
+        connectSocket(userId);
+        socket.on('appointmentStatusChanged', () => fetchAppointments(false));
+        socket.on('newAppointment', () => fetchAppointments(false));
+      }
+    }
+
     fetchAppointments();
+
+    return () => {
+      socket.off('appointmentStatusChanged');
+      socket.off('newAppointment');
+      disconnectSocket();
+    };
   }, []);
 
   const filteredAppointments = appointments.filter((appointment) => {
@@ -183,6 +208,13 @@ const MyAppointments = () => {
       return isUpcoming && appointment.status !== 'Canceled' && appointment.status !== 'Completed';
     }
     return appointment.status === filterStatus;
+  });
+
+  const sortedAppointments = [...filteredAppointments].sort((a, b) => {
+    if (sortOption === 'dateAsc') return new Date(a.dateTime) - new Date(b.dateTime);
+    if (sortOption === 'dateDesc') return new Date(b.dateTime) - new Date(a.dateTime);
+    if (sortOption === 'status') return a.status.localeCompare(b.status);
+    return 0;
   });
 
   const formatDateTime = (dateTime) => {
@@ -224,7 +256,7 @@ const MyAppointments = () => {
         showConfirmButton: false,
       });
 
-      fetchAppointments();
+      fetchAppointments(false);
       setCancelDialog({ open: false, appointment: null, reason: '' });
     } catch (error) {
       console.error('Error cancelling appointment:', error);
@@ -253,7 +285,7 @@ const MyAppointments = () => {
         <Box sx={{ textAlign: 'center', py: 12 }}>
           <CircularProgress size={64} thickness={5} sx={{ color: '#2196f3' }} />
           <Typography variant="h6" sx={{ mt: 4, color: '#555' }}>
-            Loading your pet appointments...
+            Loading your appointments...
           </Typography>
         </Box>
       </AppointmentsContainer>
@@ -263,43 +295,21 @@ const MyAppointments = () => {
   return (
     <AppointmentsContainer>
       <Navbar />
-
-      {/* Header Section */}
       <HeaderCard>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
           <CalendarTodayIcon sx={{ fontSize: 64, mr: 2, opacity: 0.9 }} />
           <Box>
-            <Typography variant="h3" fontWeight="bold">
-              My Appointments
-            </Typography>
-            <Typography variant="h6" sx={{ mt: 1, opacity: 0.9 }}>
-              Manage your pet's veterinary visits
-            </Typography>
+            <Typography variant="h3" fontWeight="bold">My Appointments</Typography>
+            <Typography variant="h6" sx={{ mt: 1, opacity: 0.9 }}>Manage your pet's visits</Typography>
           </Box>
         </Box>
-
-        {/* Stats */}
-        <Grid container spacing={2} justifyContent="space-between">
+        <Grid container spacing={2} justifyContent="center">
           {Object.entries(stats).map(([key, value]) => (
-            <Grid item xs={6} sm={4} md={12 / 5} key={key}>
+            <Grid item xs={6} sm={4} md={2} key={key}>
               <StatCard>
-                <Typography
-                  variant="h4"
-                  fontWeight="bold"
-                  sx={{
-                    color:
-                      key === 'upcoming' ? '#4CAF50' :
-                      key === 'pending' ? '#FF9800' :
-                      key === 'confirmed' ? '#4CAF50' :
-                      key === 'canceled' ? '#f44336' :
-                      key === 'completed' ? '#9C27B0' :
-                      '#2196f3',
-                  }}
-                >
-                  {value}
-                </Typography>
+                <Typography variant="h4" fontWeight="bold" color="primary">{value}</Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                  {key.replace(/([A-Z])/g, ' $1')}
+                  {key}
                 </Typography>
               </StatCard>
             </Grid>
@@ -307,25 +317,9 @@ const MyAppointments = () => {
         </Grid>
       </HeaderCard>
 
-      {/* Filter & Actions Bar */}
-      <Paper
-        sx={{
-          p: 3,
-          mb: 4,
-          borderRadius: '20px',
-          background: 'white',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.06)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 2,
-        }}
-      >
+      <Paper sx={{ p: 3, mb: 4, borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
           <FilterListIcon color="primary" />
-          <Typography variant="h6" fontWeight="600">Filter by status:</Typography>
-
           {statusOptions.map((option) => (
             <Chip
               key={option.value}
@@ -333,214 +327,57 @@ const MyAppointments = () => {
               onClick={() => setFilterStatus(option.value)}
               color={filterStatus === option.value ? 'primary' : 'default'}
               variant={filterStatus === option.value ? 'filled' : 'outlined'}
-              sx={{ fontWeight: '600', px: 2 }}
             />
           ))}
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Sort By</InputLabel>
+            <Select value={sortOption} label="Sort By" onChange={(e) => setSortOption(e.target.value)}>
+              <MenuItem value="dateAsc">Date (Earliest)</MenuItem>
+              <MenuItem value="dateDesc">Date (Latest)</MenuItem>
+              <MenuItem value="status">Status</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
-
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={fetchAppointments}
-            sx={{ borderRadius: '12px' }}
-          >
-            Refresh
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/owner/appointment')}
-            sx={{
-              background: 'linear-gradient(135deg, #2196f3, #64b5f6)',
-              borderRadius: '12px',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-              },
-            }}
-          >
-            Book New Appointment
-          </Button>
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => fetchAppointments()}>Refresh</Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/owner/appointment')}>Book New</Button>
         </Box>
       </Paper>
 
-      {/* Appointments List */}
-      {filteredAppointments.length === 0 ? (
-        <Paper
-          sx={{
-            p: 10,
-            textAlign: 'center',
-            borderRadius: '24px',
-            background: 'white',
-            boxShadow: '0 12px 48px rgba(0,0,0,0.06)',
-          }}
-        >
-          <Box
-            sx={{
-              width: 140,
-              height: 140,
-              margin: '0 auto 32px',
-              background: 'linear-gradient(135deg, rgba(33,150,243,0.08), rgba(33,203,243,0.08))',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <CalendarTodayIcon sx={{ fontSize: 68, color: '#2196f3', opacity: 0.5 }} />
-          </Box>
-          <Typography variant="h5" fontWeight="700" color="text.secondary" gutterBottom>
-            No appointments found
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 5, maxWidth: 480, mx: 'auto' }}>
-            {filterStatus === 'all'
-              ? "You haven't booked any pet appointments yet."
-              : `No ${filterStatus.toLowerCase()} appointments match your filter.`}
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/owner/appointment')}
-            sx={{
-              background: 'linear-gradient(135deg, #2196f3, #64b5f6)',
-              py: 1.5,
-              px: 5,
-              fontSize: '1.1rem',
-              borderRadius: '50px',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #1976d2, #42a5f5)',
-              },
-            }}
-          >
-            Book Your First Appointment
-          </Button>
+      {sortedAppointments.length === 0 ? (
+        <Paper sx={{ p: 10, textAlign: 'center', borderRadius: '24px' }}>
+          <Typography variant="h5" color="text.secondary">No appointments found</Typography>
+          <Button variant="contained" sx={{ mt: 3 }} onClick={() => navigate('/owner/appointment')}>Book Now</Button>
         </Paper>
       ) : (
         <Grid container spacing={3}>
-          {filteredAppointments.map((appointment) => {
-            const formatted = formatDateTime(appointment.dateTime);
-
+          {sortedAppointments.map((app) => {
+            const formatted = formatDateTime(app.dateTime);
             return (
-              <Grid item xs={12} sm={6} lg={4} key={appointment._id}>
+              <Grid item xs={12} sm={6} lg={4} key={app._id}>
                 <AppointmentCard>
-                  <CardContent sx={{ p: 4 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="h6" fontWeight="700">{app.reason}</Typography>
+                      <StatusChip status={app.status} label={app.status} />
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Avatar src={app.petId?.photo}><PetsIcon /></Avatar>
                       <Box>
-                        <Typography variant="h6" fontWeight="700" gutterBottom>
-                          {appointment.reason}
-                        </Typography>
-                        <StatusChip
-                          status={appointment.status}
-                          icon={getStatusIcon(appointment.status)}
-                          label={appointment.status}
-                        />
-                      </Box>
-                      <IconButton
-                        size="small"
-                        onClick={() => setViewDialog({ open: true, appointment })}
-                        sx={{ color: '#2196f3' }}
-                      >
-                        <InfoIcon />
-                      </IconButton>
-                    </Box>
-
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                        PET
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar
-                          sx={{
-                            width: 64,
-                            height: 64,
-                            background: 'linear-gradient(135deg, #2196f3, #64b5f6)',
-                          }}
-                        >
-                          <PetsIcon fontSize="large" />
-                        </Avatar>
-                        <Box>
-                          <Typography variant="h6" fontWeight="600">
-                            {appointment.petId?.name || 'Unknown Pet'}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {appointment.petId?.species || '—'} • {appointment.petId?.breed || 'Unknown breed'}
-                          </Typography>
-                        </Box>
+                        <Typography variant="subtitle1" fontWeight="600">{app.petId?.name}</Typography>
+                        <Typography variant="body2" color="text.secondary">{app.petId?.species}</Typography>
                       </Box>
                     </Box>
+                    <Divider sx={{ my: 1 }} />
+                    <DetailRow><CalendarTodayIcon fontSize="small" /><Typography variant="body2">{formatted.date}</Typography></DetailRow>
+                    <DetailRow><AccessTimeIcon fontSize="small" /><Typography variant="body2">{formatted.time}</Typography></DetailRow>
+                    <DetailRow><PersonIcon fontSize="small" /><Typography variant="body2">Dr. {app.vetId?.firstName} {app.vetId?.lastName}</Typography></DetailRow>
+                    <DetailRow><LocationOnIcon fontSize="small" /><Typography variant="body2">{app.clinicId?.name}</Typography></DetailRow>
 
-                    <Divider sx={{ my: 2 }} />
-
-                    <Box>
-                      <DetailRow>
-                        <CalendarTodayIcon sx={{ color: '#2196f3', fontSize: 22 }} />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">Date</Typography>
-                          <Typography variant="body2" fontWeight="500">{formatted.date}</Typography>
-                        </Box>
-                      </DetailRow>
-
-                      <DetailRow>
-                        <AccessTimeIcon sx={{ color: '#4CAF50', fontSize: 22 }} />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">Time</Typography>
-                          <Typography variant="body2" fontWeight="500">{formatted.time}</Typography>
-                        </Box>
-                      </DetailRow>
-
-                      <DetailRow>
-                        <PersonIcon sx={{ color: '#9C27B0', fontSize: 22 }} />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">Veterinarian</Typography>
-                          <Typography variant="body2" fontWeight="500">
-                            Dr. {appointment.vetId?.firstName} {appointment.vetId?.lastName}
-                          </Typography>
-                        </Box>
-                      </DetailRow>
-
-                      <DetailRow>
-                        <LocationOnIcon sx={{ color: '#FF9800', fontSize: 22 }} />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary">Clinic</Typography>
-                          <Typography variant="body2" fontWeight="500">
-                            {appointment.clinicId?.name || '—'}
-                          </Typography>
-                        </Box>
-                      </DetailRow>
-                    </Box>
-
-                    <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-                      {appointment.status === 'Booked' && formatted.isUpcoming && (
-                        <>
-                          <ActionButton
-                            color="cancel"
-                            fullWidth
-                            startIcon={<CancelIcon />}
-                            onClick={() => setCancelDialog({ open: true, appointment, reason: '' })}
-                          >
-                            Cancel
-                          </ActionButton>
-                          <Button
-                            variant="outlined"
-                            fullWidth
-                            onClick={() => setViewDialog({ open: true, appointment })}
-                            sx={{ borderRadius: '12px' }}
-                          >
-                            View Details
-                          </Button>
-                        </>
-                      )}
-
-                      {(appointment.status === 'Confirmed' || appointment.status === 'Completed') && (
-                        <Button
-                          variant="outlined"
-                          fullWidth
-                          onClick={() => setViewDialog({ open: true, appointment })}
-                          sx={{ borderRadius: '12px' }}
-                        >
-                          View Details
-                        </Button>
+                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                      <Button fullWidth variant="outlined" onClick={() => setViewDialog({ open: true, appointment: app })}>Details</Button>
+                      {app.status === 'Booked' && formatted.isUpcoming && (
+                        <Button fullWidth variant="contained" color="error" onClick={() => setCancelDialog({ open: true, appointment: app, reason: '' })}>Cancel</Button>
                       )}
                     </Box>
                   </CardContent>
@@ -551,223 +388,33 @@ const MyAppointments = () => {
         </Grid>
       )}
 
-      {/* Cancel Confirmation Dialog */}
-      <Dialog
-        open={cancelDialog.open}
-        onClose={() => setCancelDialog({ open: false, appointment: null, reason: '' })}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle
-          sx={{
-            background: 'linear-gradient(135deg, #f44336, #e57373)',
-            color: 'white',
-            textAlign: 'center',
-            py: 3,
-          }}
-        >
-          Cancel Appointment
-        </DialogTitle>
-        <DialogContent sx={{ pt: 4 }}>
-          <Typography variant="body1" gutterBottom>
-            Are you sure you want to cancel this appointment?
-          </Typography>
-
-          {cancelDialog.appointment && (
-            <Paper
-              elevation={0}
-              sx={{ p: 2, mt: 2, mb: 3, bgcolor: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}
-            >
-              <Typography variant="body2">
-                <strong>Pet:</strong> {cancelDialog.appointment.petId?.name}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Date:</strong> {formatDateTime(cancelDialog.appointment.dateTime).date}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Time:</strong> {formatDateTime(cancelDialog.appointment.dateTime).time}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Reason:</strong> {cancelDialog.appointment.reason}
-              </Typography>
-            </Paper>
-          )}
-
-          <TextField
-            fullWidth
-            label="Cancellation Reason (required)"
-            multiline
-            rows={3}
-            value={cancelDialog.reason}
-            onChange={(e) => setCancelDialog((prev) => ({ ...prev, reason: e.target.value }))}
-            placeholder="Please tell us why you're cancelling..."
-            variant="outlined"
-            sx={{ mt: 1 }}
-          />
+      {/* Dialogs */}
+      <Dialog open={cancelDialog.open} onClose={() => setCancelDialog({ open: false, appointment: null, reason: '' })} fullWidth maxWidth="sm">
+        <DialogTitle>Cancel Appointment</DialogTitle>
+        <DialogContent>
+          <TextField fullWidth multiline rows={3} label="Reason" sx={{ mt: 2 }} value={cancelDialog.reason} onChange={(e) => setCancelDialog({ ...cancelDialog, reason: e.target.value })} />
         </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 1 }}>
-          <Button
-            onClick={() => setCancelDialog({ open: false, appointment: null, reason: '' })}
-            color="inherit"
-          >
-            Keep Appointment
-          </Button>
-          <ActionButton
-            color="cancel"
-            onClick={handleCancel}
-            disabled={!cancelDialog.reason.trim()}
-          >
-            Confirm Cancellation
-          </ActionButton>
+        <DialogActions>
+          <Button onClick={() => setCancelDialog({ open: false, appointment: null, reason: '' })}>Exit</Button>
+          <Button variant="contained" color="error" onClick={handleCancel}>Confirm Cancel</Button>
         </DialogActions>
       </Dialog>
 
-      {/* View Details Dialog */}
-      <Dialog
-        open={viewDialog.open}
-        onClose={() => setViewDialog({ open: false, appointment: null })}
-        maxWidth="md"
-        fullWidth
-      >
-        {viewDialog.appointment && (
-          <>
-            <DialogTitle
-              sx={{
-                background: 'linear-gradient(135deg, #2196f3, #64b5f6)',
-                color: 'white',
-                textAlign: 'center',
-                py: 3,
-              }}
-            >
-              Appointment Details
-            </DialogTitle>
-            <DialogContent sx={{ pt: 4 }}>
-              <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="700" gutterBottom color="primary">
-                    Pet Information
-                  </Typography>
-                  <DetailRow>
-                    <PetsIcon sx={{ color: '#2196f3', fontSize: 28 }} />
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Name</Typography>
-                      <Typography variant="body1" fontWeight="600">
-                        {viewDialog.appointment.petId?.name || 'Unknown'}
-                      </Typography>
-                    </Box>
-                  </DetailRow>
-                  <DetailRow>
-                    <MedicalServicesIcon sx={{ color: '#4CAF50', fontSize: 28 }} />
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Species & Breed</Typography>
-                      <Typography variant="body1" fontWeight="500">
-                        {viewDialog.appointment.petId?.species || '—'} •{' '}
-                        {viewDialog.appointment.petId?.breed || 'Unknown'}
-                      </Typography>
-                    </Box>
-                  </DetailRow>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="700" gutterBottom color="primary">
-                    Appointment Info
-                  </Typography>
-                  <DetailRow>
-                    <CalendarTodayIcon sx={{ color: '#2196f3', fontSize: 28 }} />
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Date & Time</Typography>
-                      <Typography variant="body1" fontWeight="500">
-                        {formatDateTime(viewDialog.appointment.dateTime).date} at{' '}
-                        {formatDateTime(viewDialog.appointment.dateTime).time}
-                      </Typography>
-                    </Box>
-                  </DetailRow>
-                  <DetailRow>
-                    <PersonIcon sx={{ color: '#9C27B0', fontSize: 28 }} />
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Veterinarian</Typography>
-                      <Typography variant="body1" fontWeight="500">
-                        Dr. {viewDialog.appointment.vetId?.firstName} {viewDialog.appointment.vetId?.lastName}
-                        {viewDialog.appointment.vetId?.specialization && (
-                          <Typography component="span" variant="body2" color="text.secondary">
-                            {' '}({viewDialog.appointment.vetId.specialization})
-                          </Typography>
-                        )}
-                      </Typography>
-                    </Box>
-                  </DetailRow>
-                  <DetailRow>
-                    <LocationOnIcon sx={{ color: '#FF9800', fontSize: 28 }} />
-                    <Box>
-                      <Typography variant="body2" color="text.secondary">Clinic</Typography>
-                      <Typography variant="body1" fontWeight="500">
-                        {viewDialog.appointment.clinicId?.name || '—'}
-                      </Typography>
-                      {viewDialog.appointment.clinicId?.address && (
-                        <Typography variant="body2" color="text.secondary">
-                          {viewDialog.appointment.clinicId.address}
-                        </Typography>
-                      )}
-                    </Box>
-                  </DetailRow>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Typography variant="subtitle1" fontWeight="700" gutterBottom color="primary" sx={{ mt: 2 }}>
-                    Visit Purpose
-                  </Typography>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 3,
-                      bgcolor: 'rgba(33,150,243,0.04)',
-                      borderRadius: '16px',
-                      border: '1px solid rgba(33,150,243,0.12)',
-                    }}
-                  >
-                    <Typography variant="body1" fontWeight={500} gutterBottom>
-                      {viewDialog.appointment.reason}
-                    </Typography>
-                    {viewDialog.appointment.notes && (
-                      <>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 3, mb: 1 }}>
-                          Additional Notes:
-                        </Typography>
-                        <Typography variant="body1">
-                          {viewDialog.appointment.notes}
-                        </Typography>
-                      </>
-                    )}
-                  </Paper>
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions sx={{ p: 3 }}>
-              <Button
-                onClick={() => setViewDialog({ open: false, appointment: null })}
-                color="inherit"
-              >
-                Close
-              </Button>
-              {viewDialog.appointment.status === 'Booked' &&
-                formatDateTime(viewDialog.appointment.dateTime).isUpcoming && (
-                  <ActionButton
-                    color="cancel"
-                    onClick={() => {
-                      setViewDialog({ open: false, appointment: null });
-                      setCancelDialog({
-                        open: true,
-                        appointment: viewDialog.appointment,
-                        reason: '',
-                      });
-                    }}
-                  >
-                    Cancel Appointment
-                  </ActionButton>
-                )}
-            </DialogActions>
-          </>
-        )}
+      <Dialog open={viewDialog.open} onClose={() => setViewDialog({ open: false, appointment: null })} fullWidth maxWidth="md">
+        <DialogTitle>Appointment Details</DialogTitle>
+        <DialogContent>
+          {viewDialog.appointment && (
+            <Box sx={{ py: 2 }}>
+              <Typography variant="h6">Reason: {viewDialog.appointment.reason}</Typography>
+              <Typography>Pet: {viewDialog.appointment.petId?.name}</Typography>
+              <Typography>Vet: Dr. {viewDialog.appointment.vetId?.firstName} {viewDialog.appointment.vetId?.lastName}</Typography>
+              <Typography>Clinic: {viewDialog.appointment.clinicId?.name}</Typography>
+              <Typography>Address: {viewDialog.appointment.clinicId?.address}</Typography>
+              {viewDialog.appointment.notes && <Typography sx={{ mt: 2 }}>Notes: {viewDialog.appointment.notes}</Typography>}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setViewDialog({ open: false, appointment: null })}>Close</Button></DialogActions>
       </Dialog>
     </AppointmentsContainer>
   );

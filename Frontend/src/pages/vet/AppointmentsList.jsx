@@ -86,9 +86,9 @@ const StatusChip = styled(Chip)(({ status }) => ({
   color: 'white',
   backgroundColor:
     status === 'Confirmed' ? '#4caf50' :
-    status === 'Booked' ? '#2196f3' :
-    status === 'Canceled' ? '#f44336' :
-    status === 'Completed' ? '#9c27b0' : '#ff9800',
+      status === 'Booked' ? '#2196f3' :
+        status === 'Canceled' ? '#f44336' :
+          status === 'Completed' ? '#9c27b0' : '#ff9800',
 }));
 
 const DetailsCard = styled(Card)(({ theme }) => ({
@@ -153,6 +153,44 @@ const VetAppointmentsList = () => {
   };
 
   const vetId = getCurrentVetId();
+
+  useEffect(() => {
+    if (!vetId) return;
+
+    connectSocket(vetId);
+
+    socket.on('newAppointment', (newApp) => {
+      setAppointments(prev => {
+        if (prev.find(a => a._id === newApp._id)) return prev;
+        const updated = [...prev, newApp];
+        updated.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+
+        Swal.fire({
+          title: 'New Appointment!',
+          text: `A new appointment for ${newApp.petId?.name || 'a pet'} has been booked.`,
+          icon: 'info',
+          toast: true,
+          position: 'top-end',
+          timer: 4000,
+          showConfirmButton: false
+        });
+
+        return updated;
+      });
+    });
+
+    socket.on('appointmentStatusChanged', (updatedApp) => {
+      setAppointments(prev =>
+        prev.map(app => app._id === updatedApp._id ? updatedApp : app)
+      );
+    });
+
+    return () => {
+      socket.off('newAppointment');
+      socket.off('appointmentStatusChanged');
+      disconnectSocket();
+    };
+  }, [vetId]);
 
   useEffect(() => {
     if (!vetId) {

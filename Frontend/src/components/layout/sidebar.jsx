@@ -1,17 +1,18 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
-import { 
-  FaTachometerAlt, 
-  FaCalendarDay, 
-  FaCalendarAlt, 
-  FaPaw, 
-  FaHourglassHalf, 
-  FaComments, 
-  FaUsers, 
-  FaCog, 
+import {
+  FaTachometerAlt,
+  FaCalendarDay,
+  FaCalendarAlt,
+  FaPaw,
+  FaHourglassHalf,
+  FaComments,
+  FaUsers,
+  FaCog,
   FaSignOutAlt,
-  FaPlusCircle  // New icon for "Create Clinic"
+  FaPlusCircle,  // New icon for "Create Clinic"
+  FaUser
 } from 'react-icons/fa';
 import Logo from '../../assets/logo.png';
 
@@ -128,8 +129,9 @@ const Sidebar = () => {
     { to: "/vet/appointments", icon: <FaCalendarAlt />, label: "All Appointments" },
     { to: "/vet/pets", icon: <FaPaw />, label: "Registered Pets" },
     { to: "/vet/pets/pending", icon: <FaHourglassHalf />, label: "Pending Registrations" },
-   // { to: "/vet/chat", icon: <FaComments />, label: "Chat with Owners" },
+    // { to: "/vet/chat", icon: <FaComments />, label: "Chat with Owners" },
     { to: "/vet/staff", icon: <FaUsers />, label: "Clinic Staff" },
+    { to: "/vet/profile", icon: <FaUser />, label: "My Profile" },
     { to: "/vet/clinic-settings", icon: <FaCog />, label: "Clinic Settings" },
   ];
 

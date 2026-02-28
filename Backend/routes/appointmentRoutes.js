@@ -10,7 +10,7 @@ const {
   confirmAppointment,
   getAppointmentById,
   getTodayAppointmentsCountByVet,
-  getMyAppointments 
+  getMyAppointments
 } = require('../controllers/appointmentController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -54,10 +54,10 @@ router.get(
 //router.put('/:id', protect, authorize('vet'), updateAppointment);
 
 // Confirm appointment (vet only)
-//router.patch('/:id/confirm', protect, authorize('vet'), confirmAppointment);
+router.patch('/:id/confirm', protect, authorize('vet'), confirmAppointment);
 
 // Cancel appointment (owner or vet)
-//router.patch('/:id/cancel', protect, allowCancel, cancelAppointment);
+router.patch('/:id/cancel', protect, allowCancel, cancelAppointment);
 
 // Then add this route (place it after the '/book' route):
 router.get('/owner/my-appointments', protect, authorize('owner'), getMyAppointments);

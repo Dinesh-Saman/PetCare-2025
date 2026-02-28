@@ -14,7 +14,8 @@ exports.createPet = async (req, res) => {
       gender,
       color,
       weight,
-      microchipNumber,
+      lastVaccinationDate,
+      medicalRecords,
       photo,
       notes,
       clinicId // ← ADD THIS
@@ -64,7 +65,8 @@ exports.createPet = async (req, res) => {
       gender,
       color: color?.trim() || '',
       weight: weight ? parseFloat(weight) : null,
-      microchipNumber: microchipNumber?.trim() || '',
+      lastVaccinationDate: lastVaccinationDate ? new Date(lastVaccinationDate) : null,
+      medicalRecords: medicalRecords || '',
       photo: photo || '',
       notes: notes?.trim() || '',
       registrationStatus: clinicId ? 'Pending' : 'Pending', // Still pending until approved
@@ -103,7 +105,7 @@ exports.getPetsByOwner = async (req, res) => {
       return res.status(404).json({ message: 'Owner not found' });
     }
 
-    let query = { 
+    let query = {
       ownerId,
       isDeleted: { $ne: true }  // ← THIS LINE IS THE FIX: exclude soft-deleted pets
     };
@@ -267,7 +269,7 @@ exports.getPendingRegistrationsByClinic = async (req, res) => {
   try {
     // Get clinicId from params and ensure it's a string
     let clinicId = req.params?.clinicId;
-    
+
     // If clinicId is an object, extract the string value
     if (clinicId && typeof clinicId === 'object') {
       console.log('Warning: clinicId is an object, extracting string value');
@@ -288,8 +290,8 @@ exports.getPendingRegistrationsByClinic = async (req, res) => {
     }
 
     if (!clinicId) {
-      return res.status(400).json({ 
-        message: 'Clinic ID not found. Please ensure you are associated with a clinic.' 
+      return res.status(400).json({
+        message: 'Clinic ID not found. Please ensure you are associated with a clinic.'
       });
     }
 
@@ -344,8 +346,8 @@ exports.getPendingRegistrationsByVet = async (req, res) => {
 
     const clinicId = veterinarian.clinicId;
     if (!clinicId) {
-      return res.status(400).json({ 
-        message: 'Veterinarian is not associated with any clinic' 
+      return res.status(400).json({
+        message: 'Veterinarian is not associated with any clinic'
       });
     }
 
@@ -380,7 +382,7 @@ exports.getApprovedRegistrationsByClinic = async (req, res) => {
   try {
     // Get clinicId and ensure it's a string
     let { clinicId } = req.params;
-    
+
     // If clinicId is an object, extract the string value
     if (clinicId && typeof clinicId === 'object') {
       console.log('Warning: clinicId is an object in getApprovedRegistrationsByClinic, converting to string');
@@ -435,7 +437,7 @@ exports.getRegisteredPetsCountByClinic = async (req, res) => {
 
     // Get vet
     const vet = await Veterinarian.findById(req.user.id);
-    
+
     if (!vet) {
       return res.status(404).json({
         message: 'Veterinarian not found'
@@ -444,7 +446,7 @@ exports.getRegisteredPetsCountByClinic = async (req, res) => {
 
     // Check if vet has access to this clinic
     let hasAccess = false;
-    
+
     // Check currentActiveClinicId (single clinic)
     if (vet.currentActiveClinicId && vet.currentActiveClinicId.toString() === clinicId) {
       hasAccess = true;
@@ -563,8 +565,8 @@ exports.approvePetRegistration = async (req, res) => {
     // Get vet's active clinic
     const vetClinicId = veterinarian.currentActiveClinicId || veterinarian.clinicId;
     if (!vetClinicId) {
-      return res.status(400).json({ 
-        message: 'Veterinarian is not associated with any clinic' 
+      return res.status(400).json({
+        message: 'Veterinarian is not associated with any clinic'
       });
     }
 
@@ -586,7 +588,7 @@ exports.approvePetRegistration = async (req, res) => {
     pet.registrationStatus = 'Approved';
     pet.registrationApprovedAt = new Date();
     pet.registrationApprovedBy = req.user.id;
-    
+
     await pet.save();
 
     // Populate for response
@@ -626,8 +628,8 @@ exports.rejectPetRegistration = async (req, res) => {
     // Get vet's clinic
     const vetClinicId = veterinarian.currentActiveClinicId || veterinarian.clinicId;
     if (!vetClinicId) {
-      return res.status(400).json({ 
-        message: 'Veterinarian is not associated with any clinic' 
+      return res.status(400).json({
+        message: 'Veterinarian is not associated with any clinic'
       });
     }
 
@@ -648,7 +650,7 @@ exports.rejectPetRegistration = async (req, res) => {
     pet.registrationStatus = 'Rejected';
     pet.registrationRejectedAt = new Date();
     pet.registrationRejectedBy = req.user.id;
-    
+
     if (reason && reason.trim()) {
       pet.rejectionReason = reason.trim();
     }

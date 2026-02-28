@@ -9,13 +9,14 @@ const petProfileSchema = new mongoose.Schema({
   gender: { type: String, enum: ['Male', 'Female', 'Other'] },
   color: { type: String },
   weight: { type: Number },
-  microchipNumber: { type: String },
+  lastVaccinationDate: { type: Date },
+  medicalRecords: { type: String }, // URL to document
   photo: { type: String }, // URL to image
   notes: { type: String },
-  registrationStatus: { 
-    type: String, 
-    enum: ['Pending', 'Approved', 'Rejected'], 
-    default: 'Pending' 
+  registrationStatus: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Pending'
   },
   registeredClinicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clinic' },
 

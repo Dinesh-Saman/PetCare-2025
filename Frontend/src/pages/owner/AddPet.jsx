@@ -1,11 +1,43 @@
-// src/pages/owner/AddPet.jsx
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
+import {
+  Box, Typography, Button, TextField, MenuItem,
+  IconButton, CircularProgress, alpha
+} from '@mui/material';
+import {
+  Close as CloseIcon,
+  Pets as PetsIcon,
+  Category as SpeciesIcon,
+  Fingerprint as BreedIcon,
+  Transgender as GenderIcon,
+  Cake as CakeIcon,
+  MonitorWeight as WeightIcon,
+  ColorLens as ColorIcon,
+  LocalHospital as ClinicIcon,
+  CloudUpload as UploadIcon,
+  Description as NotesIcon,
+  Vaccines as VaccineIcon
+} from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
 
-const AddPet = () => {
-  const navigate = useNavigate();
+const GlassModal = styled(Box)(({ theme }) => ({
+  background: 'rgba(255, 255, 255, 0.95)',
+  backdropFilter: 'blur(16px)',
+  borderRadius: '32px',
+  boxShadow: '0 25px 70px rgba(0,0,0,0.3)',
+  width: '100%',
+  maxWidth: '850px',
+  maxHeight: '90vh',
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+  position: 'relative',
+  border: '1px solid rgba(255, 255, 255, 0.5)',
+}));
+
+const AddPetModal = ({ open, onClose, onPetAdded }) => {
+  if (!open) return null;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -15,10 +47,11 @@ const AddPet = () => {
     gender: '',
     color: '',
     weight: '',
-    microchipNumber: '',
     photo: '',
     notes: '',
-    clinicId: ''
+    clinicId: '',
+    lastVaccinationDate: '',
+    medicalRecords: ''
   });
 
   const [clinics, setClinics] = useState([]);
@@ -68,7 +101,8 @@ const AddPet = () => {
         showConfirmButton: false
       });
 
-      navigate('/owner/profile');
+      if (onPetAdded) onPetAdded(formData);
+      onClose();
     } catch (error) {
       console.error('Error adding pet:', error);
       Swal.fire(
@@ -82,369 +116,334 @@ const AddPet = () => {
   };
 
   return (
-    <div className="add-pet-page">
-      <div className="form-card">
-        <div className="card-header">
-          <span className="header-icon">🐾</span>
-          <h1 className="header-title">Add New Pet</h1>
-          <p className="header-subtitle">
-            Register your pet to manage health records and appointments
-          </p>
+    <div className="add-pet-modal-overlay" onClick={onClose}>
+      <GlassModal onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <PetsIcon sx={{ fontSize: 60, mb: 2, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.1))' }} />
+          <Typography variant="h3" fontWeight="800" gutterBottom>
+            Register New Pawpal
+          </Typography>
+          <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
+            Start managing your pet's healthcare journey today
+          </Typography>
+          <button className="modal-close-btn" onClick={onClose}>
+            <CloseIcon />
+          </button>
         </div>
 
-        <div className="card-body">
+        <div className="modal-body">
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
-              {/* Row 1 */}
               <div className="field-group">
-                <label htmlFor="name">Pet Name *</label>
-                <div className="input-wrapper">
-                  <span className="input-icon">🐱</span>
-                  <input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter pet name"
-                  />
-                </div>
+                <label><PetsIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Pet Name *</label>
+                <input
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  placeholder="e.g. Buddy"
+                />
               </div>
 
               <div className="field-group">
-                <label htmlFor="species">Species *</label>
+                <label><SpeciesIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Species *</label>
                 <input
-                  id="species"
                   name="species"
                   value={formData.species}
                   onChange={handleChange}
                   required
-                  placeholder="Dog, Cat, Bird, Rabbit..."
+                  placeholder="Dog, Cat, Rabbit..."
                 />
               </div>
 
-              {/* Row 2 */}
               <div className="field-group">
-                <label htmlFor="breed">Breed (optional)</label>
+                <label><BreedIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Breed</label>
                 <input
-                  id="breed"
                   name="breed"
                   value={formData.breed}
                   onChange={handleChange}
-                  placeholder="Golden Retriever, Siamese..."
+                  placeholder="Golden Retriever..."
                 />
               </div>
 
               <div className="field-group">
-                <label htmlFor="gender">Gender</label>
-                <select
-                  id="gender"
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleChange}
-                >
+                <label><GenderIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Gender</label>
+                <select name="gender" value={formData.gender} onChange={handleChange}>
                   <option value="">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
-                  <option value="Other">Other</option>
                 </select>
               </div>
 
-              {/* Row 3 */}
               <div className="field-group">
-                <label htmlFor="dateOfBirth">Date of Birth</label>
-                <div className="input-wrapper">
-                  <span className="input-icon">📅</span>
-                  <input
-                    id="dateOfBirth"
-                    name="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-
-              <div className="field-group">
-                <label htmlFor="weight">Weight (kg)</label>
-                <div className="input-wrapper">
-                  <span className="input-icon">⚖️</span>
-                  <input
-                    id="weight"
-                    name="weight"
-                    type="number"
-                    step="0.1"
-                    value={formData.weight}
-                    onChange={handleChange}
-                    placeholder="e.g. 12.5"
-                  />
-                </div>
-              </div>
-
-              {/* Row 4 */}
-              <div className="field-group">
-                <label htmlFor="color">Color / Markings</label>
-                <div className="input-wrapper">
-                  <span className="input-icon">🎨</span>
-                  <input
-                    id="color"
-                    name="color"
-                    value={formData.color}
-                    onChange={handleChange}
-                    placeholder="Black & White, Ginger, Tortoiseshell..."
-                  />
-                </div>
-              </div>
-
-              <div className="field-group">
-                <label htmlFor="microchipNumber">Microchip Number</label>
+                <label><CakeIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Date of Birth</label>
                 <input
-                  id="microchipNumber"
-                  name="microchipNumber"
-                  value={formData.microchipNumber}
+                  name="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth}
                   onChange={handleChange}
-                  placeholder="985123456789012 (optional)"
                 />
               </div>
 
-              {/* Row 5 – Registered Clinic */}
-              <div className="field-group full-width">
-                <label htmlFor="clinicId">Registered Clinic *</label>
+              <div className="field-group">
+                <label><WeightIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Weight (kg)</label>
+                <input
+                  name="weight"
+                  type="number"
+                  step="0.1"
+                  value={formData.weight}
+                  onChange={handleChange}
+                  placeholder="0.0"
+                />
+              </div>
+
+              <div className="field-group">
+                <label><ColorIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Color / Markings</label>
+                <input
+                  name="color"
+                  value={formData.color}
+                  onChange={handleChange}
+                  placeholder="Black & White..."
+                />
+              </div>
+
+              <div className="field-group">
+                <label><ClinicIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Preferred Vet Clinic *</label>
                 <select
-                  id="clinicId"
                   name="clinicId"
                   value={formData.clinicId}
                   onChange={handleChange}
                   required
                   disabled={loadingClinics}
                 >
-                  <option value="">
-                    {loadingClinics ? 'Loading clinics...' : 'Select a clinic'}
-                  </option>
-                  {clinics.map((clinic) => (
-                    <option key={clinic._id} value={clinic._id}>
-                      {clinic.name} — {clinic.address || 'No address'}
-                    </option>
+                  <option value="">{loadingClinics ? 'Loading clinics...' : 'Select a Clinic'}</option>
+                  {clinics.map(c => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Row 6 – Photo */}
-              <div className="field-group full-width">
-                <label htmlFor="photo">Photo URL (optional)</label>
-                <div className="input-wrapper">
-                  <span className="input-icon">📷</span>
+              <div className="field-group">
+                <label><VaccineIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Last Vaccination</label>
+                <input
+                  name="lastVaccinationDate"
+                  type="date"
+                  value={formData.lastVaccinationDate}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="field-group">
+                <label><UploadIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Profile Photo</label>
+                <div className="custom-file-upload">
                   <input
-                    id="photo"
-                    name="photo"
-                    value={formData.photo}
-                    onChange={handleChange}
-                    placeholder="https://example.com/pet.jpg"
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const d = new FormData();
+                      d.append('file', file);
+                      d.append('upload_preset', 'petcare_preset');
+                      try {
+                        const r = await fetch('https://api.cloudinary.com/v1_1/dtt1ytuzj/image/upload', { method: 'POST', body: d });
+                        const data = await r.json();
+                        setFormData({ ...formData, photo: data.secure_url });
+                        Swal.fire({ title: 'Uploaded!', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+                      } catch { Swal.fire('Error', 'Upload failed', 'error'); }
+                    }}
                   />
+                  {formData.photo ? '✓ Photo Selected' : 'Choose Pet Photo'}
                 </div>
               </div>
 
-              {/* Row 7 – Notes */}
               <div className="field-group full-width">
-                <label htmlFor="notes">Additional Notes</label>
-                <div className="input-wrapper notes-wrapper">
-                  <span className="input-icon top">📝</span>
-                  <textarea
-                    id="notes"
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleChange}
-                    rows={5}
-                    placeholder="Medical history, allergies, favorite treats, behavior notes..."
-                  />
-                </div>
+                <label><NotesIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Medical Observations & Notes</label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  rows={4}
+                  placeholder="Any allergies, existing conditions, or special requirements..."
+                />
               </div>
 
-              {/* Submit */}
               <div className="submit-row">
-                <button
-                  type="submit"
-                  className={`submit-btn ${loading ? 'loading' : ''}`}
-                  disabled={loading}
-                >
-                  {loading ? 'Adding Pet...' : 'Add My Pet'}
+                <button type="submit" className={`submit-btn ${loading ? 'loading' : ''}`} disabled={loading}>
+                  {loading ? 'Processing...' : 'Complete Registration'}
                 </button>
               </div>
             </div>
           </form>
         </div>
-      </div>
-
-      <style>{`
-        .add-pet-page {
-          min-height: 100vh;
-          background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 30px 20px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        .form-card {
-          width: 100%;
-          max-width: 820px;
-          border-radius: 24px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-          overflow: hidden;
-          background: white;
-        }
-
-        .card-header {
-          background: linear-gradient(90deg, #2196f3, #21cbf3);
-          color: white;
-          padding: 48px 32px;
-          text-align: center;
-        }
-
-        .header-icon {
-          font-size: 80px;
-          display: block;
-          margin-bottom: 16px;
-        }
-
-        .header-title {
-          font-size: 2.4rem;
-          font-weight: 700;
-          margin: 0 0 12px;
-        }
-
-        .header-subtitle {
-          font-size: 1.15rem;
-          opacity: 0.92;
-          margin: 0;
-        }
-
-        .card-body {
-          padding: 48px 40px;
-        }
-
-        @media (max-width: 768px) {
-          .card-body { padding: 32px 24px; }
-          .header-title { font-size: 2rem; }
-        }
-
-        .form-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 32px;
-        }
-
-        .field-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .field-group.full-width {
-          grid-column: 1 / -1;
-        }
-
-        .field-group label {
-          font-weight: 600;
-          color: #374151;
-          font-size: 0.95rem;
-        }
-
-        .input-wrapper {
-          position: relative;
-        }
-
-        .input-icon {
-          position: absolute;
-          left: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #6b7280;
-          font-size: 1.3rem;
-          pointer-events: none;
-        }
-
-        .input-icon.top {
-          top: 14px;
-          transform: none;
-        }
-
-        input, select, textarea {
-          width: 100%;
-          padding: 14px 16px 14px 48px;
-          border: 1px solid #d1d5db;
-          border-radius: 12px;
-          font-size: 1rem;
-          transition: all 0.2s;
-          box-sizing: border-box;
-        }
-
-        input:focus, select:focus, textarea:focus {
-          outline: none;
-          border-color: #2196f3;
-          box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
-        }
-
-        textarea {
-          resize: vertical;
-          min-height: 120px;
-          padding-top: 12px;
-          padding-left: 48px;
-        }
-
-        .notes-wrapper textarea {
-          padding-top: 40px;
-        }
-
-        select {
-          padding-left: 16px;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 16px center;
-          background-size: 12px;
-          appearance: none;
-        }
-
-        .submit-row {
-          grid-column: 1 / -1;
-          text-align: center;
-          margin-top: 32px;
-        }
-
-        .submit-btn {
-          background: linear-gradient(90deg, #2196f3, #21cbf3);
-          color: white;
-          border: none;
-          padding: 16px 60px;
-          border-radius: 50px;
-          font-size: 1.2rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.3s;
-          min-width: 240px;
-        }
-
-        .submit-btn:hover:not(:disabled) {
-          background: linear-gradient(90deg, #1976d2, #00bcd4);
-          transform: translateY(-2px);
-          box-shadow: 0 12px 30px rgba(33,150,243,0.3);
-        }
-
-        .submit-btn.loading {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        @media (max-width: 768px) {
-          .form-grid {
-            grid-template-columns: 1fr;
-            gap: 24px;
-          }
-        }
-      `}</style>
+      </GlassModal>
     </div>
   );
 };
 
-export default AddPet;
+const styles = `
+  .add-pet-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1400;
+    padding: 24px;
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal-header {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    padding: 60px 48px;
+    text-align: center;
+    position: relative;
+  }
+
+  .modal-close-btn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: rotate(90deg);
+  }
+
+  .modal-body {
+    padding: 48px;
+    overflow-y: auto;
+    flex: 1;
+    background: #ffffff;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .field-group.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .field-group label {
+    font-weight: 700;
+    color: #334155;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.2s;
+    color: #1e293b;
+    background: #f8fafc;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #4f46e5;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+  }
+
+  .custom-file-upload {
+    position: relative;
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    color: #64748b;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8fafc;
+    overflow: hidden;
+  }
+
+  .custom-file-upload:hover {
+    border-color: #4f46e5;
+    background: rgba(79, 70, 229, 0.05);
+    color: #4f46e5;
+  }
+
+  .custom-file-upload input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .submit-row {
+    grid-column: 1 / -1;
+    margin-top: 16px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    padding: 18px;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px rgba(79, 70, 229, 0.4);
+  }
+
+  .submit-btn.loading {
+    opacity: 0.8;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .modal-header { padding: 48px 24px; }
+    .modal-body { padding: 32px 24px; }
+  }
+`;
+
+const styleTag = document.createElement('style');
+styleTag.innerHTML = styles;
+document.head.appendChild(styleTag);
+
+export default AddPetModal;

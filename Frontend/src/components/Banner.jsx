@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Banner = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const navigate = useNavigate();
+  const { user, openAuthModal } = useAuth();
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
 
   const handleClick = () => {
-    window.location.href = '/register'; // or '/add-pet' / '/dashboard' – start pet registration flow
+    if (user) {
+      navigate('/owner/pets/new');
+    } else {
+      openAuthModal('register');
+    }
   };
 
   return (
@@ -260,7 +268,7 @@ const Banner = () => {
               <div className="circle circle-1"></div>
               <div className="circle circle-2"></div>
             </div>
-            
+
             <span className="banner-label">Pet Health Made Simple</span>
             <h2>
               Keep Your Pets <span className="banner-highlight">Healthy & Happy</span> with Pawpal
@@ -268,10 +276,10 @@ const Banner = () => {
             <p>
               Register your pets, book vet appointments, chat with veterinarians, set vaccination & medication reminders, and get instant AI-powered advice tailored for Sri Lankan pet owners — all in one secure platform.
             </p>
-            
+
             <div className="banner-actions">
               <button onClick={handleClick} className="banner-button">
-                Get Started — Add Your Pet
+                {user ? "Register your pets" : "Get Started — Add Your Pet"}
               </button>
               <a href="#features" className="banner-link">
                 Discover Features →
@@ -296,8 +304,8 @@ const Banner = () => {
 
           <div className="banner-image-wrapper">
             <div className="banner-image-overlay"></div>
-            <img 
-              src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=600&fit=crop" 
+            <img
+              src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&h=600&fit=crop"
               alt="Happy pet owner with dog and veterinarian care"
               className="banner-image"
             />

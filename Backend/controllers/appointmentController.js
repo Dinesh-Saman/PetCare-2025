@@ -66,6 +66,14 @@ exports.bookAppointment = async (req, res) => {
       message: 'Appointment booked successfully',
       appointment
     });
+
+    // === REAL-TIME UPDATE ===
+    const io = req.app.get('socketio');
+    if (io) {
+      // Notify the specific vet
+      io.to(vetId.toString()).emit('newAppointment', appointment);
+      console.log(`📡 Socket: Notified vet ${vetId} about new appointment`);
+    }
   } catch (error) {
     console.error('Error booking appointment:', error);
     res.status(400).json({
@@ -177,9 +185,9 @@ exports.cancelAppointment = async (req, res) => {
 
     const updated = await Appointment.findByIdAndUpdate(
       id,
-      { 
-        status: 'Canceled', 
-        notes: reason ? `Cancellation reason: ${reason}` : appointment.notes 
+      {
+        status: 'Canceled',
+        notes: reason ? `Cancellation reason: ${reason}` : appointment.notes
       },
       { new: true }
     )
@@ -189,6 +197,15 @@ exports.cancelAppointment = async (req, res) => {
       message: 'Appointment canceled successfully',
       appointment: updated
     });
+
+    // === REAL-TIME UPDATE ===
+    const io = req.app.get('socketio');
+    if (io) {
+      // Notify both vet and owner
+      io.to(updated.vetId._id.toString()).emit('appointmentStatusChanged', updated);
+      io.to(updated.ownerId._id.toString()).emit('appointmentStatusChanged', updated);
+      console.log(`📡 Socket: Notified vet & owner about cancellation of ${id}`);
+    }
   } catch (error) {
     res.status(400).json({
       message: 'Error canceling appointment',
@@ -223,6 +240,14 @@ exports.confirmAppointment = async (req, res) => {
       message: 'Appointment confirmed',
       appointment: updated
     });
+
+    // === REAL-TIME UPDATE ===
+    const io = req.app.get('socketio');
+    if (io) {
+      // Notify the owner
+      io.to(updated.ownerId._id.toString()).emit('appointmentStatusChanged', updated);
+      console.log(`📡 Socket: Notified owner about confirmation of ${id}`);
+    }
   } catch (error) {
     res.status(400).json({
       message: 'Error confirming appointment',
@@ -323,17 +348,17 @@ exports.getMyAppointments = async (req, res) => {
     }
 
     const ownerId = req.user.id;
-    
+
     // Get query parameters for filtering
-    const { 
-      status, 
-      upcoming, 
+    const {
+      status,
+      upcoming,
       past,
       clinicId,
       startDate,
       endDate,
       sortBy = 'dateTime',
-      sortOrder = 'desc' 
+      sortOrder = 'desc'
     } = req.query;
 
     // Build query
@@ -379,25 +404,25 @@ exports.getMyAppointments = async (req, res) => {
     // Fetch appointments with full details
     const appointments = await Appointment.find(query)
       .populate([
-        { 
-          path: 'petId', 
+        {
+          path: 'petId',
           select: 'name species breed photo registrationStatus',
           populate: {
             path: 'registeredClinicId',
             select: 'name'
           }
         },
-        { 
-          path: 'vetId', 
-          select: 'firstName lastName specialization avatar email phoneNumber' 
+        {
+          path: 'vetId',
+          select: 'firstName lastName specialization avatar email phoneNumber'
         },
-        { 
-          path: 'clinicId', 
-          select: 'name address phoneNumber operatingHours' 
+        {
+          path: 'clinicId',
+          select: 'name address phoneNumber operatingHours'
         },
-        { 
-          path: 'ownerId', 
-          select: 'firstName lastName email phoneNumber' 
+        {
+          path: 'ownerId',
+          select: 'firstName lastName email phoneNumber'
         }
       ])
       .sort(sortOptions);
@@ -405,27 +430,27 @@ exports.getMyAppointments = async (req, res) => {
     // Format the response with additional info
     const formattedAppointments = appointments.map(appointment => {
       const appointmentObj = appointment.toObject();
-      
+
       // Calculate time ago for past appointments
       if (appointment.dateTime < new Date()) {
         const diffMs = new Date() - appointment.dateTime;
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        
+
         if (diffDays === 0) appointmentObj.timeAgo = 'Today';
         else if (diffDays === 1) appointmentObj.timeAgo = 'Yesterday';
         else if (diffDays < 7) appointmentObj.timeAgo = `${diffDays} days ago`;
-        else if (diffDays < 30) appointmentObj.timeAgo = `${Math.floor(diffDays/7)} weeks ago`;
-        else appointmentObj.timeAgo = `${Math.floor(diffDays/30)} months ago`;
+        else if (diffDays < 30) appointmentObj.timeAgo = `${Math.floor(diffDays / 7)} weeks ago`;
+        else appointmentObj.timeAgo = `${Math.floor(diffDays / 30)} months ago`;
       } else {
         // Calculate time until appointment
         const diffMs = appointment.dateTime - new Date();
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        
+
         if (diffDays === 0) appointmentObj.timeUntil = 'Today';
         else if (diffDays === 1) appointmentObj.timeUntil = 'Tomorrow';
         else if (diffDays < 7) appointmentObj.timeUntil = `in ${diffDays} days`;
-        else if (diffDays < 30) appointmentObj.timeUntil = `in ${Math.floor(diffDays/7)} weeks`;
-        else appointmentObj.timeUntil = `in ${Math.floor(diffDays/30)} months`;
+        else if (diffDays < 30) appointmentObj.timeUntil = `in ${Math.floor(diffDays / 7)} weeks`;
+        else appointmentObj.timeUntil = `in ${Math.floor(diffDays / 30)} months`;
       }
 
       return appointmentObj;
