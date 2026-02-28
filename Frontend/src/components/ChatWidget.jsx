@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import "../styles/ChatWidget.css";
 
-const BOT_WELCOME = "Hi! I'm PetCareBot. Ask me about pet care, appointments, or clinic info.";
+// Import the image (make sure to place your image in the correct folder)
+import vetIcon from "../assets/vet-girl.png"; // Update this path to your actual image
+
+const BOT_WELCOME = "Hi! I'm Dr. Sara. Ask me about pet care, appointments, or clinic info.";
 const OFFLINE_REPLY = "Thanks for your message. I can help with appointments, pet care tips, or direct you to clinic contacts. (offline)";
 
 const ChatWidget = () => {
@@ -12,7 +15,7 @@ const ChatWidget = () => {
     try {
       const raw = localStorage.getItem("petcare_chat_messages");
       return raw ? JSON.parse(raw) : [{ id: 1, from: "bot", text: BOT_WELCOME }];
-    } catch () {
+    } catch (error) {
       return [{ id: 1, from: "bot", text: BOT_WELCOME }];
     }
   });
@@ -65,15 +68,20 @@ const ChatWidget = () => {
 
   return (
     <div>
-      {/* Floating chat button */}
       <div className={`chat-widget ${open ? "open" : ""}`} aria-live="polite">
         {open ? (
           <div className="chat-panel" role="dialog" aria-label="PetCare chat">
             <div className="chat-header">
               <div className="chat-title">
-                <div className="bot-avatar">🤖</div>
+                <div className="bot-avatar">
+                  <img 
+                    src={vetIcon} 
+                    alt="Dr. Sara" 
+                    className="vet-icon"
+                  />
+                </div>
                 <div>
-                  <div className="title">PetCare Bot</div>
+                  <div className="title">Dr. Sara</div>
                   <div className="status">Online</div>
                 </div>
               </div>
@@ -129,17 +137,22 @@ const ChatWidget = () => {
           </div>
         ) : (
           <button
-            className="chat-launch"
+            className="chat-launch floating"
             onClick={() => setOpen(true)}
             aria-label="Open chat"
-            title="Chat with PetCare Bot"
+            title="Chat with Dr. Sara"
           >
-            <div className="launch-icon">🤖</div>
+            <div className="launch-icon">
+              <img 
+                src={vetIcon} 
+                alt="Chat with Dr. Sara" 
+                className="vet-icon-launch"
+              />
+            </div>
           </button>
         )}
       </div>
 
-      {/* small mobile spacer to prevent covering bottom navs */}
       <div style={{ height: 12 }} />
     </div>
   );

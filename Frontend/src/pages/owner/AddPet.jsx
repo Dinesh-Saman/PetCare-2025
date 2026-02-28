@@ -1,70 +1,12 @@
+// src/pages/owner/AddPet.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
-import {
-  Box, Typography, TextField, Button, Paper, Grid, FormControl,
-  InputLabel, Select, MenuItem, InputAdornment
-} from '@mui/material';
-import { styled } from '@mui/material/styles';
-import PetsIcon from '@mui/icons-material/Pets';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import MaleIcon from '@mui/icons-material/Male';
-import FemaleIcon from '@mui/icons-material/Female';
-import ScaleIcon from '@mui/icons-material/Scale';
-import ColorLensIcon from '@mui/icons-material/ColorLens';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
-import DescriptionIcon from '@mui/icons-material/Description';
-import LocationCityIcon from '@mui/icons-material/LocationCity'; // New icon for clinic
-
-const FormContainer = styled(Box)(({ theme }) => ({
-  minHeight: '100vh',
-  background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '20px',
-}));
-
-const FormCard = styled(Paper)(({ theme }) => ({
-  width: '100%',
-  maxWidth: 800, // Increased slightly to accommodate new field
-  borderRadius: 24,
-  boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-  overflow: 'hidden',
-}));
-
-const CardHeader = styled(Box)(({ theme }) => ({
-  background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
-  color: 'white',
-  padding: 40,
-  textAlign: 'center',
-}));
-
-const CardBody = styled(Box)(({ theme }) => ({
-  padding: 48,
-}));
-
-const LogoIcon = styled(PetsIcon)(({ theme }) => ({
-  fontSize: 80,
-  marginBottom: 16,
-}));
-
-const SubmitButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
-  color: 'white',
-  padding: '16px',
-  borderRadius: 30,
-  fontWeight: 'bold',
-  fontSize: '1.2rem',
-  textTransform: 'none',
-  marginTop: 30,
-  '&:hover': {
-    background: 'linear-gradient(90deg, #1976d2, #00bcd4)',
-  },
-}));
 
 const AddPet = () => {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     name: '',
     species: '',
@@ -76,20 +18,18 @@ const AddPet = () => {
     microchipNumber: '',
     photo: '',
     notes: '',
-    clinicId: '' // New field
+    clinicId: ''
   });
 
   const [clinics, setClinics] = useState([]);
   const [loadingClinics, setLoadingClinics] = useState(true);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  // Fetch available clinics on mount
   useEffect(() => {
     const fetchClinics = async () => {
       try {
-        const response = await api.get('/clinics'); // Adjust endpoint if needed
-        setClinics(response.data.clinics || response.data);
+        const response = await api.get('/clinics');
+        setClinics(response.data.clinics || response.data || []);
       } catch (error) {
         console.error('Error fetching clinics:', error);
         Swal.fire('Warning', 'Could not load clinics list. You can still proceed.', 'warning');
@@ -142,223 +82,368 @@ const AddPet = () => {
   };
 
   return (
-    <FormContainer>
-      <FormCard>
-        <CardHeader>
-          <LogoIcon />
-          <Typography variant="h4" fontWeight="bold">
-            Add New Pet
-          </Typography>
-          <Typography variant="body1" sx={{ mt: 2, opacity: 0.9 }}>
+    <div className="add-pet-page">
+      <div className="form-card">
+        <div className="card-header">
+          <span className="header-icon">🐾</span>
+          <h1 className="header-title">Add New Pet</h1>
+          <p className="header-subtitle">
             Register your pet to manage health records and appointments
-          </Typography>
-        </CardHeader>
+          </p>
+        </div>
 
-        <CardBody>
+        <div className="card-body">
           <form onSubmit={handleSubmit}>
-            <Grid container spacing={4}>
+            <div className="form-grid">
               {/* Row 1 */}
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Pet Name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PetsIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+              <div className="field-group">
+                <label htmlFor="name">Pet Name *</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">🐱</span>
+                  <input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    placeholder="Enter pet name"
+                  />
+                </div>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Species (e.g., Dog, Cat, Bird)"
+              <div className="field-group">
+                <label htmlFor="species">Species *</label>
+                <input
+                  id="species"
                   name="species"
                   value={formData.species}
                   onChange={handleChange}
                   required
+                  placeholder="Dog, Cat, Bird, Rabbit..."
                 />
-              </Grid>
+              </div>
 
               {/* Row 2 */}
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Breed (Optional)"
+              <div className="field-group">
+                <label htmlFor="breed">Breed (optional)</label>
+                <input
+                  id="breed"
                   name="breed"
                   value={formData.breed}
                   onChange={handleChange}
+                  placeholder="Golden Retriever, Siamese..."
                 />
-              </Grid>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Gender</InputLabel>
-                  <Select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                  >
-                    <MenuItem value="">Select Gender</MenuItem>
-                    <MenuItem value="Male">Male</MenuItem>
-                    <MenuItem value="Female">Female</MenuItem>
-                    <MenuItem value="Other">Other</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
+              <div className="field-group">
+                <label htmlFor="gender">Gender</label>
+                <select
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
 
               {/* Row 3 */}
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Date of Birth"
-                  name="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <CalendarTodayIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+              <div className="field-group">
+                <label htmlFor="dateOfBirth">Date of Birth</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">📅</span>
+                  <input
+                    id="dateOfBirth"
+                    name="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Weight (kg)"
-                  name="weight"
-                  type="number"
-                  step="0.1"
-                  value={formData.weight}
-                  onChange={handleChange}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <ScaleIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+              <div className="field-group">
+                <label htmlFor="weight">Weight (kg)</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">⚖️</span>
+                  <input
+                    id="weight"
+                    name="weight"
+                    type="number"
+                    step="0.1"
+                    value={formData.weight}
+                    onChange={handleChange}
+                    placeholder="e.g. 12.5"
+                  />
+                </div>
+              </div>
 
               {/* Row 4 */}
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Color/Markings"
-                  name="color"
-                  value={formData.color}
-                  onChange={handleChange}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <ColorLensIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+              <div className="field-group">
+                <label htmlFor="color">Color / Markings</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">🎨</span>
+                  <input
+                    id="color"
+                    name="color"
+                    value={formData.color}
+                    onChange={handleChange}
+                    placeholder="Black & White, Ginger, Tortoiseshell..."
+                  />
+                </div>
+              </div>
 
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Microchip Number (Optional)"
+              <div className="field-group">
+                <label htmlFor="microchipNumber">Microchip Number</label>
+                <input
+                  id="microchipNumber"
                   name="microchipNumber"
                   value={formData.microchipNumber}
                   onChange={handleChange}
+                  placeholder="985123456789012 (optional)"
                 />
-              </Grid>
+              </div>
 
-              {/* Row 5: NEW - Registered Clinic */}
-              <Grid item xs={12}>
-                <FormControl fullWidth required>
-                  <InputLabel>Registered Clinic</InputLabel>
-                  <Select
-                    name="clinicId"
-                    value={formData.clinicId}
+              {/* Row 5 – Registered Clinic */}
+              <div className="field-group full-width">
+                <label htmlFor="clinicId">Registered Clinic *</label>
+                <select
+                  id="clinicId"
+                  name="clinicId"
+                  value={formData.clinicId}
+                  onChange={handleChange}
+                  required
+                  disabled={loadingClinics}
+                >
+                  <option value="">
+                    {loadingClinics ? 'Loading clinics...' : 'Select a clinic'}
+                  </option>
+                  {clinics.map((clinic) => (
+                    <option key={clinic._id} value={clinic._id}>
+                      {clinic.name} — {clinic.address || 'No address'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Row 6 – Photo */}
+              <div className="field-group full-width">
+                <label htmlFor="photo">Photo URL (optional)</label>
+                <div className="input-wrapper">
+                  <span className="input-icon">📷</span>
+                  <input
+                    id="photo"
+                    name="photo"
+                    value={formData.photo}
                     onChange={handleChange}
-                    startAdornment={
-                      <InputAdornment position="start">
-                        <LocationCityIcon color="action" />
-                      </InputAdornment>
-                    }
-                    disabled={loadingClinics}
-                  >
-                    <MenuItem value="">
-                      <em>{loadingClinics ? 'Loading clinics...' : 'Select a clinic'}</em>
-                    </MenuItem>
-                    {clinics.map((clinic) => (
-                      <MenuItem key={clinic._id} value={clinic._id}>
-                        {clinic.name} - {clinic.address}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+                    placeholder="https://example.com/pet.jpg"
+                  />
+                </div>
+              </div>
 
-              {/* Row 6: Photo URL */}
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Photo URL (Optional)"
-                  name="photo"
-                  value={formData.photo}
-                  onChange={handleChange}
-                  placeholder="Paste image link (e.g., from Imgur, Cloudinary)"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PhotoCameraIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              {/* Row 7: Notes */}
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Additional Notes"
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  multiline
-                  rows={4}
-                  placeholder="Any medical history, allergies, behavior notes, or special care instructions..."
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
-                        <DescriptionIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+              {/* Row 7 – Notes */}
+              <div className="field-group full-width">
+                <label htmlFor="notes">Additional Notes</label>
+                <div className="input-wrapper notes-wrapper">
+                  <span className="input-icon top">📝</span>
+                  <textarea
+                    id="notes"
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    rows={5}
+                    placeholder="Medical history, allergies, favorite treats, behavior notes..."
+                  />
+                </div>
+              </div>
 
               {/* Submit */}
-              <Grid item xs={12} textAlign="center">
-                <SubmitButton type="submit" disabled={loading}>
+              <div className="submit-row">
+                <button
+                  type="submit"
+                  className={`submit-btn ${loading ? 'loading' : ''}`}
+                  disabled={loading}
+                >
                   {loading ? 'Adding Pet...' : 'Add My Pet'}
-                </SubmitButton>
-              </Grid>
-            </Grid>
+                </button>
+              </div>
+            </div>
           </form>
-        </CardBody>
-      </FormCard>
-    </FormContainer>
+        </div>
+      </div>
+
+      <style>{`
+        .add-pet-page {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 30px 20px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .form-card {
+          width: 100%;
+          max-width: 820px;
+          border-radius: 24px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+          overflow: hidden;
+          background: white;
+        }
+
+        .card-header {
+          background: linear-gradient(90deg, #2196f3, #21cbf3);
+          color: white;
+          padding: 48px 32px;
+          text-align: center;
+        }
+
+        .header-icon {
+          font-size: 80px;
+          display: block;
+          margin-bottom: 16px;
+        }
+
+        .header-title {
+          font-size: 2.4rem;
+          font-weight: 700;
+          margin: 0 0 12px;
+        }
+
+        .header-subtitle {
+          font-size: 1.15rem;
+          opacity: 0.92;
+          margin: 0;
+        }
+
+        .card-body {
+          padding: 48px 40px;
+        }
+
+        @media (max-width: 768px) {
+          .card-body { padding: 32px 24px; }
+          .header-title { font-size: 2rem; }
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 32px;
+        }
+
+        .field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .field-group.full-width {
+          grid-column: 1 / -1;
+        }
+
+        .field-group label {
+          font-weight: 600;
+          color: #374151;
+          font-size: 0.95rem;
+        }
+
+        .input-wrapper {
+          position: relative;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 16px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #6b7280;
+          font-size: 1.3rem;
+          pointer-events: none;
+        }
+
+        .input-icon.top {
+          top: 14px;
+          transform: none;
+        }
+
+        input, select, textarea {
+          width: 100%;
+          padding: 14px 16px 14px 48px;
+          border: 1px solid #d1d5db;
+          border-radius: 12px;
+          font-size: 1rem;
+          transition: all 0.2s;
+          box-sizing: border-box;
+        }
+
+        input:focus, select:focus, textarea:focus {
+          outline: none;
+          border-color: #2196f3;
+          box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.15);
+        }
+
+        textarea {
+          resize: vertical;
+          min-height: 120px;
+          padding-top: 12px;
+          padding-left: 48px;
+        }
+
+        .notes-wrapper textarea {
+          padding-top: 40px;
+        }
+
+        select {
+          padding-left: 16px;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 16px center;
+          background-size: 12px;
+          appearance: none;
+        }
+
+        .submit-row {
+          grid-column: 1 / -1;
+          text-align: center;
+          margin-top: 32px;
+        }
+
+        .submit-btn {
+          background: linear-gradient(90deg, #2196f3, #21cbf3);
+          color: white;
+          border: none;
+          padding: 16px 60px;
+          border-radius: 50px;
+          font-size: 1.2rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s;
+          min-width: 240px;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          background: linear-gradient(90deg, #1976d2, #00bcd4);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 30px rgba(33,150,243,0.3);
+        }
+
+        .submit-btn.loading {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+          .form-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+          }
+        }
+      `}</style>
+    </div>
   );
 };
 
