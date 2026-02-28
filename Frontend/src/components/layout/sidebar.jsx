@@ -53,9 +53,11 @@ const LogoContainer = styled.div`
 
 const LogoImage = styled.img`
   width: 80px;
-  height: auto;
-  border-radius: 16px;
+  height: 80px;           /* ← make height = width */
+  border-radius: 50%;     /* ← perfect circle */
+  object-fit: cover;      /* ← important: prevents distortion */
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  background: #fff;       /* optional: fallback color if image fails to load */
 `;
 
 const ClinicName = styled.h2`
@@ -134,8 +136,8 @@ const Sidebar = () => {
   return (
     <SidebarContainer>
       <LogoContainer>
-        <LogoImage src={Logo} alt="PawPal Logo" />
-        <ClinicName>Happy Paws Clinic</ClinicName>
+        <LogoImage src="https://i.imgur.com/RHsVvXq.jpeg" alt="PawPal" />
+        <ClinicName>Pawpal Clinic</ClinicName>
       </LogoContainer>
 
       <Menu>
