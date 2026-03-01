@@ -24,7 +24,7 @@ const Banner = () => {
       <style>{`
         .banner-section {
           position: relative;
-          margin: 4rem 2rem;
+          margin: 4rem 2rem 0 2rem;
           border-radius: 30px;
           overflow: hidden;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);

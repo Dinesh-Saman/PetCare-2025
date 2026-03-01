@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { ArrowRight, Clock, Calendar, X, Share2, Bookmark, Heart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import Swal from 'sweetalert2';
 
 const BlogSection = () => {
+  const navigate = useNavigate();
   const [hoveredIndex, setHoveredIndex] = useState(null);
-  const [selectedBlog, setSelectedBlog] = useState(null);
   const [activeCategory, setActiveCategory] = useState("All");
   const [likedBlogs, setLikedBlogs] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -16,21 +17,7 @@ const BlogSection = () => {
       description:
         "A guide to core and non-core vaccines for dogs and cats, including rabies requirements and local schedules.",
       image: "https://images.unsplash.com/photo-1583512603805-3cc6b41f3edb?auto=format&fit=crop&w=800&q=80",
-      content: `
-        <p>In Sri Lanka, keeping your pets vaccinated is not just a health choice—it's often a legal requirement, especially for Rabies. The tropical climate also brings specific challenges like Parvovirus and Distemper which are highly prevalent.</p>
-        <h4>Core Vaccines for Dogs</h4>
-        <ul>
-          <li><strong>Rabies:</strong> Required by law. First dose at 3 months, followed by annual boosters.</li>
-          <li><strong>DHLPP:</strong> Protects against Distemper, Hepatitis, Leptospirosis, Parainfluenza, and Parvovirus.</li>
-        </ul>
-        <h4>Core Vaccines for Cats</h4>
-        <ul>
-          <li><strong>Tricat/FVRCP:</strong> Protects against Feline Viral Rhinotracheitis, Calicivirus, and Panleukopenia.</li>
-          <li><strong>Rabies:</strong> Essential for outdoor cats in Sri Lanka.</li>
-        </ul>
-        <p>Consult your local vet in Colombo or Kandy to ensure your pet follows the Department of Animal Production and Health (DAPH) guidelines.</p>
-      `,
-      link: "#",
+      route: "/tips/vaccinations",
       readTime: "6 min read",
       date: "Jan 15, 2025",
       category: "Pet Health"
@@ -40,18 +27,7 @@ const BlogSection = () => {
       description:
         "Learn to recognize subtle changes in behavior, appetite, and appearance that might indicate your pet needs veterinary attention.",
       image: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&w=800&q=80",
-      content: `
-        <p>Pets are masters at hiding pain and illness. As a responsible owner in Sri Lanka, you need to be observant of subtle shifts.</p>
-        <h4>Key Warning Signs:</h4>
-        <ul>
-          <li><strong>Changes in Appetite:</strong> Sudden loss of interest in food or water is often the first sign of trouble.</li>
-          <li><strong>Lethargy:</strong> If your usually active pet is sleeping excessively or avoids play.</li>
-          <li><strong>Abnormal Vocalization:</strong> Whining, or unusual meowing can signal discomfort.</li>
-          <li><strong>Changes in Grooming:</strong> Cats may stop grooming, or dogs may obsessively lick a specific spot.</li>
-        </ul>
-        <p>If you notice these signs for more than 24 hours, use Pawpal to book an appointment with your registered clinic immediately.</p>
-      `,
-      link: "#",
+      route: "/tips/signs-of-illness",
       readTime: "5 min read",
       date: "Jan 10, 2025",
       category: "Prevention"
@@ -59,25 +35,9 @@ const BlogSection = () => {
     {
       title: "Safe Foods and Toxic Foods for Dogs and Cats",
       description:
-        "A practical list of human foods that are safe — and dangerous — for your pets, with Sri Lankan context (e.g., jackfruit, curry leaves).",
+        "A practical list of human foods that are safe, and dangerous, for your pets, with Sri Lankan context (e.g., jackfruit, curry leaves).",
       image: "https://www.harmonyanimalhospital.net/wp-content/uploads/2022/08/What-Fruits-Can-Dogs-Eat.jpg",
-      content: `
-        <p>Feeding table scraps is common in Sri Lankan households, but many traditional ingredients are toxic to pets.</p>
-        <h4>Toxic Foods to Avoid:</h4>
-        <ul>
-          <li><strong>Onions & Garlic:</strong> Common in curries, these can cause anemia in dogs and cats.</li>
-          <li><strong>Chocolate & Caffeine:</strong> Highly toxic to the nervous system.</li>
-          <li><strong>Grapes & Raisins:</strong> Can lead to kidney failure.</li>
-          <li><strong>Excessive Spices:</strong> Chili and heavy spices cause severe digestive upset.</li>
-        </ul>
-        <h4>Safe Treats (in moderation):</h4>
-        <ul>
-          <li><strong>Boiled Chicken:</strong> Excellent source of protein.</li>
-          <li><strong>Cooked Pumpkin:</strong> Great for digestion.</li>
-          <li><strong>Papaya:</strong> A safe Sri Lankan fruit (remove seeds).</li>
-        </ul>
-      `,
-      link: "#",
+      route: "/tips/toxic-foods",
       readTime: "7 min read",
       date: "Jan 5, 2025",
       category: "Nutrition"
@@ -106,13 +66,13 @@ const BlogSection = () => {
         await navigator.share({
           title: blog.title,
           text: blog.description,
-          url: window.location.href,
+          url: window.location.origin + blog.route,
         });
       } catch (err) {
         console.error("Error sharing:", err);
       }
     } else {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(window.location.origin + blog.route);
       Swal.fire({
         icon: 'success',
         title: 'Link Copied!',
@@ -141,7 +101,7 @@ const BlogSection = () => {
           position: relative;
           min-height: 100vh;
           background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-          padding: 80px 20px;
+          padding: 10px 20px 80px 20px;
           overflow: hidden;
         }
 
@@ -342,90 +302,8 @@ const BlogSection = () => {
           font-size: 0.95rem;
         }
 
-        /* Modal Styles */
-        .blog-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(15, 23, 42, 0.8);
-          backdrop-filter: blur(8px);
-          z-index: 2000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        }
-
-        .blog-modal {
-          background: white;
-          width: 100%;
-          max-width: 800px;
-          max-height: 90vh;
-          border-radius: 24px;
-          overflow-y: auto;
-          position: relative;
-          animation: modalIn 0.3s ease-out;
-        }
-
-        @keyframes modalIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-
-        .modal-close-btn {
-          position: absolute;
-          top: 20px;
-          right: 20px;
-          background: white;
-          border: none;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          z-index: 100;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          color: #64748b;
-        }
-
-        .modal-banner {
-          width: 100%;
-          height: 350px;
-          object-fit: cover;
-        }
-
-        .modal-body {
-          padding: 40px;
-        }
-
-        .modal-title {
-          font-size: 2.25rem;
-          font-weight: 800;
-          color: #1e293b;
-          margin-bottom: 24px;
-        }
-
-        .modal-article {
-          color: #334155;
-          line-height: 1.8;
-          font-size: 1.1rem;
-        }
-
-        .modal-article h4 {
-          font-size: 1.4rem;
-          margin-top: 30px;
-          margin-bottom: 15px;
-          color: #0f172a;
-        }
-
         @media (max-width: 640px) {
           .blog-header h2 { font-size: 2.25rem; }
-          .modal-body { padding: 24px; }
-          .modal-banner { height: 200px; }
           .blog-container { grid-template-columns: 1fr; }
         }
       `}</style>
@@ -441,65 +319,15 @@ const BlogSection = () => {
             </p>
           </div>
 
-          <div style={{ maxWidth: '600px', margin: '0 auto 40px auto', position: 'relative' }}>
-            <input
-              type="text"
-              placeholder="Search for tips (e.g. food, health, vaccines)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '16px 24px 16px 50px',
-                borderRadius: '50px',
-                border: '1px solid #e2e8f0',
-                fontSize: '1.1rem',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                outline: 'none',
-                transition: 'all 0.3s ease'
-              }}
-              onFocus={(e) => e.target.style.borderColor = '#10b981'}
-              onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-            />
-            <div style={{ position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }}>
-              <ArrowRight size={20} />
-            </div>
-          </div>
-
-          <div className="category-filters">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                className={`filter-btn ${activeCategory === cat ? 'active' : ''}`}
-                onClick={() => setActiveCategory(cat)}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
           <div className="blog-container">
-            {filteredBlogs.map((blog, index) => (
+            {blogs.map((blog, index) => (
               <div
                 className="blog-card"
                 key={index}
-                onClick={() => setSelectedBlog(blog)}
+                onClick={() => navigate(blog.route)}
               >
                 <div className="blog-image-wrapper">
                   <div className="blog-category-tag">{blog.category}</div>
-                  <div className="blog-card-actions">
-                    <button
-                      className={`action-icon-btn ${likedBlogs[index] ? 'liked' : ''}`}
-                      onClick={(e) => handleLike(e, index)}
-                    >
-                      <Heart size={18} fill={likedBlogs[index] ? "#ef4444" : "none"} />
-                    </button>
-                    <button className="action-icon-btn" onClick={(e) => handleSave(e)}>
-                      <Bookmark size={18} />
-                    </button>
-                    <button className="action-icon-btn" onClick={(e) => handleShare(e, blog)}>
-                      <Share2 size={18} />
-                    </button>
-                  </div>
                   <img src={blog.image} alt={blog.title} className="blog-image" />
                 </div>
 
@@ -529,35 +357,6 @@ const BlogSection = () => {
             ))}
           </div>
         </div>
-
-        {selectedBlog && (
-          <div className="blog-modal-overlay" onClick={() => setSelectedBlog(null)}>
-            <div className="blog-modal" onClick={e => e.stopPropagation()}>
-              <button className="modal-close-btn" onClick={() => setSelectedBlog(null)}>
-                <X size={24} />
-              </button>
-
-              <img src={selectedBlog.image} alt={selectedBlog.title} className="modal-banner" />
-
-              <div className="modal-body">
-                <div className="blog-meta" style={{ marginBottom: '16px' }}>
-                  <span style={{ color: '#10b981', fontWeight: 700 }}>{selectedBlog.category}</span>
-                  <span>•</span>
-                  <span>{selectedBlog.date}</span>
-                  <span>•</span>
-                  <span>{selectedBlog.readTime}</span>
-                </div>
-
-                <h2 className="modal-title">{selectedBlog.title}</h2>
-
-                <div
-                  className="modal-article"
-                  dangerouslySetInnerHTML={{ __html: selectedBlog.content }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </section>
     </>
   );

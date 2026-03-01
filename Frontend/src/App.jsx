@@ -39,6 +39,11 @@ import VetProfile from './pages/vet/Profile';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 
+// PetCare Tips Pages
+import VaccinationTips from './pages/tips/Vaccinations';
+import IllnessTips from './pages/tips/SignsOfIllness';
+import ToxicFoodsTips from './pages/tips/ToxicFoods';
+
 function App() {
   // Mock auth - replace with real AuthContext later
   const isVetLoggedIn = true; // Change to false to test redirect
@@ -55,6 +60,12 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<ContactUs />} />
+
+        {/* PetCare Tips Routes */}
+        <Route path="/tips/vaccinations" element={<VaccinationTips />} />
+        <Route path="/tips/signs-of-illness" element={<IllnessTips />} />
+        <Route path="/tips/toxic-foods" element={<ToxicFoodsTips />} />
+
         <Route path="vet/dashboard" element={<DashboardHome />} />
         <Route path="vet/appointments" element={<AppointmentsList />} />
         <Route path="vet/appointments/today" element={<TodaysAppointments />} />
