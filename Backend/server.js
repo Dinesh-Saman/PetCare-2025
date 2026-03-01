@@ -8,6 +8,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs/promises');
+const nodemailer = require('nodemailer');
 
 dotenv.config();
 
@@ -86,6 +87,53 @@ app.use('/api/medical-records', require('./routes/medicalRecordRoutes'));
 app.use('/api/prescriptions', require('./routes/prescriptionRoutes'));
 app.use('/api/chat', require('./routes/chatMessageRoutes'));
 app.use('/api/upload', require('./routes/uploadRoutes'));
+
+// === Nodemailer Configuration ===
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// === Contact Form API ===
+app.post('/api/contact', async (req, res) => {
+  const { name, email, phone, subject, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: 'saman2018al@gmail.com',
+    subject: `Pawpal Contact Form: ${subject || 'New Inquiry'}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+        <h2 style="color: #10b981;">New Message from Pawpal Contact Us</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
+        <p><strong>Inquiry Type:</strong> ${subject}</p>
+        <p><strong>Message:</strong></p>
+        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; border-left: 4px solid #10b981;">
+          ${message}
+        </div>
+        <hr style="margin-top: 20px;">
+        <p style="font-size: 0.8rem; color: #777;">This email was sent from the Pawpal Contact Us form.</p>
+      </div>
+    `,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ success: true, message: 'Email sent successfully' });
+  } catch (error) {
+    console.error('Nodemailer Error:', error);
+    res.status(500).json({ message: 'Failed to send email' });
+  }
+});
 
 // === RAG CHATBOT USING YOUR PET_DATA FOLDER ===
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';

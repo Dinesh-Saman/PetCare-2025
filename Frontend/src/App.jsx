@@ -17,7 +17,7 @@ import PendingRegistrations from './pages/vet/PendingRegistrations';
 import ChatWithOwners from './pages/vet/VetChat';
 import VetStaff from './pages/vet/ClinicStaff';
 import OwnerDashboard from './pages/owner/OwnerDashboard';
-import AddPet from './pages/owner/AddPet';
+import AddPet from './pages/owner/AddPetPage';
 import PetProfile from './pages/owner/PetProfile';
 import EditPet from './pages/owner/EditPet';
 import OwnerAppointments from './pages/owner/Appointments';

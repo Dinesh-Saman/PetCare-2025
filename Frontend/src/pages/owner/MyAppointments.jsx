@@ -6,7 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Paper,
   Grid,
   Card,
   CardContent,
@@ -17,119 +16,221 @@ import {
   CircularProgress,
   IconButton,
   Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  Select,
-  MenuItem,
   FormControl,
   InputLabel,
+  Select,
+  MenuItem,
+  alpha,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import PetsIcon from '@mui/icons-material/Pets';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import PersonIcon from '@mui/icons-material/Person';
-import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
-import CancelIcon from '@mui/icons-material/Cancel';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import PendingIcon from '@mui/icons-material/Pending';
-import DoneIcon from '@mui/icons-material/Done';
-import RefreshIcon from '@mui/icons-material/Refresh';
-import AddIcon from '@mui/icons-material/Add';
-import FilterListIcon from '@mui/icons-material/FilterList';
-import InfoIcon from '@mui/icons-material/Info';
+import { styled } from '@mui/material/styles';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  XCircle,
+  CheckCircle,
+  AlertCircle,
+  Plus,
+  RefreshCcw,
+  Filter,
+  ChevronRight,
+  Stethoscope,
+  Info,
+  Trash2,
+  MoreVertical,
+  Activity
+} from "lucide-react";
 
 import Navbar from '../../components/Navbar';
 import socket, { connectSocket, disconnectSocket } from '../../services/socket';
 
 const AppointmentsContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
-  background: 'linear-gradient(135deg, #e3f2fd 0%, #f0f7ff 100%)',
-  padding: '80px 24px 80px',
-  [theme.breakpoints.up('md')]: {
-    padding: '100px 40px 100px',
-  },
+  background: 'linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%)',
+  padding: '120px 24px 80px',
+  fontFamily: "'Inter', sans-serif",
 }));
 
-const HeaderCard = styled(Paper)(({ theme }) => ({
-  background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
-  color: 'white',
-  padding: '28px 40px',
+const PageHeader = styled(Box)(({ theme }) => ({
+  marginBottom: '40px',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-end',
+  flexWrap: 'wrap',
+  gap: '20px',
+}));
+
+const StatCard = styled(Box)(({ theme, color = '#4f46e5' }) => ({
+  background: 'rgba(255, 255, 255, 0.8)',
+  backdropFilter: 'blur(12px)',
   borderRadius: '24px',
-  boxShadow: '0 20px 60px rgba(33, 150, 243, 0.3)',
-  marginBottom: '28px',
-  textAlign: 'center',
+  padding: '24px',
+  boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+  border: '1px solid rgba(255,255,255,0.3)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '16px',
+  transition: 'transform 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-5px)',
+  }
+}));
+
+const IconWrapper = styled(Box)(({ theme, color }) => ({
+  width: '52px',
+  height: '52px',
+  borderRadius: '16px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: alpha(color, 0.1),
+  color: color,
 }));
 
 const AppointmentCard = styled(Card)(({ theme }) => ({
-  borderRadius: '20px',
-  background: 'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)',
-  boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
-  border: '1px solid rgba(255, 255, 255, 0.5)',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  borderRadius: '32px',
+  background: 'rgba(255, 255, 255, 0.9)',
+  backdropFilter: 'blur(12px)',
+  boxShadow: '0 15px 40px rgba(0, 0, 0, 0.06)',
+  border: '1px solid rgba(255, 255, 255, 0.4)',
+  transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+  overflow: 'visible',
   '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: '0 24px 60px rgba(33, 150, 243, 0.15)',
+    transform: 'translateY(-10px)',
+    boxShadow: '0 25px 60px rgba(79, 70, 229, 0.12)',
   },
 }));
 
-const StatusChip = styled(Chip)(({ theme, status }) => ({
-  fontWeight: '600',
-  fontSize: '0.85rem',
-  padding: '6px 16px',
-  borderRadius: '20px',
-  background:
-    status === 'Booked' ? 'linear-gradient(135deg, #2196f3, #64b5f6)' :
-      status === 'Confirmed' ? 'linear-gradient(135deg, #4CAF50, #8BC34A)' :
-        status === 'Canceled' ? 'linear-gradient(135deg, #f44336, #e57373)' :
-          status === 'Completed' ? 'linear-gradient(135deg, #9C27B0, #BA68C8)' :
-            'linear-gradient(135deg, #FF9800, #FFB74D)',
-  color: 'white',
-  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-}));
+const StatusBadge = styled(Box)(({ theme, status }) => {
+  const colors = {
+    'Booked': { bg: alpha('#3b82f6', 0.1), text: '#2563eb', border: alpha('#3b82f6', 0.2) },
+    'Confirmed': { bg: alpha('#10b981', 0.1), text: '#059669', border: alpha('#10b981', 0.2) },
+    'Canceled': { bg: alpha('#ef4444', 0.1), text: '#dc2626', border: alpha('#ef4444', 0.2) },
+    'Completed': { bg: alpha('#7c3aed', 0.1), text: '#6d28d9', border: alpha('#7c3aed', 0.2) },
+    'Rescheduled': { bg: alpha('#f59e0b', 0.1), text: '#d97706', border: alpha('#f59e0b', 0.2) },
+  };
+  const config = colors[status] || colors['Booked'];
 
-const StatCard = styled(Paper)(({ theme }) => ({
-  padding: '16px 12px',
-  borderRadius: '16px',
-  background: 'linear-gradient(135deg, #ffffff 0%, #f8faff 100%)',
-  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
-  textAlign: 'center',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-5px)',
-    boxShadow: '0 16px 48px rgba(33, 150, 243, 0.1)',
-  },
-}));
+  return {
+    padding: '6px 14px',
+    borderRadius: '12px',
+    background: config.bg,
+    color: config.text,
+    border: `1px solid ${config.border}`,
+    fontSize: '0.75rem',
+    fontWeight: '700',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  };
+});
 
-const ActionButton = styled(Button)(({ theme, color }) => ({
-  borderRadius: '12px',
-  textTransform: 'none',
-  fontWeight: '600',
-  padding: '10px 24px',
-  background: color === 'cancel' ? 'linear-gradient(135deg, #f44336, #e57373)' :
-    color === 'confirm' ? 'linear-gradient(135deg, #4CAF50, #8BC34A)' :
-      'linear-gradient(135deg, #2196f3, #64b5f6)',
-  color: 'white',
-  '&:hover': {
-    background: color === 'cancel' ? 'linear-gradient(135deg, #d32f2f, #e53935)' :
-      color === 'confirm' ? 'linear-gradient(135deg, #388E3C, #43A047)' :
-        'linear-gradient(135deg, #1976d2, #42a5f5)',
-    transform: 'translateY(-2px)',
-  },
-}));
-
-const DetailRow = styled(Box)(({ theme }) => ({
+const ControlPanel = styled(Box)(({ theme }) => ({
+  background: 'rgba(255, 255, 255, 0.8)',
+  backdropFilter: 'blur(12px)',
+  padding: '16px 24px',
+  borderRadius: '24px',
+  boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+  marginBottom: '32px',
   display: 'flex',
+  justifyContent: 'space-between',
   alignItems: 'center',
-  gap: '12px',
-  padding: '10px 0',
-  borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
-  '&:last-child': {
-    borderBottom: 'none',
+  flexWrap: 'wrap',
+  gap: '16px',
+  border: '1px solid rgba(255,255,255,0.3)',
+}));
+
+const ActionButton = styled(Button)(({ theme, variant = 'primary' }) => ({
+  borderRadius: '14px',
+  padding: '10px 24px',
+  textTransform: 'none',
+  fontWeight: '700',
+  fontSize: '0.95rem',
+  transition: 'all 0.3s ease',
+  boxShadow: variant === 'contained' ? '0 10px 20px rgba(79, 70, 229, 0.2)' : 'none',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: variant === 'contained' ? '0 15px 30px rgba(79, 70, 229, 0.3)' : 'none',
+  }
+}));
+
+const DetailRow = ({ icon: Icon, label, value }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: '12px', mb: '14px' }}>
+    <Box sx={{ color: '#94a3b8', display: 'flex' }}>
+      <Icon size={18} />
+    </Box>
+    <Box>
+      <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', mb: '2px', fontWeight: '500' }}>
+        {label}
+      </Typography>
+      <Typography variant="body2" sx={{ color: '#334155', fontWeight: '600' }}>
+        {value}
+      </Typography>
+    </Box>
+  </Box>
+);
+
+const GlassDialog = styled(Dialog)(({ theme }) => ({
+  '& .MuiPaper-root': {
+    borderRadius: '32px',
+    background: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(20px)',
+    padding: '24px',
+    boxShadow: '0 25px 70px rgba(0,0,0,0.2)',
+    border: '1px solid rgba(255, 255, 255, 0.4)',
+    overflow: 'hidden',
+  }
+}));
+
+const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+  background: 'rgba(255, 255, 255, 0.7)',
+  backdropFilter: 'blur(12px)',
+  borderRadius: '32px',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+  boxShadow: '0 20px 50px rgba(0, 0, 0, 0.06)',
+  overflow: 'hidden',
+  marginTop: '20px'
+}));
+
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  padding: '20px 24px',
+  borderBottom: '1px solid rgba(226, 232, 240, 0.6)',
+  color: '#334155',
+  fontSize: '0.95rem',
+  fontWeight: 500
+}));
+
+const StyledHeaderCell = styled(TableCell)(({ theme }) => ({
+  padding: '24px',
+  background: 'rgba(248, 250, 252, 0.8)',
+  color: '#64748b',
+  fontWeight: '800',
+  textTransform: 'uppercase',
+  fontSize: '0.75rem',
+  letterSpacing: '1px',
+  borderBottom: '2px solid #f1f5f9'
+}));
+
+const StyledTableRow = styled(TableRow)(({ theme }) => ({
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    background: alpha('#4f46e5', 0.02),
   },
+  '&:last-child .MuiTableCell-root': {
+    borderBottom: 'none'
+  }
 }));
 
 const MyAppointments = () => {
@@ -149,15 +250,6 @@ const MyAppointments = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortOption, setSortOption] = useState('dateAsc');
 
-  const statusOptions = [
-    { value: 'all', label: 'All', color: '#2196f3' },
-    { value: 'upcoming', label: 'Upcoming', color: '#4CAF50' },
-    { value: 'Booked', label: 'Pending', color: '#FF9800' },
-    { value: 'Confirmed', label: 'Confirmed', color: '#4CAF50' },
-    { value: 'Canceled', label: 'Canceled', color: '#f44336' },
-    { value: 'Completed', label: 'Completed', color: '#9C27B0' },
-  ];
-
   const fetchAppointments = async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
@@ -169,19 +261,18 @@ const MyAppointments = () => {
       if (showLoading) {
         Swal.fire({
           title: 'Error',
-          text: error.response?.data?.message || 'Could not load appointments',
+          text: 'We could not sync your appointments. Please try again.',
           icon: 'error',
-          confirmButtonColor: '#2196f3',
+          confirmButtonColor: '#10b981',
         });
       }
-      setAppointments([]);
     } finally {
       if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem('owner_user') || localStorage.getItem('user');
     if (userData) {
       const user = JSON.parse(userData);
       const userId = user.id || user._id;
@@ -213,33 +304,17 @@ const MyAppointments = () => {
   const sortedAppointments = [...filteredAppointments].sort((a, b) => {
     if (sortOption === 'dateAsc') return new Date(a.dateTime) - new Date(b.dateTime);
     if (sortOption === 'dateDesc') return new Date(b.dateTime) - new Date(a.dateTime);
-    if (sortOption === 'status') return a.status.localeCompare(b.status);
     return 0;
   });
 
-  const formatDateTime = (dateTime) => {
-    const date = new Date(dateTime);
-    const options = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    };
-    return {
-      date: date.toLocaleDateString('en-US', options),
-      time: date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-      }),
-      isUpcoming: date > new Date(),
-      isPast: date < new Date(),
-    };
-  };
-
   const handleCancel = async () => {
     if (!cancelDialog.appointment || !cancelDialog.reason.trim()) {
-      Swal.fire('Error', 'Please provide a cancellation reason', 'warning');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Reason Required',
+        text: 'Please tell us why you are canceling.',
+        confirmButtonColor: '#10b981',
+      });
       return;
     }
 
@@ -249,174 +324,370 @@ const MyAppointments = () => {
       });
 
       Swal.fire({
-        title: 'Cancelled!',
-        text: 'Appointment has been cancelled successfully',
+        title: 'Canceled',
+        text: 'Your appointment has been successfully canceled.',
         icon: 'success',
-        timer: 2000,
+        timer: 1500,
         showConfirmButton: false,
       });
 
       fetchAppointments(false);
       setCancelDialog({ open: false, appointment: null, reason: '' });
     } catch (error) {
-      console.error('Error cancelling appointment:', error);
       Swal.fire({
-        title: 'Error',
-        text: error.response?.data?.message || 'Could not cancel appointment',
+        title: 'Cancellation failed',
+        text: error.response?.data?.message || 'Something went wrong.',
         icon: 'error',
+        confirmButtonColor: '#10b981',
       });
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'Booked': return <PendingIcon />;
-      case 'Confirmed': return <CheckCircleIcon />;
-      case 'Canceled': return <CancelIcon />;
-      case 'Completed': return <DoneIcon />;
-      default: return <InfoIcon />;
-    }
+  const formatDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatTime = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
   if (loading) {
     return (
-      <AppointmentsContainer>
+      <>
         <Navbar />
-        <Box sx={{ textAlign: 'center', py: 12 }}>
-          <CircularProgress size={64} thickness={5} sx={{ color: '#2196f3' }} />
-          <Typography variant="h6" sx={{ mt: 4, color: '#555' }}>
-            Loading your appointments...
-          </Typography>
-        </Box>
-      </AppointmentsContainer>
+        <AppointmentsContainer sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress sx={{ color: '#10b981' }} size={60} />
+            <Typography sx={{ mt: 3, color: '#64748b', fontWeight: 500 }}>Syncing your appointments...</Typography>
+          </Box>
+        </AppointmentsContainer>
+      </>
     );
   }
 
   return (
-    <AppointmentsContainer>
+    <>
       <Navbar />
-      <HeaderCard>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
-          <CalendarTodayIcon sx={{ fontSize: 64, mr: 2, opacity: 0.9 }} />
+      <AppointmentsContainer>
+        <PageHeader>
           <Box>
-            <Typography variant="h3" fontWeight="bold">My Appointments</Typography>
-            <Typography variant="h6" sx={{ mt: 1, opacity: 0.9 }}>Manage your pet's visits</Typography>
+            <Typography variant="h3" sx={{ fontWeight: 800, color: '#0f172a', mb: 1 }}>
+              My appointments
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#64748b', fontSize: '1.1rem' }}>
+              Keep track of your pet's health journey
+            </Typography>
           </Box>
-        </Box>
-        <Grid container spacing={2} justifyContent="center">
-          {Object.entries(stats).map(([key, value]) => (
-            <Grid item xs={6} sm={4} md={2} key={key}>
-              <StatCard>
-                <Typography variant="h4" fontWeight="bold" color="primary">{value}</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
-                  {key}
-                </Typography>
-              </StatCard>
-            </Grid>
-          ))}
+          <ActionButton
+            variant="contained"
+            sx={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}
+            startIcon={<Plus size={20} />}
+            onClick={() => navigate('/owner/appointments')}
+          >
+            Book New Session
+          </ActionButton>
+        </PageHeader>
+
+        <Grid container spacing={3} sx={{ mb: 6 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard>
+              <IconWrapper color="#10b981">
+                <Calendar size={26} />
+              </IconWrapper>
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#0f172a' }}>{stats.upcoming}</Typography>
+                <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>Upcoming</Typography>
+              </Box>
+            </StatCard>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard>
+              <IconWrapper color="#3b82f6">
+                <CheckCircle size={26} />
+              </IconWrapper>
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#0f172a' }}>{stats.confirmed}</Typography>
+                <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>Confirmed</Typography>
+              </Box>
+            </StatCard>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard>
+              <IconWrapper color="#f59e0b">
+                <Clock size={26} />
+              </IconWrapper>
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#0f172a' }}>{stats.pending}</Typography>
+                <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>Requests</Typography>
+              </Box>
+            </StatCard>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard>
+              <IconWrapper color="#b91c1c">
+                <XCircle size={26} />
+              </IconWrapper>
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#0f172a' }}>{stats.canceled}</Typography>
+                <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>Canceled</Typography>
+              </Box>
+            </StatCard>
+          </Grid>
         </Grid>
-      </HeaderCard>
 
-      <Paper sx={{ p: 3, mb: 4, borderRadius: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-          <FilterListIcon color="primary" />
-          {statusOptions.map((option) => (
-            <Chip
-              key={option.value}
-              label={option.label}
-              onClick={() => setFilterStatus(option.value)}
-              color={filterStatus === option.value ? 'primary' : 'default'}
-              variant={filterStatus === option.value ? 'filled' : 'outlined'}
-            />
-          ))}
-          <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel>Sort By</InputLabel>
-            <Select value={sortOption} label="Sort By" onChange={(e) => setSortOption(e.target.value)}>
-              <MenuItem value="dateAsc">Date (Earliest)</MenuItem>
-              <MenuItem value="dateDesc">Date (Latest)</MenuItem>
-              <MenuItem value="status">Status</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => fetchAppointments()}>Refresh</Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/owner/appointment')}>Book New</Button>
-        </Box>
-      </Paper>
+        <ControlPanel>
+          <Box sx={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <Filter size={18} color="#64748b" />
+            <Box sx={{ display: 'flex', gap: '8px' }}>
+              {['all', 'upcoming', 'Confirmed', 'Completed', 'Canceled'].map((status) => (
+                <Chip
+                  key={status}
+                  label={status === 'all' ? 'All Sessions' : status}
+                  onClick={() => setFilterStatus(status)}
+                  sx={{
+                    borderRadius: '12px',
+                    fontWeight: 700,
+                    px: 1,
+                    background: filterStatus === status ? '#10b981' : 'transparent',
+                    color: filterStatus === status ? 'white' : '#64748b',
+                    border: filterStatus === status ? 'none' : '1px solid #e2e8f0',
+                    '&:hover': { background: filterStatus === status ? '#059669' : '#f8fafc' }
+                  }}
+                />
+              ))}
+            </Box>
+          </Box>
+          <Box sx={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <Select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                sx={{ borderRadius: '12px', bgcolor: 'white' }}
+              >
+                <MenuItem value="dateAsc">Date: Earliest</MenuItem>
+                <MenuItem value="dateDesc">Date: Latest</MenuItem>
+              </Select>
+            </FormControl>
+            <IconButton onClick={() => fetchAppointments()} sx={{ bgcolor: 'white', p: 1, border: '1px solid #e2e8f0' }}>
+              <RefreshCcw size={20} color="#10b981" />
+            </IconButton>
+          </Box>
+        </ControlPanel>
 
-      {sortedAppointments.length === 0 ? (
-        <Paper sx={{ p: 10, textAlign: 'center', borderRadius: '24px' }}>
-          <Typography variant="h5" color="text.secondary">No appointments found</Typography>
-          <Button variant="contained" sx={{ mt: 3 }} onClick={() => navigate('/owner/appointment')}>Book Now</Button>
-        </Paper>
-      ) : (
-        <Grid container spacing={3}>
-          {sortedAppointments.map((app) => {
-            const formatted = formatDateTime(app.dateTime);
-            return (
-              <Grid item xs={12} sm={6} lg={4} key={app._id}>
-                <AppointmentCard>
-                  <CardContent sx={{ p: 3 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                      <Typography variant="h6" fontWeight="700">{app.reason}</Typography>
-                      <StatusChip status={app.status} label={app.status} />
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                      <Avatar src={app.petId?.photo}><PetsIcon /></Avatar>
+        {sortedAppointments.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 10, background: 'white', borderRadius: '32px', border: '1px dashed #cbd5e1' }}>
+            <AlertCircle size={60} color="#94a3b8" style={{ marginBottom: '20px' }} />
+            <Typography variant="h5" sx={{ fontWeight: 700, color: '#475569', mb: 1 }}>No appointments found</Typography>
+            <Typography variant="body1" sx={{ color: '#64748b', mb: 4 }}>Time for a check-up? Book your next session now.</Typography>
+            <ActionButton
+              variant="contained"
+              sx={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}
+              onClick={() => navigate('/owner/appointments')}
+            >
+              Book Now
+            </ActionButton>
+          </Box>
+        ) : (
+          <StyledTableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <StyledHeaderCell>Pet</StyledHeaderCell>
+                  <StyledHeaderCell>Veterinarian</StyledHeaderCell>
+                  <StyledHeaderCell>Date & Time</StyledHeaderCell>
+                  <StyledHeaderCell>Reason</StyledHeaderCell>
+                  <StyledHeaderCell>Status</StyledHeaderCell>
+                  <StyledHeaderCell align="right">Actions</StyledHeaderCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {sortedAppointments.map((app) => (
+                  <StyledTableRow key={app._id}>
+                    <StyledTableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Avatar
+                          src={app.petId?.photo}
+                          sx={{ width: 48, height: 48, borderRadius: '14px', border: '1px solid #e2e8f0' }}
+                        >
+                          <PetsIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography sx={{ fontWeight: 700, color: '#1e293b' }}>{app.petId?.name}</Typography>
+                          <Typography variant="caption" sx={{ color: '#64748b' }}>{app.petId?.species}</Typography>
+                        </Box>
+                      </Box>
+                    </StyledTableCell>
+                    <StyledTableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#4f46e5', 0.1), color: '#4f46e5' }}>
+                          <User size={16} />
+                        </Avatar>
+                        <Typography sx={{ fontWeight: 600 }}>Dr. {app.vetId?.firstName} {app.vetId?.lastName}</Typography>
+                      </Box>
+                    </StyledTableCell>
+                    <StyledTableCell>
                       <Box>
-                        <Typography variant="subtitle1" fontWeight="600">{app.petId?.name}</Typography>
-                        <Typography variant="body2" color="text.secondary">{app.petId?.species}</Typography>
+                        <Typography sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Calendar size={14} color="#4f46e5" /> {formatDate(app.dateTime)}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Clock size={12} /> {formatTime(app.dateTime)}
+                        </Typography>
+                      </Box>
+                    </StyledTableCell>
+                    <StyledTableCell>
+                      <Typography sx={{ color: '#64748b', fontSize: '0.9rem', maxWidth: 200, noWrap: true, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                        {app.reason}
+                      </Typography>
+                    </StyledTableCell>
+                    <StyledTableCell>
+                      <StatusBadge status={app.status}>
+                        {app.status === 'Confirmed' ? <CheckCircle size={14} /> :
+                          app.status === 'Canceled' ? <XCircle size={14} /> : <Clock size={14} />}
+                        {app.status}
+                      </StatusBadge>
+                    </StyledTableCell>
+                    <StyledTableCell align="right">
+                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                        <IconButton
+                          onClick={() => setViewDialog({ open: true, appointment: app })}
+                          sx={{ color: '#4f46e5', bgcolor: alpha('#4f46e5', 0.05), '&:hover': { bgcolor: alpha('#4f46e5', 0.1) } }}
+                        >
+                          <Info size={18} />
+                        </IconButton>
+                        {(app.status === 'Booked' || app.status === 'Confirmed') && new Date(app.dateTime) > new Date() && (
+                          <IconButton
+                            onClick={() => setCancelDialog({ open: true, appointment: app, reason: '' })}
+                            sx={{ color: '#ef4444', bgcolor: alpha('#ef4444', 0.05), '&:hover': { bgcolor: alpha('#ef4444', 0.1) } }}
+                          >
+                            <Trash2 size={18} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </StyledTableCell>
+                  </StyledTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </StyledTableContainer>
+        )}
+
+        {/* Professional Modals */}
+        <GlassDialog
+          open={cancelDialog.open}
+          onClose={() => setCancelDialog({ open: false, appointment: null, reason: '' })}
+          fullWidth maxWidth="sm"
+        >
+          <Box sx={{ p: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+              <Box sx={{ w: 48, h: 48, borderRadius: '16px', bgcolor: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b91c1c' }}>
+                <Trash2 size={24} />
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>Cancel Appointment</Typography>
+            </Box>
+
+            <Typography sx={{ color: '#64748b', mb: 3 }}>
+              We're sorry to hear you need to cancel. Please provide a reason so we can improve our service.
+            </Typography>
+
+            <TextField
+              fullWidth multiline rows={4}
+              placeholder="E.g., Personal emergency, Change of plans..."
+              value={cancelDialog.reason}
+              onChange={(e) => setCancelDialog({ ...cancelDialog, reason: e.target.value })}
+              sx={{
+                '& .MuiOutlinedInput-root': { borderRadius: '20px', bgcolor: '#f8fafc' }
+              }}
+            />
+
+            <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+              <ActionButton
+                fullWidth sx={{ border: '2px solid #e2e8f0', color: '#64748b' }}
+                onClick={() => setCancelDialog({ open: false, appointment: null, reason: '' })}
+              >
+                Go Back
+              </ActionButton>
+              <ActionButton
+                fullWidth variant="contained"
+                sx={{ bgcolor: '#b91c1c', color: 'white', '&:hover': { bgcolor: '#991b1b' } }}
+                onClick={handleCancel}
+              >
+                Cancel Session
+              </ActionButton>
+            </Box>
+          </Box>
+        </GlassDialog>
+
+        <GlassDialog
+          open={viewDialog.open}
+          onClose={() => setViewDialog({ open: false, appointment: null })}
+          fullWidth maxWidth="md"
+        >
+          {viewDialog.appointment && (
+            <Box sx={{ p: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <IconWrapper color="#10b981">
+                    <Activity size={24} />
+                  </IconWrapper>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>Session Details</Typography>
+                </Box>
+                <IconButton onClick={() => setViewDialog({ open: false, appointment: null })}>
+                  <XCircle size={24} />
+                </IconButton>
+              </Box>
+
+              <Grid container spacing={4}>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ bgcolor: '#f8fafc', p: 3, borderRadius: '24px' }}>
+                    <Typography sx={{ fontWeight: 700, color: '#1e293b', mb: 2 }}>PET INFORMATION</Typography>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
+                      <Avatar src={viewDialog.appointment.petId?.photo} sx={{ width: 64, height: 64, borderRadius: '16px' }} />
+                      <Box>
+                        <Typography sx={{ fontWeight: 800, color: '#0f172a' }}>{viewDialog.appointment.petId?.name}</Typography>
+                        <Typography variant="body2" sx={{ color: '#64748b' }}>{viewDialog.appointment.petId?.species} • {viewDialog.appointment.petId?.breed || 'Mixed Breed'}</Typography>
                       </Box>
                     </Box>
-                    <Divider sx={{ my: 1 }} />
-                    <DetailRow><CalendarTodayIcon fontSize="small" /><Typography variant="body2">{formatted.date}</Typography></DetailRow>
-                    <DetailRow><AccessTimeIcon fontSize="small" /><Typography variant="body2">{formatted.time}</Typography></DetailRow>
-                    <DetailRow><PersonIcon fontSize="small" /><Typography variant="body2">Dr. {app.vetId?.firstName} {app.vetId?.lastName}</Typography></DetailRow>
-                    <DetailRow><LocationOnIcon fontSize="small" /><Typography variant="body2">{app.clinicId?.name}</Typography></DetailRow>
-
-                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                      <Button fullWidth variant="outlined" onClick={() => setViewDialog({ open: true, appointment: app })}>Details</Button>
-                      {app.status === 'Booked' && formatted.isUpcoming && (
-                        <Button fullWidth variant="contained" color="error" onClick={() => setCancelDialog({ open: true, appointment: app, reason: '' })}>Cancel</Button>
-                      )}
-                    </Box>
-                  </CardContent>
-                </AppointmentCard>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ bgcolor: '#f8fafc', p: 3, borderRadius: '24px' }}>
+                    <Typography sx={{ fontWeight: 700, color: '#1e293b', mb: 2 }}>VET & CLINIC</Typography>
+                    <DetailRow icon={User} label="Veterinarian" value={`Dr. ${viewDialog.appointment.vetId?.firstName} ${viewDialog.appointment.vetId?.lastName}`} />
+                    <DetailRow icon={MapPin} label="Location" value={viewDialog.appointment.clinicId?.name} />
+                    <Typography variant="caption" sx={{ color: '#94a3b8', ml: 4, display: 'block' }}>{viewDialog.appointment.clinicId?.address}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ p: 3, border: '1px solid #e2e8f0', borderRadius: '24px' }}>
+                    <Typography sx={{ fontWeight: 700, color: '#1e293b', mb: 2 }}>OBSERVATIONS & REASON</Typography>
+                    <Typography variant="body1" sx={{ color: '#334155', lineHeight: 1.6 }}>{viewDialog.appointment.reason}</Typography>
+                    {viewDialog.appointment.notes && (
+                      <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #f1f5f9' }}>
+                        <Typography sx={{ variant: 'caption', fontWeight: 700, color: '#94a3b8', mb: 1 }}>NOTES</Typography>
+                        <Typography variant="body2" sx={{ color: '#64748b' }}>{viewDialog.appointment.notes}</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Grid>
               </Grid>
-            );
-          })}
-        </Grid>
-      )}
 
-      {/* Dialogs */}
-      <Dialog open={cancelDialog.open} onClose={() => setCancelDialog({ open: false, appointment: null, reason: '' })} fullWidth maxWidth="sm">
-        <DialogTitle>Cancel Appointment</DialogTitle>
-        <DialogContent>
-          <TextField fullWidth multiline rows={3} label="Reason" sx={{ mt: 2 }} value={cancelDialog.reason} onChange={(e) => setCancelDialog({ ...cancelDialog, reason: e.target.value })} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCancelDialog({ open: false, appointment: null, reason: '' })}>Exit</Button>
-          <Button variant="contained" color="error" onClick={handleCancel}>Confirm Cancel</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={viewDialog.open} onClose={() => setViewDialog({ open: false, appointment: null })} fullWidth maxWidth="md">
-        <DialogTitle>Appointment Details</DialogTitle>
-        <DialogContent>
-          {viewDialog.appointment && (
-            <Box sx={{ py: 2 }}>
-              <Typography variant="h6">Reason: {viewDialog.appointment.reason}</Typography>
-              <Typography>Pet: {viewDialog.appointment.petId?.name}</Typography>
-              <Typography>Vet: Dr. {viewDialog.appointment.vetId?.firstName} {viewDialog.appointment.vetId?.lastName}</Typography>
-              <Typography>Clinic: {viewDialog.appointment.clinicId?.name}</Typography>
-              <Typography>Address: {viewDialog.appointment.clinicId?.address}</Typography>
-              {viewDialog.appointment.notes && <Typography sx={{ mt: 2 }}>Notes: {viewDialog.appointment.notes}</Typography>}
+              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                <ActionButton
+                  variant="contained"
+                  sx={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}
+                  onClick={() => setViewDialog({ open: false, appointment: null })}
+                >
+                  Close Details
+                </ActionButton>
+              </Box>
             </Box>
           )}
-        </DialogContent>
-        <DialogActions><Button onClick={() => setViewDialog({ open: false, appointment: null })}>Close</Button></DialogActions>
-      </Dialog>
-    </AppointmentsContainer>
+        </GlassDialog>
+      </AppointmentsContainer>
+    </>
   );
 };
 
