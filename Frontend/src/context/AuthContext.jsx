@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
     const [authModalOpen, setAuthModalOpen] = useState(false);
     const [authModalView, setAuthModalView] = useState('login'); // 'login', 'register', '2fa', 'forgot'
+    const [authModalRole, setAuthModalRole] = useState('owner'); // 'owner' or 'vet'
 
     useEffect(() => {
         const initAuth = async () => {
@@ -20,7 +21,6 @@ export const AuthProvider = ({ children }) => {
                     const res = await api.get('/auth/me');
                     if (res.data.success) {
                         setUser(res.data.user);
-                        // Automatically keep right token populated
                         if (res.data.user.role === 'vet') {
                             localStorage.setItem('vet_token', token);
                             localStorage.setItem('vet_user', JSON.stringify(res.data.user));
@@ -30,7 +30,6 @@ export const AuthProvider = ({ children }) => {
                         }
                     }
                 } catch (err) {
-                    console.error("Auth init failed", err);
                     logout();
                 }
             }
@@ -48,7 +47,6 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('owner_token', token);
             localStorage.setItem('owner_user', JSON.stringify(userData));
         }
-        // Also store generic token for api interceptor if needed
         localStorage.setItem('token', token);
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         setAuthModalOpen(false);
@@ -61,12 +59,12 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('owner_user');
         localStorage.removeItem('vet_token');
         localStorage.removeItem('vet_user');
-        localStorage.removeItem('owner');
         delete api.defaults.headers.common['Authorization'];
     };
 
-    const openAuthModal = (view = 'login') => {
+    const openAuthModal = (view = 'login', role = 'owner') => {
         setAuthModalView(view);
+        setAuthModalRole(role);
         setAuthModalOpen(true);
     };
 
@@ -93,6 +91,8 @@ export const AuthProvider = ({ children }) => {
             authModalOpen,
             authModalView,
             setAuthModalView,
+            authModalRole,
+            setAuthModalRole,
             openAuthModal,
             closeAuthModal
         }}>

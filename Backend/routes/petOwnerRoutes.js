@@ -19,7 +19,8 @@ router.post('/register', registerOwner);
 
 // Middleware to ensure user can only access their own profile
 const authorizeSelf = (req, res, next) => {
-  if (req.user.role === 'owner' && req.params.id !== req.user.id) {
+  // Convert both to strings to ensure correct comparison (req.user.id is an ObjectId)
+  if (req.user.role === 'owner' && req.params.id.toString() !== req.user.id.toString()) {
     return res.status(403).json({
       message: 'Not authorized: You can only access your own profile'
     });

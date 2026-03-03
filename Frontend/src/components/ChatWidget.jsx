@@ -14,19 +14,35 @@ const ChatWidget = () => {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const getStorageKey = () => user ? `petcare_chat_messages_${user._id || user.id}` : "petcare_chat_messages_guest";
+
   const [messages, setMessages] = useState(() => {
     try {
-      const raw = localStorage.getItem("petcare_chat_messages");
+      const key = user ? `petcare_chat_messages_${user._id || user.id}` : "petcare_chat_messages_guest";
+      const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : [{ id: 1, from: "bot", text: BOT_WELCOME }];
     } catch (error) {
       return [{ id: 1, from: "bot", text: BOT_WELCOME }];
     }
   });
 
+  // Handle user switching: reload messages for the new user
+  useEffect(() => {
+    if (user) {
+      const key = `petcare_chat_messages_${user._id || user.id}`;
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        setMessages(JSON.parse(raw));
+      } else {
+        setMessages([{ id: Date.now(), from: "bot", text: BOT_WELCOME }]);
+      }
+    }
+  }, [user?.id, user?._id]);
+
   const listRef = useRef(null);
 
   useEffect(() => {
-    localStorage.setItem("petcare_chat_messages", JSON.stringify(messages));
+    localStorage.setItem(getStorageKey(), JSON.stringify(messages));
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
@@ -72,7 +88,7 @@ const ChatWidget = () => {
   const handleResetChat = () => {
     const initial = [{ id: Date.now(), from: "bot", text: BOT_WELCOME }];
     setMessages(initial);
-    localStorage.setItem("petcare_chat_messages", JSON.stringify(initial));
+    localStorage.setItem(getStorageKey(), JSON.stringify(initial));
   };
 
   if (!user) return null;

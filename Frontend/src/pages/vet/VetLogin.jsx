@@ -1,200 +1,47 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  Box, Typography, TextField, Button, CircularProgress,
+  Alert, Link, IconButton, InputAdornment, alpha, Divider
+} from '@mui/material';
+import {
+  Pets as PetsIcon,
+  Visibility,
+  VisibilityOff,
+  EmailOutlined,
+  LockOutlined,
+  ArrowBack as ArrowBackIcon
+} from '@mui/icons-material';
+import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
-import styled from 'styled-components';
-import vetImage from '../../images/veterinarian.jpg';
-
-const AuthContainer = styled.div`
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-`;
-
-const AuthCard = styled.div`
-  width: 100%;
-  max-width: 900px;
-  max-height: 680px;
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  display: flex;
-  background: white;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    max-width: 480px;
-    max-height: none;
-  }
-`;
-
-const LeftSection = styled.div`
-  flex: 1;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  overflow: hidden;
-  color: white;
-  padding: 40px;
-  text-align: center;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url(${vetImage});
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    opacity: 1;
-    z-index: 0;
-  }
-
-  & > div {
-    position: relative;
-    z-index: 1;
-    max-width: 320px;
-    margin-bottom: 30px;
-  }
-
-  @media (max-width: 768px) {
-    height: 280px;
-    padding: 30px;
-  }
-`;
-
-const RightSection = styled.div`
-  flex: 1;
-  padding: 50px 60px;
-  background-color: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-
-  @media (max-width: 768px) {
-    padding: 40px;
-  }
-`;
-
-const Form = styled.form`
-  width: 100%;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 16px 20px;
-  margin-bottom: 24px;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  outline: none;
-  transition: border 0.3s ease;
-
-  &:focus {
-    border-color: #8e24aa;
-    box-shadow: 0 0 0 3px rgba(142, 36, 170, 0.1);
-  }
-
-  &::placeholder {
-    color: #aaa;
-  }
-`;
-
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: 16px;
-  background: linear-gradient(90deg, #8e24aa, #ab47bc);
-  color: white;
-  font-size: 1.2rem;
-  font-weight: bold;
-  border: none;
-  border-radius: 30px;
-  cursor: pointer;
-  margin-top: 32px;
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: linear-gradient(90deg, #7b1fa2, #9c27b0);
-    transform: translateY(-2px);
-  }
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
-
-const Title = styled.h1`
-  font-size: 2.5rem;
-  font-weight: bold;
-  color: #8e24aa;
-  text-align: center;
-  margin-bottom: 16px;
-`;
-
-const Subtitle = styled.p`
-  color: #666;
-  text-align: center;
-  margin-bottom: 40px;
-  font-size: 1.1rem;
-`;
-
-const RegisterLink = styled.div`
-  text-align: center;
-  margin-top: 40px;
-  font-size: 1.1rem;
-`;
-
-const LinkText = styled.a`
-  color: #8e24aa;
-  font-weight: bold;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const ErrorMessage = styled.div`
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 0.9rem;
-  border-left: 4px solid #c62828;
-`;
 
 const VetLogin = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [submitted, setSubmitted] = useState(false);
+
+  const mainColor = '#7c3aed'; // Medical Purple
+  const bgGradient = 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)';
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
   };
 
+  const isFieldInvalid = (field) => submitted && !formData[field].trim();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitted(true);
 
     if (!formData.email || !formData.password) {
       setError('Please fill in all fields');
-      return;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      setError('Please enter a valid email address');
       return;
     }
 
@@ -202,122 +49,176 @@ const VetLogin = () => {
     setError('');
 
     try {
-      // Clear only vet-related items
-      localStorage.removeItem('vet_token');
-      localStorage.removeItem('vet_user');
-      localStorage.removeItem('vet');
+      const { data } = await api.post('/auth/login', formData);
 
-      delete api.defaults.headers.common['Authorization'];
-
-      const response = await api.post('/auth/login', {
-        email: formData.email,
-        password: formData.password
-      });
-
-      const { token, user } = response.data;
-
-      if (!user || user.role !== 'vet') {
-        setError(`This portal is for veterinarians only. Detected role: ${user?.role || 'none'}`);
+      if (data.user.role !== 'vet') {
+        setError('This portal is for veterinarians only.');
         setLoading(false);
         return;
       }
 
-      // Optional: decode & verify role (can be removed later)
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      if (payload.role !== 'vet') {
-        setError('Token role mismatch - please try again');
-        setLoading(false);
-        return;
+      if (data.requires2FA) {
+        sessionStorage.setItem('temp_2fa_userId', data.userId);
+        sessionStorage.setItem('temp_2fa_role', data.role);
+        navigate('/vet/verify-2fa');
+      } else {
+        login(data.user, data.token);
+        Swal.fire({
+          title: 'Welcome back, Doctor!',
+          text: `Dr. ${data.user.firstName} ${data.user.lastName}`,
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        navigate('/vet/dashboard');
       }
-
-      // Store prefixed
-      localStorage.setItem('vet_token', token);
-      localStorage.setItem('vet_user', JSON.stringify(user));
-
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      // Quick auth test
-      await api.get('/auth/me');
-
-      Swal.fire({
-        title: 'Welcome back, Doctor!',
-        text: `Dr. ${user.firstName} ${user.lastName}`,
-        icon: 'success',
-        timer: 1800,
-        showConfirmButton: false
-      });
-
-      setTimeout(() => navigate('/vet/dashboard'), 2000);
     } catch (err) {
-      let msg = 'Login failed. Please check your credentials.';
-      if (err.response?.status === 401) msg = 'Invalid email or password';
-      if (err.response?.data?.message) msg = err.response.data.message;
+      setError(err.response?.data?.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      setError(msg);
-
-      localStorage.removeItem('vet_token');
-      localStorage.removeItem('vet_user');
-      localStorage.removeItem('vet');
-      delete api.defaults.headers.common['Authorization'];
-
-      Swal.fire('Login Failed', msg, 'error');
+  const handleGoogleSuccess = async (response) => {
+    try {
+      setLoading(true);
+      const { data } = await api.post('/auth/google-login', { token: response.credential, role: 'vet' });
+      if (data.requires2FA) {
+        sessionStorage.setItem('temp_2fa_userId', data.userId);
+        sessionStorage.setItem('temp_2fa_role', data.role);
+        navigate('/vet/verify-2fa');
+      } else {
+        login(data.user, data.token);
+        navigate('/vet/dashboard');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Google authentication failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthContainer>
-      <AuthCard>
-        <LeftSection>
-          <div>
-            <h1 style={{ fontSize: '3.2rem', marginBottom: '16px' }}>PawPal</h1>
-            <h2 style={{ opacity: 0.95 }}>Veterinary Management</h2>
-          </div>
-        </LeftSection>
+    <Box sx={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#f8fafc',
+      p: 2
+    }}>
+      <Box sx={{
+        width: '100%',
+        maxWidth: '460px',
+        bgcolor: 'white',
+        borderRadius: '24px',
+        overflow: 'hidden',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.08)',
+        border: '1px solid rgba(0,0,0,0.05)'
+      }}>
+        {/* Header */}
+        <Box sx={{ background: bgGradient, color: 'white', py: 4, px: 3, textAlign: 'center' }}>
+          <Box sx={{
+            width: 56, height: 56, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: '14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2, backdropFilter: 'blur(8px)'
+          }}>
+            <PetsIcon sx={{ fontSize: 28 }} />
+          </Box>
+          <Typography variant="h5" fontWeight="900" letterSpacing="-1px">Veterinarian Login</Typography>
+          <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>Clinic Management & Care Portal</Typography>
+        </Box>
 
-        <RightSection>
-          <Title>Veterinarian Login</Title>
-          <Subtitle>Access your clinic dashboard</Subtitle>
+        {/* Form */}
+        <Box sx={{ p: 4 }}>
+          <form onSubmit={handleSubmit} noValidate>
+            {error && <Alert severity="error" sx={{ mb: 3, borderRadius: '10px', fontSize: '0.85rem' }}>{error}</Alert>}
 
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-
-          <Form onSubmit={handleSubmit}>
-            <Input
-              type="email"
-              name="email"
-              placeholder="Email Address"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              disabled={loading}
+            <TextField
+              fullWidth label="Email Address" name="email" type="email"
+              value={formData.email} onChange={handleChange}
+              variant="outlined" required disabled={loading}
+              error={isFieldInvalid('email')}
+              helperText={isFieldInvalid('email') ? 'Email is required' : ''}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><EmailOutlined sx={{ color: alpha(mainColor, 0.4), fontSize: 20 }} /></InputAdornment>,
+                sx: { borderRadius: '12px' }
+              }}
+              sx={{ mb: 3 }}
             />
-            <Input
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              disabled={loading}
+
+            <TextField
+              fullWidth label="Password" name="password" type={showPassword ? 'text' : 'password'}
+              value={formData.password} onChange={handleChange}
+              variant="outlined" required disabled={loading}
+              error={isFieldInvalid('password')}
+              helperText={isFieldInvalid('password') ? 'Password is required' : ''}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><LockOutlined sx={{ color: alpha(mainColor, 0.4), fontSize: 20 }} /></InputAdornment>,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+                sx: { borderRadius: '12px' }
+              }}
+              sx={{ mb: 1.5 }}
             />
-            <SubmitButton type="submit" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </SubmitButton>
-          </Form>
 
-          <RegisterLink>
-            <p>New to PawPal?</p>
-            <LinkText href="/vet/register">Register as Veterinarian</LinkText>
-          </RegisterLink>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+              <Link
+                component="button"
+                type="button"
+                onClick={() => navigate('/vet/forgot-password')}
+                variant="caption"
+                sx={{ color: mainColor, fontWeight: 700, textDecoration: 'none' }}
+              >
+                Forgot Password?
+              </Link>
+            </Box>
 
-          <div style={{ textAlign: 'center', marginTop: '24px' }}>
-            <p>Pet owner?</p>
-            <LinkText href="/owner/login">Go to Owner Login</LinkText>
-          </div>
-        </RightSection>
-      </AuthCard>
-    </AuthContainer>
+            <Button type="submit" fullWidth variant="contained" disabled={loading}
+              sx={{
+                background: bgGradient, color: 'white', py: 1.5, borderRadius: '12px', fontSize: '1rem', fontWeight: 700, textTransform: 'none',
+                boxShadow: `0 8px 16px ${alpha(mainColor, 0.2)}`,
+                '&:hover': { transform: 'translateY(-1px)', boxShadow: `0 12px 20px ${alpha(mainColor, 0.3)}` }
+              }}>
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Log In to Dashboard'}
+            </Button>
+          </form>
+
+          <Box sx={{ my: 3 }}>
+            <Divider><Typography variant="caption" color="textSecondary" sx={{ px: 2, fontWeight: 600 }}>OR</Typography></Divider>
+          </Box>
+
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError('Google Authentication Failed')}
+              theme="outline" shape="pill" size="large" text="signin_with"
+            />
+          </Box>
+
+          <Box textAlign="center" pt={3} borderTop="1px solid #f1f5f9">
+            <Typography variant="body2" color="textSecondary">
+              Don't have a clinic account?{' '}
+              <Link href="/vet/register" sx={{ color: mainColor, fontWeight: 800, textDecoration: 'none' }}>
+                Create One Now
+              </Link>
+            </Typography>
+
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate('/')}
+              sx={{ mt: 3, color: '#64748b', textTransform: 'none', fontSize: '0.8rem' }}
+            >
+              Back to Home
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

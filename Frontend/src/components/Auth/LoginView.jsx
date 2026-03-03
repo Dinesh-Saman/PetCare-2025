@@ -1,22 +1,32 @@
 import React, { useState } from 'react';
-import { Box, Typography, TextField, Button, CircularProgress, Alert, Link, Divider } from '@mui/material';
-import { Pets as PetsIcon } from '@mui/icons-material';
+import {
+    Box, Typography, TextField, Button, CircularProgress,
+    Alert, Link, Divider, IconButton, InputAdornment,
+    alpha, Fade, Checkbox, FormControlLabel
+} from '@mui/material';
+import {
+    Pets as PetsIcon,
+    Visibility,
+    VisibilityOff,
+} from '@mui/icons-material';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import authIllustration from '../../images/auth_illustration.png';
 
 const LoginView = () => {
-    const { setAuthModalView, login, setAuthModalOpen } = useAuth();
-    const [role, setRole] = useState('owner'); // 'owner' or 'vet'
+    const {
+        setAuthModalView,
+        login
+    } = useAuth();
+
     const [formData, setFormData] = useState({ email: '', password: '' });
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [submitted, setSubmitted] = useState(false);
 
-    const themeColor = role === 'owner' ? '#2196f3' : '#8e24aa';
-    const themeGradient = role === 'owner'
-        ? 'linear-gradient(90deg, #2196f3, #21cbf3)'
-        : 'linear-gradient(90deg, #8e24aa, #ab47bc)';
+    const bgBlue = '#3B59FE';
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,10 +34,6 @@ const LoginView = () => {
     };
 
     const isFieldInvalid = (field) => submitted && !formData[field].trim();
-
-    const handleLoginSuccess = (user, token) => {
-        login(user, token);
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -47,10 +53,10 @@ const LoginView = () => {
                 sessionStorage.setItem('temp_2fa_userId', data.userId);
                 sessionStorage.setItem('temp_2fa_role', data.role);
             } else {
-                handleLoginSuccess(data.user, data.token);
+                login(data.user, data.token);
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Invalid credentials');
+            setError(err.response?.data?.message || 'Invalid email or password');
         } finally {
             setLoading(false);
         }
@@ -59,110 +65,228 @@ const LoginView = () => {
     const handleGoogleSuccess = async (response) => {
         try {
             setLoading(true);
-            const { data } = await api.post('/auth/google-login', { token: response.credential, role });
+            const { data } = await api.post('/auth/google-login', { token: response.credential, role: 'owner' });
             if (data.requires2FA) {
                 setAuthModalView('2fa');
                 sessionStorage.setItem('temp_2fa_userId', data.userId);
                 sessionStorage.setItem('temp_2fa_role', data.role);
             } else {
-                handleLoginSuccess(data.user, data.token);
+                login(data.user, data.token);
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Google login failed');
+            setError(err.response?.data?.message || 'Google authentication failed');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Box>
-            <Box sx={{ background: themeGradient, color: 'white', py: 4, textAlign: 'center', transition: 'all 0.3s ease' }}>
-                <PetsIcon sx={{ fontSize: 48, mb: 1 }} />
-                <Typography variant="h5" fontWeight="bold">Welcome Back</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Sign in to continue to PetCare</Typography>
-            </Box>
-
-            <Box sx={{ p: 4 }}>
-                <Box sx={{ display: 'flex', mb: 3, borderRadius: 2, overflow: 'hidden', border: `1px solid ${themeColor}` }}>
-                    <Button
-                        fullWidth
-                        onClick={() => setRole('owner')}
-                        sx={{
-                            borderRadius: 0,
-                            bgcolor: role === 'owner' ? themeColor : 'transparent',
-                            color: role === 'owner' ? 'white' : themeColor,
-                            '&:hover': { bgcolor: role === 'owner' ? themeColor : 'rgba(33, 150, 243, 0.1)' }
-                        }}
-                    >
-                        Pet Owner
-                    </Button>
-                    <Button
-                        fullWidth
-                        onClick={() => setRole('vet')}
-                        sx={{
-                            borderRadius: 0,
-                            bgcolor: role === 'vet' ? themeColor : 'transparent',
-                            color: role === 'vet' ? 'white' : themeColor,
-                            '&:hover': { bgcolor: role === 'vet' ? themeColor : 'rgba(142, 36, 170, 0.1)' }
-                        }}
-                    >
-                        Veterinarian
-                    </Button>
-                </Box>
-
-                <form onSubmit={handleSubmit} noValidate>
-                    {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
-                    <TextField
-                        fullWidth label="Email Address" name="email" type="email"
-                        value={formData.email} onChange={handleChange}
-                        variant="outlined" required disabled={loading} autoFocus
-                        error={isFieldInvalid('email')}
-                        helperText={isFieldInvalid('email') ? 'Required' : ''}
-                        sx={{ mb: 2 }}
-                    />
-                    <TextField
-                        fullWidth label="Password" name="password" type="password"
-                        value={formData.password} onChange={handleChange}
-                        variant="outlined" required disabled={loading}
-                        error={isFieldInvalid('password')}
-                        helperText={isFieldInvalid('password') ? 'Required' : ''}
-                        sx={{ mb: 1 }}
-                    />
-
-                    <Box textAlign="right" mb={2}>
-                        <Link component="button" type="button" variant="body2" onClick={() => setAuthModalView('forgot')} sx={{ color: themeColor }}>
-                            Forgot Password?
-                        </Link>
+        <Fade in timeout={400}>
+            <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', md: 'nowrap' }, width: '100%', overflow: 'hidden' }}>
+                {/* Left Section - Formal Blue */}
+                <Box sx={{
+                    flex: { xs: '1 1 100%', md: 1 }, // Equal halves
+                    background: bgBlue,
+                    color: 'white',
+                    p: { xs: 2.5, md: 4 },
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <PetsIcon sx={{ fontSize: 22 }} />
+                        <Typography variant="body1" fontWeight="bold">Pawpal</Typography>
                     </Box>
 
-                    <Button type="submit" fullWidth variant="contained" disabled={loading}
-                        sx={{
-                            background: themeGradient,
-                            color: 'white', py: 1.5, borderRadius: 3, fontSize: '1.1rem', fontWeight: 'bold', textTransform: 'none',
-                            '&:hover': { opacity: 0.9 }
-                        }}>
-                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign In'}
-                    </Button>
-                </form>
-
-                <Box my={3}>
-                    <Divider><Typography variant="body2" color="textSecondary">OR</Typography></Divider>
-                </Box>
-
-                <Box display="flex" justifyContent="center">
-                    <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setError('Google Log in Failed')} />
-                </Box>
-
-                <Box textAlign="center" mt={3}>
-                    <Typography variant="body2" color="textSecondary">
-                        Don't have an account?{' '}
-                        <Link component="button" type="button" onClick={() => setAuthModalView(role === 'vet' ? 'vet-register' : 'register')} sx={{ color: themeColor, fontWeight: 'bold' }}>
-                            Sign Up
-                        </Link>
+                    <Typography variant="h5" fontWeight="900" sx={{ mb: 2, letterSpacing: '-0.5px' }}>
+                        Sign In
                     </Typography>
+
+                    {/* Google Login - Outline theme for visibility on blue */}
+                    <Box sx={{
+                        mb: 2,
+                        width: '100%',
+                        bgcolor: 'white',
+                        borderRadius: '50px',
+                        overflow: 'hidden',
+                        '& iframe': { width: '100% !important' }
+                    }}>
+                        <GoogleLogin
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => setError('Google Authentication Failed')}
+                            width="100%"
+                            theme="outline"
+                            shape="pill"
+                            text="signin_with"
+                        />
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5, width: '100%' }}>
+                        <Divider sx={{ flex: 1, height: '1.5px', background: '#FFFFFF', border: 'none' }} />
+                        <Typography variant="caption" sx={{ px: 2, color: 'white', opacity: 1, fontWeight: 700, fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                            Or Login with Email
+                        </Typography>
+                        <Divider sx={{ flex: 1, height: '1.5px', background: '#FFFFFF', border: 'none' }} />
+                    </Box>
+
+                    <form onSubmit={handleSubmit} noValidate>
+                        {error && (
+                            <Alert
+                                severity="error"
+                                sx={{ mb: 1.5, py: 0, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.8rem' }}
+                            >
+                                {error}
+                            </Alert>
+                        )}
+
+                        <Typography variant="body2" sx={{ mb: 0.6, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.85rem' }}>Username / Email</Typography>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            name="email"
+                            type="email"
+                            placeholder="Type your email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            variant="outlined"
+                            required
+                            disabled={loading}
+                            error={isFieldInvalid('email')}
+                            sx={{
+                                mb: 1.5,
+                                '& .MuiOutlinedInput-root': {
+                                    bgcolor: 'white',
+                                    color: '#1e293b',
+                                    borderRadius: '16px',
+                                    height: '42px',
+                                    fontSize: '0.9rem',
+                                    '& fieldset': { borderColor: 'transparent' },
+                                    '&:hover fieldset': { borderColor: 'rgba(0,0,0,0.05)' },
+                                    '&.Mui-focused fieldset': { borderColor: 'white', borderWidth: '2px' },
+                                },
+                            }}
+                        />
+
+                        <Typography variant="body2" sx={{ mb: 0.6, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.85rem' }}>Password</Typography>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            name="password"
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            variant="outlined"
+                            required
+                            disabled={loading}
+                            error={isFieldInvalid('password')}
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            edge="end"
+                                            size="small"
+                                            sx={{ color: '#64748b' }}
+                                        >
+                                            {showPassword ? <VisibilityOff sx={{ fontSize: 16 }} /> : <Visibility sx={{ fontSize: 16 }} />}
+                                        </IconButton>
+                                    </InputAdornment>
+                                ),
+                            }}
+                            sx={{
+                                mb: 1,
+                                '& .MuiOutlinedInput-root': {
+                                    bgcolor: 'white',
+                                    color: '#1e293b',
+                                    borderRadius: '16px',
+                                    height: '42px',
+                                    fontSize: '0.9rem',
+                                    '& fieldset': { borderColor: 'transparent' },
+                                    '&:hover fieldset': { borderColor: 'rgba(0,0,0,0.05)' },
+                                    '&.Mui-focused fieldset': { borderColor: 'white', borderWidth: '2px' },
+                                },
+                            }}
+                        />
+
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <FormControlLabel
+                                control={<Checkbox size="small" sx={{ p: 0.5, color: 'rgba(255,255,255,0.7)', '&.Mui-checked': { color: 'white' } }} />}
+                                label={<Typography sx={{ color: 'white', opacity: 0.9, fontSize: '0.75rem', fontWeight: 500 }}>Keep me logged in</Typography>}
+                                sx={{ ml: -0.5 }}
+                            />
+                            <Link
+                                component="button"
+                                type="button"
+                                variant="caption"
+                                onClick={() => setAuthModalView('forgot')}
+                                sx={{ color: 'white', opacity: 0.9, textDecoration: 'none', fontSize: '0.75rem', fontWeight: 600, '&:hover': { textDecoration: 'underline' } }}
+                            >
+                                Forget your password?
+                            </Link>
+                        </Box>
+
+                        <Button
+                            type="submit"
+                            fullWidth
+                            variant="contained"
+                            disabled={loading}
+                            sx={{
+                                bgcolor: 'white',
+                                color: bgBlue,
+                                py: 1.25,
+                                borderRadius: '50px',
+                                fontSize: '0.95rem',
+                                fontWeight: 800,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    bgcolor: 'rgba(255,255,255,0.95)',
+                                    transform: 'translateY(-1px)',
+                                },
+                                boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
+                            }}>
+                            {loading ? <CircularProgress size={20} color="inherit" /> : 'Login'}
+                        </Button>
+                    </form>
+
+                    <Box sx={{ textAlign: 'center', mt: 3 }}>
+                        <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.85rem', fontWeight: 500 }}>
+                            Haven't sign up yet? {' '}
+                            <Link
+                                component="button"
+                                type="button"
+                                onClick={() => setAuthModalView('register')}
+                                sx={{ color: 'white', fontWeight: 800, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                            >
+                                Sign up
+                            </Link>
+                        </Typography>
+                    </Box>
+                </Box>
+
+                {/* Right Section - Illustration */}
+                <Box sx={{
+                    display: { xs: 'none', md: 'flex' },
+                    flex: 1, // Equal halves
+                    bgcolor: 'white',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    p: 3,
+                }}>
+                    <Box
+                        component="img"
+                        src={authIllustration}
+                        alt="Security Illustration"
+                        sx={{
+                            width: '100%',
+                            maxWidth: '340px',
+                            height: 'auto',
+                            objectFit: 'contain'
+                        }}
+                    />
                 </Box>
             </Box>
-        </Box>
+        </Fade>
     );
 };
 

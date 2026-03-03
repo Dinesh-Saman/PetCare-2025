@@ -73,7 +73,8 @@ const ContactUs = () => {
         }
 
         .contact-hero {
-          padding: 10rem 2rem 6rem;
+          padding: 6rem 2rem 4rem;
+          margin-top: 96px; /* Matches desktop navbar */
           background: 
             linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
             url('https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=1600&h=700&fit=crop&q=80');
@@ -85,6 +86,7 @@ const ContactUs = () => {
           display: flex;
           align-items: center;
           justify-content: center;
+          min-height: 400px;
         }
 
         .hero-content {
@@ -227,8 +229,20 @@ const ContactUs = () => {
         }
 
         @media (max-width: 768px) {
-          .hero-title { font-size: 2.5rem; }
-          .form-section { padding: 2.5rem; }
+          .contact-hero {
+            padding: 4rem 1.5rem 2rem;
+            margin-top: 80px; /* Matches mobile navbar */
+            min-height: 300px;
+            background-attachment: scroll; /* Fixed backgrounds often break on mobile */
+          }
+          .hero-title { font-size: 2.2rem; }
+          .hero-badge { margin-bottom: 1.5rem; padding: 0.6rem 1.2rem; font-size: 0.9rem; }
+          .form-section { padding: 2rem; border-radius: 20px; }
+          .contact-content { padding: 3rem 1.5rem; }
+        }
+        @media (max-width: 480px) {
+          .hero-title { font-size: 1.8rem; }
+          .form-section { padding: 1.5rem; }
         }
       `}</style>
 

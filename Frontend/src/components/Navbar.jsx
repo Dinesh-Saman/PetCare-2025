@@ -30,11 +30,11 @@ import {
   ExitToApp as LogoutIcon,
   Login as LoginIcon,
   HowToReg as RegisterIcon,
-  Pets as PetsIcon,
   Close as CloseIcon,
   ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
+import Swal from 'sweetalert2';
 
 const Navbar = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -58,6 +58,15 @@ const Navbar = () => {
     logout();
     setAnchorEl(null);
     setDrawerOpen(false);
+
+    Swal.fire({
+      title: 'Logged Out',
+      text: 'You have been successfully logged out.',
+      icon: 'success',
+      timer: 1500,
+      showConfirmButton: false
+    });
+
     navigate('/');
   };
 
@@ -78,11 +87,10 @@ const Navbar = () => {
   const drawerContent = () => (
     <Box
       sx={{
-        width: isMobile ? '100%' : 380,
+        width: '100%',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(135deg, #004aad 0%, #0077ff 100%)',
         color: 'white',
       }}
     >
@@ -201,7 +209,7 @@ const Navbar = () => {
             <Button
               fullWidth
               variant="contained"
-              onClick={() => { toggleDrawer(false)(); openAuthModal('login'); }}
+              onClick={() => { toggleDrawer(false)(); openAuthModal('login', 'owner'); }}
               startIcon={<LoginIcon />}
               sx={{
                 py: 1.5,
@@ -215,7 +223,7 @@ const Navbar = () => {
             <Button
               fullWidth
               variant="contained"
-              onClick={() => { toggleDrawer(false)(); openAuthModal('register'); }}
+              onClick={() => { toggleDrawer(false)(); openAuthModal('register', 'owner'); }}
               startIcon={<RegisterIcon />}
               sx={{
                 py: 1.5,
@@ -262,31 +270,41 @@ const Navbar = () => {
           }}
         >
 
-          {/* Logo + Drawer Toggle */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <IconButton color="inherit" edge="start" onClick={toggleDrawer(true)} sx={{ mr: 1, display: { md: 'none' } }}>
-              <MenuIcon />
-            </IconButton>
+          {/* Logo Section */}
+          <Box
+            component={Link}
+            to={isLoggedIn ? "/owner/profile" : "/"}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 1, md: 1.5 },
+              textDecoration: 'none',
+              color: 'inherit',
+              mr: 'auto' // Push other content to the right
+            }}
+          >
             <Box
-              component={Link}
-              to={isLoggedIn ? "/owner/profile" : "/"}
-              sx={{ display: 'flex', alignItems: 'center', gap: 1.5, textDecoration: 'none', color: 'inherit' }}
+              component="img"
+              src="https://i.imgur.com/RHsVvXq.jpeg"
+              alt="Pawpal Logo"
+              sx={{
+                width: { xs: 50, md: 70 },
+                height: { xs: 50, md: 70 },
+                borderRadius: '50%',
+                objectFit: 'cover',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              }}
+            />
+            <Typography
+              variant="h5"
+              component="div"
+              sx={{
+                fontWeight: 700,
+                fontSize: { xs: '1.1rem', md: '1.6rem' }
+              }}
             >
-              <img
-                src="https://i.imgur.com/RHsVvXq.jpeg"
-                alt="Pawpal Logo"
-                style={{
-                  width: 70,
-                  height: 70,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                }}
-              />
-              <Typography variant="h5" component="div" sx={{ fontWeight: 700, fontSize: { xs: '1.3rem', md: '1.6rem' } }}>
-                Pawpal
-              </Typography>
-            </Box>
+              Pawpal
+            </Typography>
           </Box>
 
           {/* Desktop Navigation */}
@@ -321,8 +339,8 @@ const Navbar = () => {
             ))}
           </Box>
 
-          {/* Right Side - Auth/Profile */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {/* Right Side - Auth/Profile + Menu */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
             {isLoggedIn ? (
               <>
                 <Button
@@ -344,21 +362,6 @@ const Navbar = () => {
                   {userName.split(' ')[0] || 'Profile'}
                 </Button>
 
-                <Button
-                  component={Link}
-                  to="/owner/pets/new"
-                  variant="outlined"
-                  startIcon={<PetsIcon />}
-                  sx={{
-                    color: 'white',
-                    borderColor: 'rgba(255,255,255,0.5)',
-                    textTransform: 'none',
-                    display: { xs: 'none', md: 'flex' },
-                  }}
-                >
-                  Register your pets
-                </Button>
-
                 <IconButton
                   color="inherit"
                   onClick={handleLogout}
@@ -370,7 +373,7 @@ const Navbar = () => {
             ) : (
               <>
                 <Button
-                  onClick={() => openAuthModal('login')}
+                  onClick={() => openAuthModal('login', 'owner')}
                   sx={{
                     color: 'white',
                     textTransform: 'none',
@@ -380,7 +383,7 @@ const Navbar = () => {
                   Login
                 </Button>
                 <Button
-                  onClick={() => openAuthModal('register')}
+                  onClick={() => openAuthModal('register', 'owner')}
                   variant="contained"
                   sx={{
                     background: 'rgba(255,255,255,0.25)',
@@ -394,6 +397,22 @@ const Navbar = () => {
                 </Button>
               </>
             )}
+
+            {/* Mobile Hamburger Menu - Now on the right */}
+            <IconButton
+              color="inherit"
+              edge="end"
+              onClick={toggleDrawer(true)}
+              sx={{
+                ml: 1,
+                display: { md: 'none' },
+                padding: '8px',
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                '&:hover': { backgroundColor: 'rgba(255,255,255,0.2)' }
+              }}
+            >
+              <MenuIcon sx={{ fontSize: '1.8rem' }} />
+            </IconButton>
           </Box>
         </Toolbar>
       </AppBar>
@@ -425,15 +444,22 @@ const Navbar = () => {
         anchor="left"
         open={drawerOpen}
         onClose={toggleDrawer(false)}
-        PaperProps={{ sx: { backgroundColor: 'transparent', backdropFilter: 'blur(10px)' } }}
+        PaperProps={{
+          sx: {
+            width: { xs: '100vw', md: 380 },
+            height: '100vh',
+            background: 'linear-gradient(135deg, #004aad 0%, #0077ff 100%)',
+            color: 'white',
+            boxShadow: 'none',
+            borderRadius: 0
+          }
+        }}
         ModalProps={{
           BackdropProps: { sx: { backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(5px)' } },
         }}
       >
         {drawerContent()}
       </Drawer>
-
-      {/* Login Popup */}
     </>
   );
 };

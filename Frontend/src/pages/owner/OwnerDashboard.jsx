@@ -170,8 +170,15 @@ const ModalHeader = styled(Box)(({ theme }) => ({
   position: 'relative',
 }));
 
+const ContentArea = styled(Box)(({ theme }) => ({
+  maxWidth: '1400px',
+  margin: '0 auto',
+  width: '100%',
+}));
+
 const OwnerDashboard = () => {
   const navigate = useNavigate();
+  const { user, updateUser, loading: authLoading } = useAuth();
 
   const [owner, setOwner] = useState(null);
   const [pets, setPets] = useState([]);
@@ -208,10 +215,49 @@ const OwnerDashboard = () => {
     notes: ''
   });
   const [savingPet, setSavingPet] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
+  const [twoFactorData, setTwoFactorData] = useState(null);
+  const [twoFactorToken, setTwoFactorToken] = useState('');
+  const [tfaLoading, setTfaLoading] = useState(false);
+
+  // Placeholders for 2FA functions
+  const setup2FA = () => { /* Implement setup logic */ };
+  const disable2FA = () => { /* Implement disable logic */ };
+  const enable2FA = () => { /* Implement enable logic */ };
 
   useEffect(() => {
+    // Wait for auth to finish loading before determining if user is logged in
+    if (authLoading) return;
+
+    // Redirect to home if not logged in
+    if (!user?.id) {
+      navigate('/');
+      return;
+    }
+
     const fetchOwnerData = async () => {
+      setLoading(true);
       try {
+        // 1. Fetch Owner Profile
+        const ownerRes = await api.get(`/owners/${user.id}`);
+        const ownerData = ownerRes.data;
+        setOwner(ownerData);
+        setEditForm({
+          firstName: ownerData.firstName || '',
+          lastName: ownerData.lastName || '',
+          phoneNumber: ownerData.phoneNumber || '',
+          address: ownerData.address || '',
+          email: ownerData.email || '',
+        });
+
+        // 2. Fetch User's Pets
+        const petsRes = await api.get('/pets/my');
+        const petsData = petsRes.data.pets || petsRes.data || [];
+        setPets(petsData);
+
+        // 3. Calculate Stats
+        const approved = petsData.filter(p => p.registrationStatus === 'Approved').length;
+        const pending = petsData.filter(p => p.registrationStatus === 'Pending').length;
 
         setStats({
           totalPets: petsData.length,
@@ -225,7 +271,7 @@ const OwnerDashboard = () => {
         console.error('Error loading dashboard:', error);
         Swal.fire({
           title: 'Error',
-          text: 'Unable to load dashboard data. Please try again.',
+          text: error.response?.data?.message || 'Unable to load dashboard data. Please try again.',
           icon: 'error',
           confirmButtonColor: '#667eea',
         });
@@ -235,7 +281,7 @@ const OwnerDashboard = () => {
     };
 
     fetchOwnerData();
-  }, [navigate]);
+  }, [user, authLoading, navigate]);
 
   const handleDeletePet = async (petId, petName) => {
     const result = await Swal.fire({
@@ -264,7 +310,7 @@ const OwnerDashboard = () => {
     try {
       const response = await api.put(`/owners/${owner._id || owner.id}`, editForm);
       setOwner(response.data);
-      localStorage.setItem('owner_user', JSON.stringify(response.data));
+      updateUser(response.data); // Synchronize with AuthContext
       setOpenEditProfile(false);
       Swal.fire('Success', 'Profile updated successfully', 'success');
     } catch (error) {
@@ -349,7 +395,7 @@ const OwnerDashboard = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <DashboardContainer>
         <ContentArea>

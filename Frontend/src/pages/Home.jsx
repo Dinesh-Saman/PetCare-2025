@@ -16,7 +16,6 @@ const Home = () => {
     <div className="home-container">
       <Navbar />
       <HeroSection />
-      <PurposeSection />
       <HowItWorks />
       <CoreFeatures />
       <Banner />

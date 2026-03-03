@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { IconButton, Tooltip } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { useAuth } from '../../context/AuthContext';
 
 function PetChatbotPage() {
   const initialMessage = {
@@ -10,7 +13,18 @@ function PetChatbotPage() {
     text: `Hello! 🐶🐱\n\nI'm your friendly pet health advisor focused on dogs and cats in Sri Lanka.\nYou can ask me about:\n• Vaccination schedules\n• Nutrition & safe foods\n• Common symptoms & prevention\n• Basic first aid\n\nImportant: This is general information only — always consult a real veterinarian for diagnosis or treatment!`,
   };
 
-  const [messages, setMessages] = useState([initialMessage]);
+  const { user } = useAuth();
+  const getStorageKey = () => user ? `petchatbot_messages_${user._id || user.id}` : "petchatbot_messages_guest";
+
+  const [messages, setMessages] = useState(() => {
+    try {
+      const key = user ? `petchatbot_messages_${user._id || user.id}` : "petchatbot_messages_guest";
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : [initialMessage];
+    } catch (error) {
+      return [initialMessage];
+    }
+  });
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,7 +41,22 @@ function PetChatbotPage() {
 
   useEffect(() => {
     scrollToBottom();
+    // Save to local storage whenever messages change
+    localStorage.setItem(getStorageKey(), JSON.stringify(messages));
   }, [messages]);
+
+  // Handle user switching: reload messages for the new user
+  useEffect(() => {
+    if (user) {
+      const key = `petchatbot_messages_${user._id || user.id}`;
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        setMessages(JSON.parse(raw));
+      } else {
+        setMessages([initialMessage]);
+      }
+    }
+  }, [user?.id, user?._id]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -165,6 +194,31 @@ function PetChatbotPage() {
           border-bottom-left-radius: 0.5rem;
         }
 
+        /* Markdown Styles */
+        .bubble h1, .bubble h2, .bubble h3 {
+          margin: 0.75rem 0;
+          font-size: 1.15rem;
+          color: var(--pet-dark);
+          font-weight: 700;
+        }
+        .bubble ul, .bubble ol {
+          margin: 1rem 0;
+          padding-left: 1.5rem;
+        }
+        .bubble li {
+          margin-bottom: 0.5rem;
+        }
+        .bubble p {
+          margin: 1rem 0;
+          line-height: 1.6;
+        }
+        .bubble p:first-of-type {
+          margin-top: 0;
+        }
+        .bubble p:last-of-type {
+          margin-bottom: 0;
+        }
+
         .avatar {
           width: 42px;
           height: 42px;
@@ -290,7 +344,11 @@ function PetChatbotPage() {
             <div key={msg.id} className={`message ${msg.sender}`}>
               <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                 {msg.sender === 'bot' && <div className="avatar">PA</div>}
-                <div className={`bubble ${msg.sender}`}>{msg.text}</div>
+                <div className={`bubble ${msg.sender}`}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.text}
+                  </ReactMarkdown>
+                </div>
               </div>
             </div>
           ))}

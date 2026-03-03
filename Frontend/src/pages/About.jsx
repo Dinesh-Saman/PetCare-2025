@@ -25,7 +25,8 @@ const AboutUs = () => {
 
         /* Hero Section with Clean Image */
         .about-hero {
-          padding: 8rem 2rem 6rem;
+          padding: 6rem 2rem 4rem; /* Adjusted for fixed navbar */
+          margin-top: 96px; /* Matches desktop navbar */
           background: url('https://images.unsplash.com/photo-1576201836106-db1758fd1c97?w=1600&h=800&fit=crop&q=80');
           background-size: cover;
           background-position: center;
@@ -33,7 +34,7 @@ const AboutUs = () => {
           text-align: center;
           position: relative;
           overflow: hidden;
-          min-height: 600px;
+          min-height: 500px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -603,8 +604,9 @@ const AboutUs = () => {
 
         @media (max-width: 768px) {
           .about-hero {
-            padding: 6rem 1.5rem 4rem;
-            min-height: 500px;
+            padding: 4rem 1.5rem 3rem;
+            min-height: 400px;
+            margin-top: 80px; /* Matches mobile navbar */
           }
 
           .hero-title {

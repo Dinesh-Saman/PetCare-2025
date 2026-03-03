@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const HeroSection = () => {
+  const { openAuthModal } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // High-quality, relevant images for pet care / veterinary theme
@@ -21,8 +23,7 @@ const HeroSection = () => {
   }, [slides.length]);
 
   const handleGetStarted = () => {
-    // Can link to registration, dashboard, or pet profile creation
-    window.location.href = "/register"; // or "/dashboard" / "/add-pet"
+    openAuthModal('register', 'owner');
   };
 
   return (
@@ -140,15 +141,49 @@ const HeroSection = () => {
           from { opacity: 0; transform: translateY(40px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @media (max-width: 768px) {
+        @media (max-width: 960px) {
+          .hero-section {
+            height: 500px;
+          }
           .hero-content h1 {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
           }
           .hero-content p {
-            font-size: 1.15rem;
+            font-size: 1rem;
+            margin-bottom: 2rem;
+            line-height: 1.5;
+            padding: 0 1rem;
           }
+          .hero-button {
+            padding: 0.9rem 1.8rem;
+            font-size: 1rem;
+          }
+        }
+        @media (max-width: 599.95px) {
           .hero-section {
+            margin-top: 80px; /* SYNC: Navbar 80px */
             height: 480px;
+          }
+        }
+        @media (min-width: 600px) {
+          .hero-section {
+            margin-top: 96px; /* SYNC: Navbar 96px */
+          }
+        }
+        @media (max-width: 480px) {
+          .hero-section {
+            height: 460px;
+          }
+          .hero-content h1 {
+            font-size: 1.8rem;
+          }
+          .hero-content p {
+            font-size: 0.9rem;
+          }
+          .hero-button {
+            padding: 0.8rem 1.5rem;
+            font-size: 0.9rem;
           }
         }
       `}</style>
@@ -171,7 +206,7 @@ const HeroSection = () => {
           <div className="hero-content">
             <h1>Pawpal</h1>
             <p>
-              Your all-in-one platform for pet health management in Sri Lanka. register pets, book vet appointments, 
+              Your all-in-one platform for pet health management in Sri Lanka. register pets, book vet appointments,
               chat with veterinarians, track vaccinations & medications, and get instant AI-powered pet care advice.
             </p>
             <button onClick={handleGetStarted} className="hero-button">

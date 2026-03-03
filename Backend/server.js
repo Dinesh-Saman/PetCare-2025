@@ -281,29 +281,64 @@ async function checkOllama() {
       const models = response.data.models;
       console.log(`📋 Available models:`, models.map(m => m.name).join(', '));
 
-      // Find a working model
-      for (const model of models) {
-        try {
-          const testResponse = await axios.post(`${OLLAMA_BASE_URL}/api/generate`, {
-            model: model.name,
-            prompt: "Say 'READY'",
-            stream: false
-          }, { timeout: 10000 });
+      // Prioritize better models
+      const preferredModels = ['llama3.2:latest', 'llama3.2', 'llama3.2:1b', 'llama3.2:3b'];
 
-          if (testResponse.data && testResponse.data.response) {
-            currentOllamaModel = model.name;
-            isOllamaAvailable = true;
-            console.log(`✅ Ollama available with model: ${currentOllamaModel}`);
-            console.log(`   Test response: ${testResponse.data.response.substring(0, 50)}`);
-            return;
+      let discoveredModel = null;
+
+      // Try each preferred model until one works
+      for (const pref of preferredModels) {
+        const match = models.find(m => {
+          const mName = m.name.toLowerCase();
+          return mName === pref || mName.startsWith(pref + ':');
+        });
+
+        if (match) {
+          console.log(`🎯 Testing preferred model: ${match.name}`);
+          try {
+            const testResponse = await axios.post(`${OLLAMA_BASE_URL}/api/generate`, {
+              model: match.name,
+              prompt: "Say 'READY'",
+              stream: false
+            }, { timeout: 10000 });
+
+            if (testResponse.data && testResponse.data.response) {
+              discoveredModel = match.name;
+              break;
+            }
+          } catch (e) {
+            console.log(`   Model ${match.name} test failed: ${e.message}`);
           }
-        } catch (testError) {
-          console.log(`   Skipping model ${model.name}: ${testError.message}`);
         }
       }
 
-      console.log('⚠️ No working Ollama model found');
-      isOllamaAvailable = false;
+      // Fallback
+      if (!discoveredModel && models.length > 0) {
+        for (const m of models) {
+          if (preferredModels.some(p => m.name.toLowerCase().startsWith(p))) continue; // Already tried
+          console.log(`⚠️ Trying fallback model: ${m.name}`);
+          try {
+            const res = await axios.post(`${OLLAMA_BASE_URL}/api/generate`, {
+              model: m.name,
+              prompt: "Say 'READY'",
+              stream: false
+            }, { timeout: 10000 });
+            if (res.data && res.data.response) {
+              discoveredModel = m.name;
+              break;
+            }
+          } catch (e) { }
+        }
+      }
+
+      if (discoveredModel) {
+        currentOllamaModel = discoveredModel;
+        isOllamaAvailable = true;
+        console.log(`✅ AI ACTIVATED with model: ${currentOllamaModel}`);
+      } else {
+        console.log('⚠️ No functional AI models found in Ollama.');
+        isOllamaAvailable = false;
+      }
     }
   } catch (error) {
     console.log('⚠️ Ollama not available:', error.message);
@@ -412,26 +447,32 @@ function searchKnowledgeBase(query) {
 // Get response from Ollama with context
 async function getOllamaResponse(query, context) {
   try {
-    const prompt = `You are a helpful pet health advisor for Sri Lankan pet owners. 
-Use the provided context from the pet health knowledge base to answer the question.
+    const prompt = `[System Role]
+You are Dr. Sara, an AI veterinary assistant for Pawpal (Sri Lanka).
+Your mission is to provide helpful, safe, and accurate advice to pet owners.
 
-CONTEXT FROM PET HEALTH KNOWLEDGE BASE:
+[Context Info]
 ${context}
 
-USER'S QUESTION:
+[Instructions]
+1. SEARCH THE CONTEXT FIRST: If the answer is found in the "Context Info" above, use it as your primary source.
+2. USE YOUR OWN KNOWLEDGE: If the answer is NOT in the context, use your professional veterinary knowledge to answer directly.
+3. STRUCTURE & FORMATTING (CRITICAL):
+   - Use plain bullet points with the "•" symbol.
+   - NEVER use asterisks (*), hash symbols (#), or bold markers (**) for lists or formatting.
+   - Use EXACTLY TWO newlines between every paragraph or section to ensure clear, vertical separation.
+   - Headers should be plain text on their own line, NOT preceded by symbols.
+   - Each bullet point or numbered item must be on its own line.
+4. BE DIRECT: Start answering the question directly with a friendly tone. Do not use filler phrases.
+5. PETS ONLY: Only answer questions about animals and pet health.
+6. SAFETY: Always remind users to consult a local veterinarian in Sri Lanka.
+
+[User Question]
 ${query}
 
-INSTRUCTIONS:
-1. Answer based on the provided context
-2. Be helpful, clear, and concise
-3. If the context doesn't contain the answer, say so honestly
-4. Format your answer in a natural, conversational way
-5. Mention if the information is specific to Sri Lanka
-6. Always remind users to consult a veterinarian for specific concerns
+[Dr. Sara's Response]`;
 
-ANSWER:`;
-
-    console.log(`🤖 Sending to Ollama (${currentOllamaModel})...`);
+    console.log(`🤖 Sending to Ollama (${currentOllamaModel}...`);
 
     const response = await axios.post(`${OLLAMA_BASE_URL}/api/generate`, {
       model: currentOllamaModel,
@@ -446,7 +487,34 @@ ANSWER:`;
     }, { timeout: 45000 }); // Increased timeout
 
     console.log(`✅ Ollama response received (${response.data.response.length} chars)`);
-    return response.data.response;
+
+    // Safety formatting: ensure bullets and numbers have newlines
+    let cleaned = response.data.response;
+
+    // 1. Standardize all bullet marks (•, *, -) into a unique internal placeholder first
+    // This catches bullets at the start of any line or in the middle of sentences.
+    cleaned = cleaned.replace(/(?:^|\s+)[•*-]\s+/gm, ' __BT__ ');
+
+    // 2. Strip all '#' and leftovers '*' symbols (bolding/headers)
+    cleaned = cleaned.replace(/[#*]+/g, '');
+
+    // 3. Convert placeholders into "•" with mandatory double newlines for separation
+    cleaned = cleaned.replace(/\s*__BT__\s+/g, '\n\n• ');
+
+    // 4. Ensure double newlines before numbering (e.g. 1.)
+    cleaned = cleaned.replace(/([^\n])\s*(\d+\.)\s+/g, '$1\n\n$2 ');
+
+    // 5. Clean up excessive spacing
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+    // 6. Handle cases where the text starts with a bullet but wasn't caught by the regex
+    if (cleaned.startsWith('•') || cleaned.startsWith(' __BT__ ')) {
+      cleaned = cleaned.replace(/^ __BT__ /, '• ');
+    } else if (response.data.response.trim().startsWith('•') || response.data.response.trim().startsWith('*') || response.data.response.trim().startsWith('-')) {
+      if (!cleaned.startsWith('• ')) cleaned = '• ' + cleaned.trim();
+    }
+
+    return cleaned.trim();
 
   } catch (error) {
     console.error('❌ Ollama API error:', error.message);

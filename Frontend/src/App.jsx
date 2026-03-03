@@ -36,6 +36,10 @@ import MyAppointments from './pages/owner/MyAppointments';
 import ChatWidget from './components/ChatWidget';
 import AuthModal from './components/Auth/AuthModal';
 import VetProfile from './pages/vet/Profile';
+import VetLogin from './pages/vet/VetLogin';
+import VetRegister from './pages/vet/VetRegister';
+import VetTwoFactor from './pages/vet/VetTwoFactor';
+import VetForgotPassword from './pages/vet/VetForgotPassword';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 
@@ -46,11 +50,11 @@ import ToxicFoodsTips from './pages/tips/ToxicFoods';
 
 function App() {
   // Mock auth - replace with real AuthContext later
-  const isVetLoggedIn = true; // Change to false to test redirect
+  // const isVetLoggedIn = true; 
 
-  if (!isVetLoggedIn) {
-    return <div>Please log in</div>;
-  }
+  // if (!isVetLoggedIn) {
+  //   return <div>Please log in</div>;
+  // }
 
   return (
     <>
@@ -60,6 +64,10 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<ContactUs />} />
+        <Route path="/vet/login" element={<VetLogin />} />
+        <Route path="/vet/register" element={<VetRegister />} />
+        <Route path="/vet/forgot-password" element={<VetForgotPassword />} />
+        <Route path="/vet/verify-2fa" element={<VetTwoFactor />} />
 
         {/* PetCare Tips Routes */}
         <Route path="/tips/vaccinations" element={<VaccinationTips />} />

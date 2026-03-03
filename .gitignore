@@ -25,9 +25,4 @@ dist-ssr
 
 .vercel
 
-# Python
-venv/
-chatbot/venv/
-__pycache__/
-*.pyc
 /venv

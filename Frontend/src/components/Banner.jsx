@@ -15,7 +15,7 @@ const Banner = () => {
     if (user) {
       navigate('/owner/pets/new');
     } else {
-      openAuthModal('register');
+      openAuthModal('register', 'owner');
     }
   };
 
@@ -231,32 +231,60 @@ const Banner = () => {
         @media (max-width: 968px) {
           .banner-section {
             margin: 2rem 1rem;
+            border-radius: 20px;
           }
 
           .banner-grid {
             grid-template-columns: 1fr;
+            min-height: auto;
           }
 
           .banner-content {
-            padding: 3rem 2rem;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            align-items: center;
+          }
+
+          .banner-label {
+            margin: 0 auto 1.5rem;
           }
 
           .banner-content h2 {
-            font-size: 2.2rem;
+            font-size: 2rem;
+          }
+
+          .banner-content p {
+            font-size: 1rem;
           }
 
           .banner-image-wrapper {
-            min-height: 300px;
+            height: 250px;
           }
 
           .banner-actions {
             flex-direction: column;
-            align-items: flex-start;
+            width: 100%;
+            gap: 1.5rem;
+          }
+
+          .banner-button {
+            width: 100%;
+            padding: 0.9rem;
           }
 
           .feature-points {
+            width: 100%;
             flex-direction: column;
+            align-items: flex-start;
             gap: 1rem;
+          }
+        }
+        @media (max-width: 480px) {
+           .banner-content h2 {
+            font-size: 1.7rem;
+          }
+          .banner-section {
+            margin: 1.5rem 0.5rem;
           }
         }
       `}</style>

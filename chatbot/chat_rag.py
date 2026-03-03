@@ -1,37 +1,47 @@
 import re
 import json
 from pathlib import Path
-from langchain_community.vectorstores import Chroma
+# from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_core.prompts import PromptTemplate
 from langchain_ollama import ChatOllama
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_classic.chains import create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain
 
-def rag_chain():
+# Initialize the chain once globally to improve response speed
+_CACHED_CHAIN = None
+
+def get_rag_chain():
+    global _CACHED_CHAIN
+    if _CACHED_CHAIN is not None:
+        return _CACHED_CHAIN
+
     # Consistency: Low temperature for deterministic answers
     model = ChatOllama(
-        model="llama3.2",
+        model="llama3.2:1b",
         temperature=0.1,
         num_ctx=4096
     )
     
-    # Grounded Prompting for Dr. Sara
+    # Direct and efficient prompt for Dr. Sara (llama3.2:1b optimized)
     prompt = PromptTemplate.from_template(
         """
-        [System]
-        You are Dr. Sara, an AI veterinary assistant for Pawpal (Sri Lanka). 
-        Your primary duty is to provide safe, accurate, and evidence-based pet care advice using ONLY the context provided below.
+        [Role]
+        You are Dr. Sara, an AI veterinarian for Pawpal (Sri Lanka).
+        Your mission is to provide helpful, safe, and accurate advice to pet owners.
         
-        [Safety Protocol]
-        - If the user describes a life-threatening emergency (e.g., snake bite, severe bleeding), advise immediate veterinary visit.
-        - NEVER recommend human medications (like Ibuprofen or Chocolate) unless specified in the context.
-        
-        [Constraints]
-        1. Contextual Integrity: Use ONLY the provided context. Do NOT use outside knowledge.
-        2. Unavailability: If the answer is not in the context, explicitly state: "I'm sorry, my current knowledge on that specific topic is limited. I recommend consulting a veterinarian at a registered Sri Lankan clinic for a precise diagnosis."
-        3. Local Context: Sri Lanka has high incidences of Rabies and Leptospirosis. If relevant, mention these local risks.
-        4. Tone: Compassionate, professional, and concise.
+        [Guidelines]
+        1. SEARCH THE CONTEXT FIRST: If the answer is found in the "Context" below, use it as your primary source.
+        2. USE YOUR OWN KNOWLEDGE: If the answer is NOT in the context, use your professional veterinary knowledge to answer directly.
+        3. STRUCTURE & FORMATTING (CRITICAL):
+           - Use plain bullet points with the "•" symbol.
+           - NEVER use asterisks (*) or hash symbols (#) for lists or formatting.
+           - Use EXACTLY TWO newlines between every paragraph or section to ensure clear, vertical separation.
+           - Headers should be plain text on their own line, NOT preceded by symbols.
+           - Each bullet point or numbered item must be on its own line.
+        4. BE DIRECT: Start answering the question directly with a friendly tone. Do not use filler phrases like "Based on the context...".
+        5. PETS ONLY: Only answer questions about animals and pet health.
+        6. SAFETY: Always remind users to consult a local veterinarian in Sri Lanka.
         
         Context:
         {context}
@@ -46,19 +56,33 @@ def rag_chain():
     base_dir = Path(__file__).resolve().parent
     persist_dir = base_dir / "sql_chroma_db"
     
+    from langchain_community.vectorstores import FAISS
     embedding = FastEmbedEmbeddings()
-    vector_store = Chroma(persist_directory=str(persist_dir), embedding_function=embedding)
-
-    # Enhanced Retrieval (k=5)
-    retriever = vector_store.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": 5},
-    )
+    
+    # Load if exists
+    if persist_dir.exists():
+        vector_store = FAISS.load_local(
+            str(persist_dir), 
+            embedding, 
+            allow_dangerous_deserialization=True
+        )
+        retriever = vector_store.as_retriever(
+            search_type="similarity",
+            search_kwargs={"k": 5},
+        )
+    else:
+        # Fallback if no vector store found
+        retriever = None
 
     document_chain = create_stuff_documents_chain(model, prompt)
-    chain = create_retrieval_chain(retriever, document_chain)
     
-    return chain
+    if retriever:
+        _CACHED_CHAIN = create_retrieval_chain(retriever, document_chain)
+    else:
+        # Minimal chain if DB missing
+        _CACHED_CHAIN = document_chain
+        
+    return _CACHED_CHAIN
 
 def ask(query: str):
     q = (query or "").strip()
@@ -88,20 +112,56 @@ def ask(query: str):
         return "Goodbye! Wishing you and your pet a healthy day ahead."
 
     try:
-        chain = rag_chain()
+        chain = get_rag_chain()
+        # retrieval_chain usually returns a dict with 'answer'
+        # document_chain returns a string or dict depending on configuration
         result = chain.invoke({"input": query})
-        response = result.get("answer", "No response generated.")
+        
+        if isinstance(result, dict):
+            response = result.get("answer", result.get("output", str(result)))
+        else:
+            response = str(result)
+            
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Error in RAG chain: {e}")
         return "I'm experiencing a technical issue right now. Please try again or contact support."
 
     # Clean up response
     def _clean_response(text):
+        if not isinstance(text, str):
+            text = str(text)
         s = text.strip()
+        
+        # 1. Standardize all bullet marks (•, *, -) into a unique internal placeholder
+        s = re.sub(r'(?m)(?:^|\s+)[•*-]\s+', ' __BT__ ', s)
+
+        # 2. Strip all '#' and leftovers '*' symbols (bolding/headers)
+        s = re.sub(r'[#*]+', '', s)
+
+        # 3. Cleanup filler
         s = re.sub(r'(?i)^\s*(answer[:\-\s]*)', '', s).strip()
         s = re.sub(r'(?i)^based on the provided context[,:]?\s*', '', s).strip()
+        
+        # 4. Convert placeholders into "•" with mandatory double newlines
+        s = re.sub(r'\s*__BT__\s+', '\n\n• ', s)
+        
+        # 5. Ensure double newlines before numbering (e.g. 1.)
+        s = re.sub(r'([^\n])\s*(\d+\.)\s+', r'\1\n\n\2 ', s)
+        
+        # 6. Clean up spacing (max 2 newlines)
+        s = re.sub(r'\n{3,}', '\n\n', s)
+        
+        # 7. Corner case fix for starting bullet
+        if s.startswith('•') or s.startswith(' __BT__ '):
+            s = re.sub(r'^ __BT__ ', '• ', s)
+        elif text.strip().startswith(('•', '*', '-')):
+            if not s.startswith('• '):
+                s = '• ' + s.strip()
+
         # Remove any lingering prompt tags if AI leaks them
         s = s.split("[/Instructions]")[0].strip() if "[/Instructions]" in s else s
-        return s
+        return s.strip()
 
     return _clean_response(response)

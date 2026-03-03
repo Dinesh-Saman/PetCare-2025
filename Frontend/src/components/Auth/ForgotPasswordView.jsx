@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Typography, TextField, Button, CircularProgress, Alert, Link } from '@mui/material';
-import { LockReset as LockResetIcon } from '@mui/icons-material';
+import { Box, Typography, TextField, Button, CircularProgress, Alert, Link, Fade, InputAdornment, alpha } from '@mui/material';
+import { LockReset as LockResetIcon, EmailOutlined } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
@@ -10,6 +10,9 @@ const ForgotPasswordView = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+
+    const mainColor = '#2563eb';
+    const bgGradient = 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)';
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -24,7 +27,7 @@ const ForgotPasswordView = () => {
 
         try {
             await api.post('/auth/forgot-password', { email });
-            setSuccess('If an account exists with that email, a password reset link has been sent.');
+            setSuccess('Reset link sent! Please check your inbox.');
             setEmail('');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to process request');
@@ -34,45 +37,53 @@ const ForgotPasswordView = () => {
     };
 
     return (
-        <Box>
-            <Box sx={{ background: 'linear-gradient(90deg, #2196f3, #21cbf3)', color: 'white', py: 4, textAlign: 'center' }}>
-                <LockResetIcon sx={{ fontSize: 48, mb: 1 }} />
-                <Typography variant="h5" fontWeight="bold">Reset Password</Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>Enter your email to receive a reset link</Typography>
-            </Box>
+        <Fade in timeout={400}>
+            <Box sx={{ width: '100%' }}>
+                <Box sx={{ background: bgGradient, color: 'white', py: 3, textAlign: 'center' }}>
+                    <Box sx={{
+                        width: 48, height: 48, bgcolor: 'rgba(255,255,255,0.2)', borderRadius: '12px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 1.5, backdropFilter: 'blur(8px)'
+                    }}>
+                        <LockResetIcon sx={{ fontSize: 24 }} />
+                    </Box>
+                    <Typography variant="h6" fontWeight="800">Reset Password</Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.9 }}>Enter your email to receive a recovery link</Typography>
+                </Box>
 
-            <Box sx={{ p: 4 }}>
-                <form onSubmit={handleSubmit}>
-                    {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
-                    {success && <Alert severity="success" sx={{ mb: 2, borderRadius: 2 }}>{success}</Alert>}
+                <Box sx={{ p: 4, bgcolor: 'white' }}>
+                    <form onSubmit={handleSubmit}>
+                        {error && <Alert severity="error" sx={{ mb: 2, borderRadius: '8px', fontSize: '0.85rem' }}>{error}</Alert>}
+                        {success && <Alert severity="success" sx={{ mb: 2, borderRadius: '8px', fontSize: '0.85rem' }}>{success}</Alert>}
 
-                    <TextField
-                        fullWidth label="Email Address" type="email"
-                        value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                        variant="outlined" required disabled={loading} autoFocus
-                        sx={{ mb: 3 }}
-                    />
+                        <TextField
+                            fullWidth size="small" label="Email Address" type="email"
+                            value={email} onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                            variant="outlined" required disabled={loading} autoFocus
+                            InputProps={{
+                                startAdornment: <InputAdornment position="start"><EmailOutlined sx={{ color: alpha(mainColor, 0.5), fontSize: 18 }} /></InputAdornment>,
+                                sx: { borderRadius: '10px' }
+                            }}
+                            sx={{ mb: 3 }}
+                        />
 
-                    <Button type="submit" fullWidth variant="contained" disabled={loading}
-                        sx={{
-                            background: 'linear-gradient(90deg, #2196f3, #21cbf3)',
-                            color: 'white', py: 1.5, borderRadius: 3, fontSize: '1.1rem', fontWeight: 'bold', textTransform: 'none',
-                            '&:hover': { background: 'linear-gradient(90deg, #1976d2, #00bcd4)' }
-                        }}>
-                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Send Reset Link'}
-                    </Button>
-                </form>
+                        <Button type="submit" fullWidth variant="contained" disabled={loading}
+                            sx={{
+                                background: bgGradient, color: 'white', py: 1.25, borderRadius: '10px', fontSize: '0.95rem', fontWeight: 700, textTransform: 'none',
+                                boxShadow: `0 4px 12px ${alpha(mainColor, 0.2)}`,
+                                '&:hover': { transform: 'translateY(-1px)', boxShadow: `0 6px 15px ${alpha(mainColor, 0.3)}` }
+                            }}>
+                            {loading ? <CircularProgress size={20} color="inherit" /> : 'Send Recovery Link'}
+                        </Button>
+                    </form>
 
-                <Box textAlign="center" mt={3}>
-                    <Typography variant="body2" color="textSecondary">
-                        Remember your password?{' '}
-                        <Link component="button" type="button" onClick={() => setAuthModalView('login')} sx={{ color: '#2196f3', fontWeight: 'bold' }}>
-                            Sign In
+                    <Box textAlign="center" mt={3} pt={2} borderTop="1px solid #f1f5f9">
+                        <Link component="button" type="button" onClick={() => setAuthModalView('login')} sx={{ color: mainColor, fontWeight: 800, textDecoration: 'none', fontSize: '0.85rem' }}>
+                            Back to Sign In
                         </Link>
-                    </Typography>
+                    </Box>
                 </Box>
             </Box>
-        </Box>
+        </Fade>
     );
 };
 
