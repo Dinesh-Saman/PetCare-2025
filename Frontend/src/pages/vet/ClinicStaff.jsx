@@ -3,11 +3,14 @@ import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../../components/layout/Sidebar';
+import Sidebar from '../../components/layout/sidebar';
+import VetAdminNavbar from '../../components/layout/VetAdminNavbar';
 import {
   Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, Chip, IconButton, Button, Tooltip, TextField, Grid, Card, CardContent,
-  CardHeader, Avatar, Collapse, InputAdornment, TablePagination
+  CardHeader, Avatar, Collapse, InputAdornment, TablePagination, useTheme, useMediaQuery,
+  Dialog, DialogTitle, DialogContent, DialogActions, FormControl, InputLabel, Select, MenuItem,
+  FormControlLabel, Switch, CircularProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -70,12 +73,12 @@ const TableHeadCell = styled(TableCell)({
 const AccessChip = styled(Chip)(({ level }) => ({
   fontWeight: 'bold',
   color: 'white',
-  backgroundColor: 
+  backgroundColor:
     level === 'Primary' ? '#d32f2f' :
-    level === 'Full Access' ? '#1976d2' :
-    level === 'Admin' ? '#7b1fa2' :
-    level === 'Moderate' ? '#f57c00' :
-    '#43a047',
+      level === 'Full Access' ? '#1976d2' :
+        level === 'Admin' ? '#7b1fa2' :
+          level === 'Moderate' ? '#f57c00' :
+            '#43a047',
 }));
 
 const AddButton = styled(Button)(({ theme }) => ({
@@ -163,124 +166,58 @@ const HeaderContainer = styled(Box)(({ theme }) => ({
   gap: 20,
 }));
 
-// Custom Pagination Component
-const CustomPagination = ({ count, page, rowsPerPage, onPageChange }) => {
-  return (
-    <TablePagination
-      component="div"
-      count={count}
-      page={page}
-      rowsPerPage={rowsPerPage}
-      onPageChange={onPageChange}
-      rowsPerPageOptions={[]} // Remove rows per page options
-      labelRowsPerPage=""
-      sx={{
-        '& .MuiTablePagination-toolbar': {
-          padding: '16px 0',
-        },
-        '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
-          marginBottom: 0,
-        }
-      }}
-    />
-  );
-};
-
 const ClinicStaff = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [staff, setStaff] = useState([]);
   const [clinics, setClinics] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRow, setExpandedRow] = useState(null);
   const [page, setPage] = useState(0);
-  const [rowsPerPage] = useState(10); // Fixed rows per page
+  const [rowsPerPage] = useState(8);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchClinicStaff = async () => {
       try {
-        console.log('Fetching staff from /vets/clinics/staff');
         const response = await api.get('/vets/clinics/staff');
-        console.log('API Response:', response.data);
-        
-        const staffList = response.data.staff || [];
-        const clinicsList = response.data.clinics || [];
-        
-        console.log('Staff list after processing:', staffList);
-        console.log('Clinics list:', clinicsList);
-        
-        setStaff(staffList);
-        setClinics(clinicsList);
+        setStaff(response.data.staff || []);
+        setClinics(response.data.clinics || []);
       } catch (error) {
-        console.error('Error fetching staff:', error);
-        console.error('Error response:', error.response?.data);
         Swal.fire('Error', 'Could not load clinic staff', 'error');
         setStaff([]);
         setClinics([]);
       }
     };
-
     fetchClinicStaff();
   }, []);
 
-  // Function to get staff number (last 6 digits of object ID)
-  const getStaffNumber = (id) => {
-    if (!id) return 'N/A';
-    // Take last 6 characters of the ID
-    return id.slice(-6).toUpperCase();
+  const getStaffNumber = (id) => (id ? id.slice(-6).toUpperCase() : 'N/A');
+
+  const getClinicName = (member) => {
+    const isPrimary = member.isPrimary || member.details?.isPrimary || false;
+    if (isPrimary) {
+      if (typeof member.clinic === 'string' && clinics.length > 0) {
+        return clinics.find(c => c._id === member.clinic)?.name || 'Primary';
+      }
+      return member.clinic?.name || 'Primary Veterinarian';
+    }
+    if (member.clinic?.name) return member.clinic.name;
+    if (member.currentActiveClinicId && clinics.length > 0) {
+      return clinics.find(c => c._id === member.currentActiveClinicId)?.name || 'Unassigned';
+    }
+    return 'Unassigned';
   };
 
-  // Function to get clinic name
-const getClinicName = (member) => {
-  const isPrimary = member.isPrimary || member.details?.isPrimary || false;
-
-  if (isPrimary) {
-    if (typeof member.clinic === 'string' && clinics.length > 0) {
-      const found = clinics.find(c => c._id === member.clinic);
-      return found?.name || 'Primary (clinic ID not matched)';
-    }
-    if (member.clinic?.name) {
-      return member.clinic.name;
-    }
-    return 'Primary Veterinarian';
-  }
-
-  // Non-primary vets & staff
-  if (member.clinic?.name) {
-    return member.clinic.name;
-  }
-
-  // Fallback: try matching currentActiveClinicId against clinics list
-  if (member.currentActiveClinicId && clinics.length > 0) {
-    const found = clinics.find(c => c._id === member.currentActiveClinicId);
-    return found?.name || 'Unassigned';
-  }
-
-  return 'Unassigned';
-};
-
-  // Filter staff based on search query
   const filteredStaff = staff.filter((member) => {
     if (!searchQuery) return true;
-    
     const query = searchQuery.toLowerCase();
     const fullName = `${member.firstName || ''} ${member.lastName || ''}`.toLowerCase();
     const staffNumber = getStaffNumber(member._id).toLowerCase();
-    const email = (member.email || '').toLowerCase();
-    const phone = (member.phoneNumber || '').toLowerCase();
-    
-    return (
-      fullName.includes(query) ||
-      staffNumber.includes(query) ||
-      email.includes(query) ||
-      phone.includes(query)
-    );
+    return fullName.includes(query) || staffNumber.includes(query) || (member.email || '').toLowerCase().includes(query);
   });
 
-  // Get paginated staff
-  const paginatedStaff = filteredStaff.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
+  const paginatedStaff = filteredStaff.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const handleDeactivate = async (id, name) => {
     const result = await Swal.fire({
@@ -289,549 +226,219 @@ const getClinicName = (member) => {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, deactivate',
-      cancelButtonText: 'Cancel'
+      confirmButtonText: 'Yes, deactivate'
     });
-
     if (result.isConfirmed) {
       try {
         const member = staff.find(s => s._id === id);
-        let endpoint;
-        
-        if (member.type === 'Veterinarian') {
-          endpoint = `/vets/${id}/deactivate`;
-        } else {
-          endpoint = `/clinics/staff/${id}/deactivate`;
-        }
-        
-        console.log('Deactivating via endpoint:', endpoint);
+        const endpoint = member.type === 'Veterinarian' ? `/vets/${id}/deactivate` : `/clinics/staff/${id}/deactivate`;
         await api.patch(endpoint);
-        
-        setStaff(prev => prev.map(s => 
-          s._id === id ? { ...s, status: 'Inactive' } : s
-        ));
-        
+        setStaff(prev => prev.map(s => s._id === id ? { ...s, status: 'Inactive' } : s));
         Swal.fire('Deactivated!', `${name} has been deactivated.`, 'success');
       } catch (error) {
-        console.error('Error deactivating:', error);
-        console.error('Error response:', error.response?.data);
-        Swal.fire('Error!', error.response?.data?.message || 'Could not deactivate member', 'error');
+        Swal.fire('Error!', 'Could not deactivate member', 'error');
       }
     }
   };
 
   const handleActivate = async (id, name) => {
-    const result = await Swal.fire({
-      title: `Activate ${name}?`,
-      text: "This member will regain access to the system",
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, activate',
-      cancelButtonText: 'Cancel'
-    });
-
+    const result = await Swal.fire({ title: `Activate ${name}?`, icon: 'question', showCancelButton: true });
     if (result.isConfirmed) {
       try {
         const member = staff.find(s => s._id === id);
-        let endpoint;
-        
-        if (member.type === 'Veterinarian') {
-          endpoint = `/vets/${id}/activate`;
-        } else {
-          endpoint = `/clinics/staff/${id}/activate`;
-        }
-        
-        console.log('Activating via endpoint:', endpoint);
+        const endpoint = member.type === 'Veterinarian' ? `/vets/${id}/activate` : `/clinics/staff/${id}/activate`;
         await api.patch(endpoint);
-        
-        setStaff(prev => prev.map(s => 
-          s._id === id ? { ...s, status: 'Active' } : s
-        ));
-        
+        setStaff(prev => prev.map(s => s._id === id ? { ...s, status: 'Active' } : s));
         Swal.fire('Activated!', `${name} has been activated.`, 'success');
       } catch (error) {
-        console.error('Error activating:', error);
-        console.error('Error response:', error.response?.data);
-        Swal.fire('Error!', error.response?.data?.message || 'Could not activate member', 'error');
+        Swal.fire('Error!', 'Could not activate member', 'error');
       }
     }
   };
 
-  const handleEdit = (id, type) => {
-    if (type === 'Veterinarian') {
-      navigate(`/vet/edit-vet/${id}`);
-    } else {
-      navigate(`/vet/edit-staff/${id}`);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    _id: '',
+    staffType: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    veterinaryId: '',
+    specialization: '',
+    accessLevel: '',
+    role: '',
+    clinicId: '',
+    status: 'Active'
+  });
+
+  const handleEdit = async (id, type) => {
+    try {
+      setLoadingEdit(true);
+      setIsEditModalOpen(true);
+
+      const member = staff.find(s => s._id === id);
+      if (!member) throw new Error('Staff member not found');
+
+      const isVet = type === 'Veterinarian';
+
+      let vetData = {};
+      if (isVet) {
+        const vetRes = await api.get(`/vets/${id}`);
+        vetData = vetRes.data;
+      }
+
+      setEditFormData({
+        _id: id,
+        staffType: isVet ? 'veterinarian' : 'staff',
+        firstName: member.firstName || '',
+        lastName: member.lastName || '',
+        email: member.email || '',
+        phoneNumber: member.phoneNumber || '',
+        status: member.status || 'Active',
+        veterinaryId: isVet ? (vetData.veterinaryId || '') : '',
+        specialization: isVet ? (vetData.specialization || '') : '',
+        accessLevel: isVet ? (vetData.accessLevel || 'Normal Access') : (member.details?.accessLevel || 'Basic'),
+        role: isVet ? '' : (member.details?.role || 'Receptionist'),
+        clinicId: isVet ? (vetData.currentActiveClinicId?._id || vetData.currentActiveClinicId || '') : (member.currentActiveClinicId || member.clinicId || '')
+      });
+
+    } catch (error) {
+      console.error("Error loading edit details", error);
+      Swal.fire('Error', 'Failed to load staff details', 'error');
+      setIsEditModalOpen(false);
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
+  const handleCloseEdit = () => {
+    setIsEditModalOpen(false);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      setSavingEdit(true);
+      const payload = { ...editFormData };
+      // Delete internal _id so it's not sent in the body update if not needed (optional)
+      const submitPayload = { ...payload };
+      delete submitPayload._id;
+
+      if (payload.staffType === 'veterinarian') {
+        submitPayload.isPrimary = payload.accessLevel === 'Primary';
+        await api.put(`/vets/${payload._id}`, submitPayload);
+      } else {
+        await api.put(`/vets/clinic-staff/${payload._id}`, submitPayload);
+      }
+
+      Swal.fire('Success', 'Staff member updated successfully', 'success');
+      setIsEditModalOpen(false);
+
+      // Refresh data
+      const response = await api.get('/vets/clinics/staff');
+      setStaff(response.data.staff || []);
+
+    } catch (error) {
+      console.error(error);
+      Swal.fire('Error', error.response?.data?.message || 'Failed to update member', 'error');
+    } finally {
+      setSavingEdit(false);
     }
   };
 
   const handleDelete = async (id, name) => {
-    console.log('=== FRONTEND DELETE DEBUG ===');
-    console.log('Delete called for ID:', id);
-    console.log('Name:', name);
-    
-    const member = staff.find(s => s._id === id);
-    console.log('Member found:', member);
-    console.log('Member type:', member?.type);
-    
-    const result = await Swal.fire({
-      title: `Delete ${name}?`,
-      text: "This will permanently remove them from the system. This action cannot be undone.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, delete permanently',
-      cancelButtonText: 'Cancel'
-    });
-
+    const result = await Swal.fire({ title: `Delete ${name}?`, text: "This is permanent.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33' });
     if (result.isConfirmed) {
       try {
-        let endpoint;
-        
-        if (member.type === 'Veterinarian') {
-          endpoint = `/vets/${id}`;
-          console.log('Calling vet delete endpoint:', endpoint);
-        } else {
-          endpoint = `/vets/clinic-staff/${id}`;
-          console.log('Calling clinic staff delete endpoint:', endpoint);
-        }
-        
-        const response = await api.delete(endpoint);
-        console.log('Delete response:', response.data);
-        
+        const member = staff.find(s => s._id === id);
+        const endpoint = member.type === 'Veterinarian' ? `/vets/${id}` : `/vets/clinic-staff/${id}`;
+        await api.delete(endpoint);
         setStaff(prev => prev.filter(s => s._id !== id));
-        Swal.fire('Deleted!', `${name} has been permanently deleted.`, 'success');
+        Swal.fire('Deleted!', `${name} has been deleted.`, 'success');
       } catch (error) {
-        console.error('Delete error details:');
-        console.error('Error:', error);
-        console.error('Error response:', error.response?.data);
-        console.error('Error status:', error.response?.status);
-        
-        Swal.fire(
-          'Error!', 
-          error.response?.data?.message || 'Could not delete member', 
-          'error'
-        );
+        Swal.fire('Error!', 'Could not delete member', 'error');
       }
     }
   };
 
-  const toggleExpandRow = (id) => {
-    setExpandedRow(expandedRow === id ? null : id);
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Active':
-        return 'success';
-      case 'Inactive':
-      case 'Deactivated':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case 'Active':
-        return 'Active';
-      case 'Inactive':
-      case 'Deactivated':
-        return 'Inactive';
-      default:
-        return status || 'Active';
-    }
-  };
-
-  const canEditMember = (member) => {
-    return !member.details?.isPrimary;
-  };
-
-  const canDeleteMember = (member) => {
-    return !member.details?.isPrimary;
-  };
-
-  // Handle page change
-  const handlePageChange = (event, newPage) => {
-    setPage(newPage);
-  };
+  const toggleExpandRow = (id) => setExpandedRow(expandedRow === id ? null : id);
+  const getStatusColor = (status) => (status === 'Active' ? 'success' : (['Inactive', 'Deactivated'].includes(status) ? 'error' : 'default'));
+  const canEditMember = (member) => !member.details?.isPrimary;
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-      <Sidebar />
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <ContentContainer>
-          <HeaderContainer>
-            <PageTitle variant="h4">
-              Clinic Staff
-            </PageTitle>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, width: '100%' }}>
-              <SearchContainer>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      <VetAdminNavbar />
+      <Box sx={{ display: 'flex', flexGrow: 1 }}>
+        {!isMobile && <Sidebar />}
+        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
+          <ContentContainer>
+            <HeaderContainer>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: '#49149eff', fontFamily: 'Georgia, serif' }}>Clinic Staff</Typography>
+              <Box sx={{ display: 'flex', gap: 2, width: '100%', flexWrap: 'wrap' }}>
                 <SearchField
                   variant="outlined"
-                  placeholder="Search by name, staff number, email, or phone..."
+                  placeholder="Search staff..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon />
-                      </InputAdornment>
-                    ),
-                  }}
+                  size="small"
+                  InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon /></InputAdornment>) }}
                 />
-              </SearchContainer>
-              
-              <AddButton
-                startIcon={<PersonAddIcon />}
-                onClick={() => navigate('/vet/add-new-staff')}
-              >
-                Add New Staff
-              </AddButton>
-            </Box>
-          </HeaderContainer>
+                <AddButton startIcon={<PersonAddIcon />} onClick={() => navigate('/vet/add-new-staff')} size="small">Add Staff</AddButton>
+              </Box>
+            </HeaderContainer>
 
-          <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
-            <Table>
-              <TableHead>
-                <TableHeadRow>
-                  <TableHeadCell width="50px"></TableHeadCell>
-                  <TableHeadCell width="120px">Staff No.</TableHeadCell>
-                  <TableHeadCell>Staff Member</TableHeadCell>
-                  <TableHeadCell>Role / Specialization</TableHeadCell>
-                  <TableHeadCell>Access Level</TableHeadCell>
-                  <TableHeadCell>Status</TableHeadCell>
-                  <TableHeadCell align="center">Actions</TableHeadCell>
-                </TableHeadRow>
-              </TableHead>
-              <TableBody>
-                {paginatedStaff.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} sx={{ textAlign: 'center', py: 8 }}>
-                      <AdminPanelSettingsIcon sx={{ fontSize: 80, color: '#ccc', mb: 2 }} />
-                      <Typography variant="h6" color="textSecondary">
-                        No staff members found
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        {searchQuery ? 'Try a different search term' : 'Click "Add New Staff" to invite your team'}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedStaff.map((member) => {
-                    const isActive = member.status === 'Active';
-                    const canEdit = canEditMember(member);
-                    const canDelete = canDeleteMember(member);
-                    const staffNumber = getStaffNumber(member._id);
-                    
-                    return (
+            <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <Table>
+                <TableHead>
+                  <TableHeadRow>
+                    <TableHeadCell width="50px"></TableHeadCell>
+                    <TableHeadCell>Staff No.</TableHeadCell>
+                    <TableHeadCell>Member</TableHeadCell>
+                    <TableHeadCell>Role</TableHeadCell>
+                    <TableHeadCell>Access</TableHeadCell>
+                    <TableHeadCell>Status</TableHeadCell>
+                    <TableHeadCell align="center">Actions</TableHeadCell>
+                  </TableHeadRow>
+                </TableHead>
+                <TableBody>
+                  {paginatedStaff.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} sx={{ textAlign: 'center', py: 8 }}><Typography color="textSecondary">No staff found</Typography></TableCell></TableRow>
+                  ) : (
+                    paginatedStaff.map((member) => (
                       <React.Fragment key={member._id}>
-                        <TableRowStyled 
-                          sx={{ 
-                            opacity: isActive ? 1 : 0.85,
-                            backgroundColor: isActive ? '#f9f9f9' : '#f5f5f5'
-                          }}
-                        >
-                          <TableCell>
-                            <IconButton onClick={() => toggleExpandRow(member._id)} size="small">
-                              <ExpandMoreIcon
-                                sx={{
-                                  transform: expandedRow === member._id ? 'rotate(180deg)' : 'rotate(0deg)',
-                                  transition: '0.3s',
-                                }}
-                              />
-                            </IconButton>
-                          </TableCell>
-                          
-                          <TableCell>
-                            <Typography 
-                              fontWeight="bold" 
-                              sx={{ 
-                                color: '#8e24aa',
-                                fontFamily: 'monospace',
-                                fontSize: '0.9rem'
-                              }}
-                            >
-                              #{staffNumber}
-                            </Typography>
-                          </TableCell>
-
-                          <TableCell>
-                            <Box>
-                              <Typography fontWeight="bold">
-                                {member.type === 'Veterinarian' ? 'Dr.' : ''} {member.firstName} {member.lastName}
-                              </Typography>
-                              <Typography variant="body2" color="textSecondary">
-                                {member.type}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-
-                          <TableCell>
-                            {member.type === 'Veterinarian' ? (
-                              <>
-                                <Typography fontWeight="bold">
-                                  {member.details?.licenseId || member.veterinaryId || '—'}
-                                </Typography>
-                                <Typography variant="body2" color="textSecondary">
-                                  {member.details?.specialization || member.specialization || 'General Practice'}
-                                </Typography>
-                              </>
-                            ) : (
-                              <Typography fontWeight="bold">
-                                {member.details?.role || 'Staff Member'}
-                              </Typography>
-                            )}
-                          </TableCell>
-
-                          <TableCell>
-                            <AccessChip
-                              label={member.details?.accessLevel || member.accessLevel || 'Basic'}
-                              level={member.details?.accessLevel || member.accessLevel || 'Basic'}
-                              size="small"
-                            />
-                          </TableCell>
-
-                          <TableCell>
-                            <Chip
-                              label={getStatusLabel(member.status)}
-                              color={getStatusColor(member.status)}
-                              variant="outlined"
-                              size="small"
-                            />
-                          </TableCell>
-
+                        <TableRowStyled>
+                          <TableCell><IconButton onClick={() => toggleExpandRow(member._id)} size="small"><ExpandMoreIcon sx={{ transform: expandedRow === member._id ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} /></IconButton></TableCell>
+                          <TableCell><Typography fontWeight="bold" sx={{ color: '#8e24aa', fontFamily: 'monospace' }}>#{getStaffNumber(member._id)}</Typography></TableCell>
+                          <TableCell><Typography fontWeight="bold">{member.firstName} {member.lastName}</Typography><Typography variant="caption" color="textSecondary">{member.type}</Typography></TableCell>
+                          <TableCell><Typography variant="body2">{member.details?.role || member.type}</Typography></TableCell>
+                          <TableCell><AccessChip label={member.details?.accessLevel || 'Basic'} level={member.details?.accessLevel} size="small" /></TableCell>
+                          <TableCell><Chip label={member.status || 'Active'} color={getStatusColor(member.status)} variant="outlined" size="small" /></TableCell>
                           <TableCell align="center">
                             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                              {canEdit && (
-                                <Tooltip title="Edit">
-                                  <IconButton
-                                    color="primary"
-                                    onClick={() => handleEdit(member._id, member.type)}
-                                    size="small"
-                                  >
-                                    <EditIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-
-                              {canEdit && isActive ? (
-                                <Tooltip title="Deactivate">
-                                  <IconButton
-                                    color="warning"
-                                    onClick={() => handleDeactivate(member._id, `${member.firstName} ${member.lastName}`)}
-                                    size="small"
-                                  >
-                                    <BlockIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              ) : canEdit && !isActive ? (
-                                <Tooltip title="Activate">
-                                  <IconButton
-                                    color="success"
-                                    onClick={() => handleActivate(member._id, `${member.firstName} ${member.lastName}`)}
-                                    size="small"
-                                  >
-                                    <CheckCircleIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              ) : null}
-
-                              {canDelete && (
-                                <Tooltip title="Delete Permanently">
-                                  <IconButton
-                                    color="error"
-                                    onClick={() => handleDelete(member._id, `${member.firstName} ${member.lastName}`)}
-                                    size="small"
-                                  >
-                                    <DeleteIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
+                              {canEditMember(member) && <Tooltip title="Edit"><IconButton color="primary" onClick={() => handleEdit(member._id, member.type)} size="small"><EditIcon /></IconButton></Tooltip>}
+                              {canEditMember(member) && (member.status === 'Active' ? <IconButton color="warning" onClick={() => handleDeactivate(member._id, member.firstName)} size="small"><BlockIcon /></IconButton> : <IconButton color="success" onClick={() => handleActivate(member._id, member.firstName)} size="small"><CheckCircleIcon /></IconButton>)}
+                              {canEditMember(member) && <IconButton color="error" onClick={() => handleDelete(member._id, member.firstName)} size="small"><DeleteIcon /></IconButton>}
                             </Box>
                           </TableCell>
                         </TableRowStyled>
-
-                        {/* Expanded Details Row */}
                         <TableRow>
-                          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+                          <TableCell colSpan={7} sx={{ p: 0 }}>
                             <Collapse in={expandedRow === member._id} timeout="auto" unmountOnExit>
                               <DetailsCard>
-                                <Grid container spacing={3}>
-                                  {/* Personal Information */}
+                                <Grid container spacing={3} sx={{ p: 2 }}>
                                   <Grid item xs={12} md={6}>
-                                    <CardHeaderStyled 
-                                      bgcolor="#4caf50" 
-                                      title="Personal Information" 
-                                      avatar={<PersonIcon />} 
-                                    />
+                                    <CardHeaderStyled bgcolor="#4caf50" title="Information" icon={<PersonIcon />} />
                                     <CardContent>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                                        <StaffAvatar sx={{ width: 80, height: 80, mr: 3 }}>
-                                          {member.firstName?.charAt(0).toUpperCase() || 'S'}
-                                        </StaffAvatar>
-                                        <Box>
-                                          <Typography variant="h6">
-                                            {member.type === 'Veterinarian' ? 'Dr.' : ''} {member.firstName} {member.lastName}
-                                          </Typography>
-                                          <Typography color="textSecondary">
-                                            {member.type}
-                                            {member.details?.isPrimary && ' • Primary Veterinarian'}
-                                          </Typography>
-                                          <Chip 
-                                            label={`Staff #${staffNumber}`} 
-                                            size="small" 
-                                            sx={{ mt: 1 }}
-                                            icon={<BadgeIcon />}
-                                          />
-                                        </Box>
-                                      </Box>
-                                      
-                                      <InfoRow>
-                                        <EmailIcon />
-                                        <InfoLabel>Email:</InfoLabel>
-                                        <InfoValue>{member.email || 'N/A'}</InfoValue>
-                                      </InfoRow>
-                                      
-                                      <InfoRow>
-                                        <PhoneIcon />
-                                        <InfoLabel>Phone:</InfoLabel>
-                                        <InfoValue>{member.phoneNumber || 'N/A'}</InfoValue>
-                                      </InfoRow>
-                                      
-                                      <InfoRow>
-                                        <CalendarTodayIcon />
-                                        <InfoLabel>Status:</InfoLabel>
-                                        <InfoValue>
-                                          <Chip
-                                            label={getStatusLabel(member.status)}
-                                            color={getStatusColor(member.status)}
-                                            size="small"
-                                          />
-                                        </InfoValue>
-                                      </InfoRow>
+                                      <InfoRow><EmailIcon /><InfoLabel>Email:</InfoLabel><InfoValue>{member.email}</InfoValue></InfoRow>
+                                      <InfoRow><PhoneIcon /><InfoLabel>Phone:</InfoLabel><InfoValue>{member.phoneNumber}</InfoValue></InfoRow>
                                     </CardContent>
                                   </Grid>
-
-                                  {/* Professional Information */}
                                   <Grid item xs={12} md={6}>
-                                    <CardHeaderStyled 
-                                      bgcolor="#2196f3" 
-                                      title="Professional Information" 
-                                      avatar={<BadgeIcon />} 
-                                    />
+                                    <CardHeaderStyled bgcolor="#2196f3" title="Professional" icon={<BadgeIcon />} />
                                     <CardContent>
-                                      {member.type === 'Veterinarian' ? (
-                                        <>
-                                          <InfoRow>
-                                            <AccessTimeIcon />
-                                            <InfoLabel>License ID:</InfoLabel>
-                                            <InfoValue>{member.details?.licenseId || 'N/A'}</InfoValue>
-                                          </InfoRow>
-                                          
-                                          <InfoRow>
-                                            <AccessTimeIcon />
-                                            <InfoLabel>Specialization:</InfoLabel>
-                                            <InfoValue>{member.details?.specialization || 'General Practice'}</InfoValue>
-                                          </InfoRow>
-                                          
-                                          <InfoRow>
-                                            <AccessTimeIcon />
-                                            <InfoLabel>Role:</InfoLabel>
-                                            <InfoValue>{member.details?.role || 'Veterinarian'}</InfoValue>
-                                          </InfoRow>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <InfoRow>
-                                            <AccessTimeIcon />
-                                            <InfoLabel>Role:</InfoLabel>
-                                            <InfoValue>{member.details?.role || 'Staff Member'}</InfoValue>
-                                          </InfoRow>
-                                        </>
-                                      )}
-                                      
-                                      <InfoRow>
-                                        <AccessTimeIcon />
-                                        <InfoLabel>Access Level:</InfoLabel>
-                                        <InfoValue>
-                                          <AccessChip
-                                            label={member.details?.accessLevel || 'Basic'}
-                                            level={member.details?.accessLevel}
-                                            size="small"
-                                          />
-                                        </InfoValue>
-                                      </InfoRow>
-                                    </CardContent>
-                                  </Grid>
-
-                                  {/* Clinic Information */}
-                                  <Grid item xs={12}>
-                                    <CardHeaderStyled 
-                                      bgcolor="#9c27b0" 
-                                      title="Clinic Information" 
-                                      avatar={<BusinessIcon />} 
-                                    />
-                                    <CardContent>
-                                      <Grid container spacing={3}>
-                                        <Grid item xs={12} md={6}>
-                                          <InfoRow>
-                                            <LocationOnIcon />
-                                            <InfoLabel>Current Clinic:</InfoLabel>
-                                            <InfoValue>{getClinicName(member)}</InfoValue>
-                                          </InfoRow>
-                                          
-                                          {member.clinic && member.clinic.address && (
-                                            <InfoRow>
-                                              <LocationOnIcon />
-                                              <InfoLabel>Clinic Address:</InfoLabel>
-                                              <InfoValue>{member.clinic.address}</InfoValue>
-                                            </InfoRow>
-                                          )}
-                                          
-                                          {member.clinic && member.clinic.phoneNumber && (
-                                            <InfoRow>
-                                              <PhoneIcon />
-                                              <InfoLabel>Clinic Phone:</InfoLabel>
-                                              <InfoValue>{member.clinic.phoneNumber}</InfoValue>
-                                            </InfoRow>
-                                          )}
-                                        </Grid>
-                                        
-                                        {/* Additional Information for Primary Vet */}
-                                        {member.details?.isPrimary && clinics && clinics.length > 0 && (
-                                          <Grid item xs={12} md={6}>
-                                            <InfoRow>
-                                              <BusinessIcon />
-                                              <InfoLabel>Managed Clinics:</InfoLabel>
-                                              <InfoValue>
-                                                <Box>
-                                                  {clinics.map((clinic, index) => (
-                                                    <Chip 
-                                                      key={clinic._id}
-                                                      label={clinic.name}
-                                                      size="small"
-                                                      sx={{ m: 0.5 }}
-                                                      color="primary"
-                                                      variant="outlined"
-                                                    />
-                                                  ))}
-                                                </Box>
-                                              </InfoValue>
-                                            </InfoRow>
-                                            <InfoRow>
-                                              <InfoLabel>Total Clinics:</InfoLabel>
-                                              <InfoValue>{clinics.length} clinic{clinics.length !== 1 ? 's' : ''}</InfoValue>
-                                            </InfoRow>
-                                          </Grid>
-                                        )}
-                                      </Grid>
+                                      <InfoRow><BusinessIcon /><InfoLabel>Clinic:</InfoLabel><InfoValue>{getClinicName(member)}</InfoValue></InfoRow>
                                     </CardContent>
                                   </Grid>
                                 </Grid>
@@ -840,51 +447,108 @@ const getClinicName = (member) => {
                           </TableCell>
                         </TableRow>
                       </React.Fragment>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {/* Pagination */}
-          {filteredStaff.length > 0 && (
-            <CustomPagination
-              count={filteredStaff.length}
-              page={page}
-              rowsPerPage={rowsPerPage}
-              onPageChange={handlePageChange}
-            />
-          )}
-
-          {/* Status Summary */}
-          {filteredStaff.length > 0 && (
-            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="body2" color="textSecondary">
-                Showing {paginatedStaff.length} of {filteredStaff.length} staff member{filteredStaff.length !== 1 ? 's' : ''}
-                {filteredStaff.some(s => s.status !== 'Active') && (
-                  <span>
-                    {' '}({filteredStaff.filter(s => s.status === 'Active').length} active, 
-                    {filteredStaff.filter(s => s.status !== 'Active').length} inactive)
-                  </span>
-                )}
-              </Typography>
-              
-              {/* Status Legend */}
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#4caf50' }} />
-                  <Typography variant="caption">Active</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: '#f44336' }} />
-                  <Typography variant="caption">Inactive</Typography>
-                </Box>
-              </Box>
-            </Box>
-          )}
-        </ContentContainer>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination rowsPerPageOptions={[]} component="div" count={filteredStaff.length} rowsPerPage={rowsPerPage} page={page} onPageChange={(_, p) => setPage(p)} labelRowsPerPage="" />
+          </ContentContainer>
+        </Box>
       </Box>
+
+      {/* Edit Staff Modal */}
+      <Dialog open={isEditModalOpen} onClose={handleCloseEdit} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold', color: '#8e24aa' }}>
+          Edit {editFormData.staffType === 'veterinarian' ? 'Veterinarian' : 'Staff Member'}
+        </DialogTitle>
+        <DialogContent dividers>
+          {loadingEdit ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Grid container spacing={3} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="First Name" name="firstName" value={editFormData.firstName} onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })} required />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="Last Name" name="lastName" value={editFormData.lastName} onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })} required />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth type="email" label="Email Address" name="email" value={editFormData.email} onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })} required />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="Phone Number" name="phoneNumber" value={editFormData.phoneNumber} onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })} />
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Assigned Clinic</InputLabel>
+                  <Select name="clinicId" value={editFormData.clinicId || ''} onChange={(e) => setEditFormData({ ...editFormData, clinicId: e.target.value })} label="Assigned Clinic">
+                    {clinics.map(clinic => (
+                      <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {editFormData.staffType === 'veterinarian' ? (
+                <>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth label="Veterinary Registration ID" name="veterinaryId" value={editFormData.veterinaryId} onChange={(e) => setEditFormData({ ...editFormData, veterinaryId: e.target.value })} required />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth label="Specialization" name="specialization" value={editFormData.specialization} onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Access Level</InputLabel>
+                      <Select name="accessLevel" value={editFormData.accessLevel} onChange={(e) => setEditFormData({ ...editFormData, accessLevel: e.target.value })} label="Access Level">
+                        <MenuItem value="Normal Access">Normal Access</MenuItem>
+                        <MenuItem value="Full Access">Full Access</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </>
+              ) : (
+                <>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Role</InputLabel>
+                      <Select name="role" value={editFormData.role} onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })} label="Role">
+                        <MenuItem value="Receptionist">Receptionist</MenuItem>
+                        <MenuItem value="Assistant">Assistant</MenuItem>
+                        <MenuItem value="Technician">Technician</MenuItem>
+                        <MenuItem value="Manager">Manager</MenuItem>
+                        <MenuItem value="Other">Other</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>Access Level</InputLabel>
+                      <Select name="accessLevel" value={editFormData.accessLevel} onChange={(e) => setEditFormData({ ...editFormData, accessLevel: e.target.value })} label="Access Level">
+                        <MenuItem value="Basic">Basic (Appointments only)</MenuItem>
+                        <MenuItem value="Moderate">Moderate (Appts + Pets)</MenuItem>
+                        <MenuItem value="Full Access">Full Access (All features)</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </>
+              )}
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseEdit} color="inherit" disabled={savingEdit}>
+            Cancel
+          </Button>
+          <Button onClick={handleSaveEdit} variant="contained" color="primary" disabled={loadingEdit || savingEdit}>
+            {savingEdit ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

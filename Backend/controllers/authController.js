@@ -503,3 +503,35 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to reset password', error: error.message });
   }
 };
+
+// ────────────────────────────────────────────────
+// Change Password 
+// ────────────────────────────────────────────────
+exports.changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Please provide old and new passwords' });
+    }
+
+    // Find user in either model
+    let user = await PetOwner.findById(userId) || await Veterinarian.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Verify old password
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Incorrect old password' });
+    }
+
+    // Hash and set new password
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to change password', error: error.message });
+  }
+};

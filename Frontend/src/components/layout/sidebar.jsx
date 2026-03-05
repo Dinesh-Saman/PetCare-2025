@@ -16,14 +16,14 @@ import {
 } from 'react-icons/fa';
 import Logo from '../../assets/logo.png';
 
-// Strictly fixed 260px width sidebar
 const SidebarContainer = styled.div`
-  width: 260px;
-  min-width: 330px;
-  max-width: 280px;
-  min-height: 100vh;
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
+  min-height: ${props => props.computedHeight || '100vh'};
+  height: ${props => props.computedHeight || 'auto'};
   background: url('https://img.freepik.com/free-vector/decorative-background-with-purple-damask-pattern_1048-3458.jpg') repeat;
-  background-size: cover;
+  background-size: auto; /* Use auto for repeating patterns */
   padding: 30px 20px;
   display: flex;
   flex-direction: column;
@@ -39,7 +39,7 @@ const SidebarContainer = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(26, 35, 126, 0.78);
+    background: rgba(26, 35, 126, 0.82);
     z-index: 0;
   }
 `;
@@ -118,40 +118,80 @@ const SignOutContainer = styled.div`
   z-index: 1;
 `;
 
-const Sidebar = () => {
+const CategoryHeader = styled.div`
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 24px 0 10px 10px;
+  letter-spacing: 1.5px;
+  position: relative;
+  z-index: 1;
+`;
+
+const Sidebar = ({ computedHeight }) => {
   const location = useLocation();
 
-  const menuItems = [
-    // New: Create Clinic at the very top
-    { to: "/vet/dashboard", icon: <FaTachometerAlt />, label: "Dashboard" },
-    { to: "/vet/clinic/create", icon: <FaPlusCircle />, label: "Create Clinic" },
-    { to: "/vet/appointments/today", icon: <FaCalendarDay />, label: "Today's Appointments" },
-    { to: "/vet/appointments", icon: <FaCalendarAlt />, label: "All Appointments" },
-    { to: "/vet/pets", icon: <FaPaw />, label: "Registered Pets" },
-    { to: "/vet/pets/pending", icon: <FaHourglassHalf />, label: "Pending Registrations" },
-    // { to: "/vet/chat", icon: <FaComments />, label: "Chat with Owners" },
-    { to: "/vet/staff", icon: <FaUsers />, label: "Clinic Staff" },
-    { to: "/vet/profile", icon: <FaUser />, label: "My Profile" },
-    { to: "/vet/clinic-settings", icon: <FaCog />, label: "Clinic Settings" },
+  const categories = [
+    {
+      title: "Dashboard",
+      items: [
+        { to: "/vet/dashboard", icon: <FaTachometerAlt />, label: "Overview" },
+      ]
+    },
+    {
+      title: "Clinic Management",
+      items: [
+        { to: "/vet/clinic-settings", icon: <FaCog />, label: "Manage Clinics" },
+        { to: "/vet/chat", icon: <FaComments />, label: "Chat with Owners" },
+      ]
+    },
+    {
+      title: "Appointments",
+      items: [
+        { to: "/vet/appointments", icon: <FaCalendarAlt />, label: "All Appointments" },
+        { to: "/vet/appointments?tab=today", icon: <FaCalendarDay />, label: "Today's Appointments" },
+      ]
+    },
+    {
+      title: "Pet Management",
+      items: [
+        { to: "/vet/pets", icon: <FaPaw />, label: "Registered Pets" },
+        { to: "/vet/pets?tab=pending", icon: <FaHourglassHalf />, label: "Pending Registrations" },
+      ]
+    },
+    {
+      title: "Staff Management",
+      items: [
+        { to: "/vet/staff", icon: <FaUsers />, label: "All Staff" },
+        { to: "/vet/add-new-staff", icon: <FaPlusCircle />, label: "Add Staff Member" },
+        { to: "/vet/profile", icon: <FaUser />, label: "My Profile" },
+      ]
+    }
   ];
 
   return (
-    <SidebarContainer>
+    <SidebarContainer computedHeight={computedHeight}>
       <LogoContainer>
         <LogoImage src="https://i.imgur.com/RHsVvXq.jpeg" alt="PawPal" />
         <ClinicName>Pawpal Clinic</ClinicName>
       </LogoContainer>
 
       <Menu>
-        {menuItems.map((item) => (
-          <MenuItem
-            key={item.to}
-            to={item.to}
-            className={location.pathname === item.to ? 'active' : ''}
-          >
-            <Icon>{item.icon}</Icon>
-            {item.label}
-          </MenuItem>
+        {categories.map((cat, idx) => (
+          <React.Fragment key={idx}>
+            <CategoryHeader>{cat.title}</CategoryHeader>
+            {cat.items.map((item) => (
+              <MenuItem
+                key={item.to}
+                to={item.to}
+                className={location.pathname === item.to ? 'active' : ''}
+              >
+                <Icon>{item.icon}</Icon>
+                {item.label}
+              </MenuItem>
+            ))}
+          </React.Fragment>
         ))}
       </Menu>
 

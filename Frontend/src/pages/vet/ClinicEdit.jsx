@@ -3,32 +3,27 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
-import Sidebar from '../../components/layout/Sidebar';
+import Sidebar from '../../components/layout/sidebar';
+import VetAdminNavbar from '../../components/layout/VetAdminNavbar';
 import {
-  Box, Typography, TextField, Button, Paper, InputAdornment, CircularProgress
+  Box, Typography, TextField, Button, Paper, InputAdornment, CircularProgress, useTheme, useMediaQuery, Grid
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, alpha } from '@mui/material/styles';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DescriptionIcon from '@mui/icons-material/Description';
 import BusinessIcon from '@mui/icons-material/Business';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CalendarIcon from '@mui/icons-material/CalendarMonth';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import UncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 
 const PageContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
+  flexDirection: 'column',
   minHeight: '100vh',
   backgroundColor: '#f5f7fa',
-}));
-
-const ContentArea = styled(Box)(({ theme }) => ({
-  flexGrow: 1,
-  padding: theme.spacing(4),
-  display: 'flex',
-  justifyContent: 'center',
-  [theme.breakpoints.up('sm')]: {
-    padding: theme.spacing(6),
-  },
 }));
 
 const FormCard = styled(Paper)(({ theme }) => ({
@@ -37,6 +32,7 @@ const FormCard = styled(Paper)(({ theme }) => ({
   borderRadius: '20px',
   boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
   overflow: 'hidden',
+  marginBottom: theme.spacing(4),
 }));
 
 const CardHeader = styled(Box)(({ theme }) => ({
@@ -94,9 +90,31 @@ const SaveButton = styled(Button)(({ theme }) => ({
   },
 }));
 
+const DayChip = styled(Box)(({ active }) => ({
+  padding: '6px 16px',
+  borderRadius: '12px',
+  fontSize: '0.85rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  background: active ? alpha('#49149e', 0.1) : '#f8fafc',
+  color: active ? '#49149e' : '#64748b',
+  border: `1px solid ${active ? '#49149e' : '#e2e8f0'}`,
+  '&:hover': {
+    background: active ? alpha('#49149e', 0.15) : '#f1f5f9',
+  }
+}));
+
+const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 const ClinicEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [clinic, setClinic] = useState(null);
   const [formData, setFormData] = useState({
@@ -104,6 +122,7 @@ const ClinicEdit = () => {
     address: '',
     phoneNumber: '',
     operatingHours: '',
+    operatingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
     description: '',
     location: { lng: '', lat: '' }
   });
@@ -122,6 +141,7 @@ const ClinicEdit = () => {
           address: clinicData.address || '',
           phoneNumber: clinicData.phoneNumber || '',
           operatingHours: clinicData.operatingHours || '',
+          operatingDays: clinicData.operatingDays || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
           description: clinicData.description || '',
           location: {
             lng: clinicData.location?.coordinates[0] || '',
@@ -152,6 +172,15 @@ const ClinicEdit = () => {
     }
   };
 
+  const toggleOperatingDay = (day) => {
+    setFormData(prev => ({
+      ...prev,
+      operatingDays: prev.operatingDays.includes(day)
+        ? prev.operatingDays.filter(d => d !== day)
+        : [...prev.operatingDays, day]
+    }));
+  };
+
   const handleSave = async () => {
     if (!formData.name.trim() || !formData.address.trim() || !formData.phoneNumber.trim()) {
       Swal.fire('Validation Error', 'Clinic name, address, and phone number are required', 'warning');
@@ -166,6 +195,7 @@ const ClinicEdit = () => {
         address: formData.address.trim(),
         phoneNumber: formData.phoneNumber.trim(),
         operatingHours: formData.operatingHours.trim(),
+        operatingDays: formData.operatingDays,
         description: formData.description.trim(),
       };
 
@@ -200,8 +230,11 @@ const ClinicEdit = () => {
 
   if (loading) {
     return (
-      <PageContainer sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <CircularProgress size={60} thickness={4} />
+      <PageContainer>
+        <VetAdminNavbar />
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexGrow: 1 }}>
+          <CircularProgress size={60} thickness={4} />
+        </Box>
       </PageContainer>
     );
   }
@@ -211,173 +244,181 @@ const ClinicEdit = () => {
   }
 
   return (
-    <PageContainer>
-      <Sidebar />
-      <ContentArea>
-        <FormCard>
-          <CardHeader>
-            <HeaderTitle variant="h4">
-              Edit Clinic
-            </HeaderTitle>
-            <HeaderSubtitle>
-              Update information for {clinic.name}
-            </HeaderSubtitle>
-          </CardHeader>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      <VetAdminNavbar />
+      <Box sx={{ display: 'flex', flexGrow: 1 }}>
+        {!isMobile && <Sidebar />}
+        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 4, display: 'flex', justifyContent: 'center' }}>
+          <FormCard>
+            <CardHeader>
+              <HeaderTitle variant="h4">Edit Clinic</HeaderTitle>
+              <HeaderSubtitle>Update information for {clinic.name}</HeaderSubtitle>
+            </CardHeader>
 
-          <CardBody>
-            <BackButton
-              startIcon={<ArrowBackIcon />}
-              onClick={() => navigate('/vet/clinic-settings')}
-            >
-              Back to Clinic Settings
-            </BackButton>
+            <CardBody>
+              <BackButton startIcon={<ArrowBackIcon />} onClick={() => navigate('/vet/clinic-settings')} size="small">
+                Back to Clinic Settings
+              </BackButton>
 
-            {/* Bootstrap Grid Layout - Perfect Balance */}
-            <div className="row g-4">
-              {/* Left Column */}
-              <div className="col-12 col-lg-6">
-                <div className="row g-4">
-                  <div className="col-12">
-                    <TextField
-                      fullWidth
-                      label="Clinic Name *"
-                      value={formData.name}
-                      onChange={handleChange('name')}
-                      required
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <BusinessIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </div>
-
-                  <div className="col-12">
-                    <TextField
-                      fullWidth
-                      label="Phone Number *"
-                      value={formData.phoneNumber}
-                      onChange={handleChange('phoneNumber')}
-                      required
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PhoneIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </div>
-
-                  <div className="col-12">
-                    <TextField
-                      fullWidth
-                      label="Full Address *"
-                      value={formData.address}
-                      onChange={handleChange('address')}
-                      multiline
-                      rows={4}
-                      required
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}>
-                            <LocationOnIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </div>
-
-                  <div className="col-12">
-                    <TextField
-                      fullWidth
-                      label="Operating Hours"
-                      value={formData.operatingHours}
-                      onChange={handleChange('operatingHours')}
-                      placeholder="e.g., Mon-Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 2:00 PM"
-                      multiline
-                      rows={3}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
-                            <AccessTimeIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="col-12 col-lg-6">
-                <div className="row g-4">
-                  <div className="col-12">
-                    <TextField
-                      fullWidth
-                      label="Clinic Description"
-                      value={formData.description}
-                      onChange={handleChange('description')}
-                      multiline
-                      rows={8}
-                      placeholder="Tell pet owners about your clinic, services, team, or special care..."
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}>
-                            <DescriptionIcon color="action" />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </div>
-
-                  <div className="col-12">
-                    <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: '#8e24aa', mb: 2 }}>
-                      Clinic Location on Map (Optional)
-                    </Typography>
-                    <div className="row g-3">
-                      <div className="col-12 col-sm-6">
-                        <TextField
-                          fullWidth
-                          label="Longitude (lng)"
-                          value={formData.location.lng}
-                          onChange={handleChange('location.lng')}
-                          type="number"
-                          inputProps={{ step: "0.000001" }}
-                          placeholder="e.g., 80.123456"
-                        />
-                      </div>
-                      <div className="col-12 col-sm-6">
-                        <TextField
-                          fullWidth
-                          label="Latitude (lat)"
-                          value={formData.location.lat}
-                          onChange={handleChange('location.lat')}
-                          type="number"
-                          inputProps={{ step: "0.000001" }}
-                          placeholder="e.g., 6.123456"
-                        />
-                      </div>
+              <div className="row g-4">
+                <div className="col-12 col-lg-6">
+                  <div className="row g-4">
+                    <div className="col-12">
+                      <TextField
+                        fullWidth
+                        label="Clinic Name *"
+                        value={formData.name}
+                        onChange={handleChange('name')}
+                        required
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <BusinessIcon color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
                     </div>
-                    <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
-                      Leave blank to hide clinic on the map
-                    </Typography>
+                    <div className="col-12">
+                      <TextField
+                        fullWidth
+                        label="Phone Number *"
+                        value={formData.phoneNumber}
+                        onChange={handleChange('phoneNumber')}
+                        required
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <PhoneIcon color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </div>
+                    <div className="col-12">
+                      <TextField
+                        fullWidth
+                        label="Full Address *"
+                        value={formData.address}
+                        onChange={handleChange('address')}
+                        multiline
+                        rows={4}
+                        required
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}>
+                              <LocationOnIcon color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </div>
+                    <div className="col-12">
+                      <TextField
+                        fullWidth
+                        label="Operating Hours"
+                        value={formData.operatingHours}
+                        onChange={handleChange('operatingHours')}
+                        placeholder="e.g., 8:00 AM - 6:00 PM"
+                        multiline
+                        rows={3}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
+                              <AccessTimeIcon color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </div>
+
+                    <div className="col-12">
+                      <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <CalendarIcon color="primary" /> Operating Days
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {daysOfWeek.map(day => (
+                          <DayChip
+                            key={day}
+                            active={formData.operatingDays.includes(day)}
+                            onClick={() => toggleOperatingDay(day)}
+                          >
+                            {formData.operatingDays.includes(day) ? <CheckCircleIcon fontSize="small" /> : <UncheckedIcon fontSize="small" />}
+                            {day.substring(0, 3)}
+                          </DayChip>
+                        ))}
+                      </Box>
+                    </div>
+
+                  </div>
+                </div>
+
+                <div className="col-12 col-lg-6">
+                  <div className="row g-4">
+                    <div className="col-12">
+                      <TextField
+                        fullWidth
+                        label="Clinic Description"
+                        value={formData.description}
+                        onChange={handleChange('description')}
+                        multiline
+                        rows={8}
+                        placeholder="Tell pet owners about your clinic, services, team, or special care..."
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}>
+                              <DescriptionIcon color="action" />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </div>
+                    <div className="col-12">
+                      <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ color: '#8e24aa', mb: 2 }}>
+                        Clinic Location on Map (Optional)
+                      </Typography>
+                      <div className="row g-3">
+                        <div className="col-12 col-sm-6">
+                          <TextField
+                            fullWidth
+                            label="Longitude (lng)"
+                            value={formData.location.lng}
+                            onChange={handleChange('location.lng')}
+                            type="number"
+                            inputProps={{ step: "0.000001" }}
+                            placeholder="e.g., 80.123456"
+                          />
+                        </div>
+                        <div className="col-12 col-sm-6">
+                          <TextField
+                            fullWidth
+                            label="Latitude (lat)"
+                            value={formData.location.lat}
+                            onChange={handleChange('location.lat')}
+                            type="number"
+                            inputProps={{ step: "0.000001" }}
+                            placeholder="e.g., 6.123456"
+                          />
+                        </div>
+                      </div>
+                      <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+                        Leave blank to hide clinic on the map
+                      </Typography>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <Box sx={{ textAlign: 'center', mt: 8 }}>
-              <SaveButton onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving Changes...' : 'Save Clinic Settings'}
-              </SaveButton>
-            </Box>
-          </CardBody>
-        </FormCard>
-      </ContentArea>
-    </PageContainer>
+              <Box sx={{ textAlign: 'center', mt: 8 }}>
+                <SaveButton onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save Clinic Settings'}
+                </SaveButton>
+              </Box>
+            </CardBody>
+          </FormCard>
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

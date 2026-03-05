@@ -188,13 +188,13 @@ const createSubAccount = async (req, res) => {
 
 // Get all vets in a clinic (public or internal dashboard)
 const getVetsByClinic = async (req, res) => {
-  try { 
+  try {
     const { clinicId } = req.params;
-    
+
 
     const clinic = await Clinic.findById(clinicId);
 
-    console.log('-------------------------',clinic)
+    console.log('-------------------------', clinic)
     if (!clinic) {
       return res.status(404).json({ message: 'Clinic not found' });
     }
@@ -264,14 +264,14 @@ const updateVet = async (req, res) => {
 
     // If email is being changed, check if new email already exists
     if (updates.email) {
-      const existingVetWithEmail = await Veterinarian.findOne({ 
+      const existingVetWithEmail = await Veterinarian.findOne({
         email: updates.email.toLowerCase().trim(),
         _id: { $ne: id } // Exclude current vet
       });
-      
+
       if (existingVetWithEmail) {
-        return res.status(400).json({ 
-          message: 'Email already in use by another veterinarian' 
+        return res.status(400).json({
+          message: 'Email already in use by another veterinarian'
         });
       }
     }
@@ -282,20 +282,20 @@ const updateVet = async (req, res) => {
       if (!vet) {
         return res.status(404).json({ message: 'Veterinarian not found' });
       }
-      
+
       // Check if vet has access to the new clinic
       if (vet.accessLevel === 'Primary') {
         // Primary vets can only switch to clinics they own
         if (!vet.ownedClinics.includes(updates.currentActiveClinicId)) {
-          return res.status(403).json({ 
-            message: 'You can only switch to clinics you own' 
+          return res.status(403).json({
+            message: 'You can only switch to clinics you own'
           });
         }
       } else {
         // Non-primary vets can only be assigned by Primary/Full Access vets
         if (req.user?.id === id) {
-          return res.status(403).json({ 
-            message: 'You cannot change your own clinic assignment' 
+          return res.status(403).json({
+            message: 'You cannot change your own clinic assignment'
           });
         }
       }
@@ -314,7 +314,7 @@ const updateVet = async (req, res) => {
 
     // Clean up updates
     const cleanUpdates = { ...updates };
-    
+
     // Trim string fields
     if (cleanUpdates.firstName) cleanUpdates.firstName = cleanUpdates.firstName.trim();
     if (cleanUpdates.lastName) cleanUpdates.lastName = cleanUpdates.lastName.trim();
@@ -408,14 +408,14 @@ const getClinicStaffStats = async (req, res) => {
 
     // Get stats for this clinic
     const stats = await Veterinarian.aggregate([
-      { 
-        $match: { 
+      {
+        $match: {
           $or: [
             { currentActiveClinicId: new mongoose.Types.ObjectId(clinicId) },
             { ownedClinics: new mongoose.Types.ObjectId(clinicId) }
           ],
-          status: 'Active' 
-        } 
+          status: 'Active'
+        }
       },
       {
         $group: {
@@ -465,10 +465,13 @@ const getMyClinics = async (req, res) => {
       return res.status(404).json({ message: 'Veterinarian not found' });
     }
 
-    // Build clinics list – start with owned (if Primary)
+    // Build clinics list
     let clinics = [];
 
-    if (vet.accessLevel === 'Primary' && vet.ownedClinics?.length > 0) {
+    if (vet.accessLevel === 'Primary') {
+      // Primary vets get access to ALL clinics in the system as requested
+      clinics = await Clinic.find({});
+    } else if (vet.ownedClinics?.length > 0) {
       clinics = [...vet.ownedClinics];
     }
 
@@ -560,12 +563,12 @@ const createClinic = async (req, res) => {
 
     // Add this clinic to the vet's ownedClinics array
     vet.ownedClinics.push(clinic._id);
-    
+
     // If this is the vet's first clinic, set it as current active clinic
     if (vet.ownedClinics.length === 1) {
       vet.currentActiveClinicId = clinic._id;
     }
-    
+
     await vet.save();
 
     res.status(201).json({
@@ -605,10 +608,12 @@ const switchActiveClinic = async (req, res) => {
       });
     }
 
-    // Check if the clinic belongs to this vet
-    if (!vet.ownedClinics.includes(clinicId)) {
+    // If Primary, they can switch to ANY clinic. If not, only owned ones.
+    const hasAccess = vet.accessLevel === 'Primary' || vet.ownedClinics.includes(clinicId);
+
+    if (!hasAccess) {
       return res.status(403).json({
-        message: 'Access denied: You do not own this clinic'
+        message: 'No access to this clinic'
       });
     }
 
@@ -641,8 +646,8 @@ const getStaffByPrimaryVet = async (req, res) => {
       .populate('currentActiveClinicId', 'name address phoneNumber');
 
     if (!primaryVet || primaryVet.accessLevel !== 'Primary') {
-      return res.status(403).json({ 
-        message: 'Only Primary veterinarians can access all staff' 
+      return res.status(403).json({
+        message: 'Only Primary veterinarians can access all staff'
       });
     }
 
@@ -657,41 +662,43 @@ const getStaffByPrimaryVet = async (req, res) => {
       }
     }
 
-    console.log('Owned clinic IDs:', ownedClinicIds.map(id => id.toString()));
-    console.log('Searching staff/vets in clinics:', clinicIdsToSearch.map(id => id.toString()));
-
-    if (clinicIdsToSearch.length === 0) {
-      return res.status(200).json({
-        message: 'No clinics found. Only primary vet is available.',
-        totalStaff: 1,
-        staff: [formatVetAsStaff(primaryVet, true)],
-        clinics: []
-      });
-    }
+    console.log(`Searching staff/vets in clinics: ${clinicIdsToSearch.length === 0 ? 'ALL' : clinicIdsToSearch.join(', ')}`);
 
     const ClinicStaff = require('../models/ClinicStaff');
 
     // ── Fetch Veterinarians ───────────────────────────────────────────────
-    const vets = await Veterinarian.find({
-      $or: [
-        { _id: primaryVetId }, // Always include primary vet
-        { 
-          currentActiveClinicId: { $in: clinicIdsToSearch },
-          status: 'Active',
-          _id: { $ne: primaryVetId }
-        }
-      ]
-    })
+    let vetQuery = {};
+    if (primaryVet.accessLevel === 'Primary') {
+      // Primary gets ALL active vets in the system
+      vetQuery = { status: 'Active' };
+    } else {
+      vetQuery = {
+        $or: [
+          { _id: primaryVetId },
+          { currentActiveClinicId: { $in: clinicIdsToSearch }, status: 'Active' }
+        ]
+      };
+    }
+
+    const vets = await Veterinarian.find(vetQuery)
       .select('-passwordHash')
       .populate('currentActiveClinicId', 'name address phoneNumber');
 
-    console.log(`Found ${vets.length} veterinarians (including primary)`);
+    console.log(`Found ${vets.length} veterinarians`);
 
     // ── Fetch Clinic Staff ────────────────────────────────────────────────
-    const staff = await ClinicStaff.find({
-      clinicId: { $in: clinicIdsToSearch },
-      status: 'Active'
-    })
+    let staffQuery = {};
+    if (primaryVet.accessLevel === 'Primary') {
+      // Primary gets ALL active staff in the system
+      staffQuery = { status: 'Active' };
+    } else {
+      staffQuery = {
+        clinicId: { $in: clinicIdsToSearch },
+        status: 'Active'
+      };
+    }
+
+    const staff = await ClinicStaff.find(staffQuery)
       .select('-passwordHash')
       .populate('clinicId', 'name address phoneNumber');
 
@@ -822,8 +829,8 @@ const deleteVet = async (req, res) => {
     // Find the primary vet
     const primaryVet = await Veterinarian.findById(primaryVetId);
     if (!primaryVet || primaryVet.accessLevel !== 'Primary') {
-      return res.status(403).json({ 
-        message: 'Only Primary veterinarians can delete accounts' 
+      return res.status(403).json({
+        message: 'Only Primary veterinarians can delete accounts'
       });
     }
 
@@ -846,23 +853,23 @@ const deleteVet = async (req, res) => {
 
     // Check if primary vet owns the clinic where this vet is active
     let hasPermission = false;
-    
+
     if (vetToDelete.currentActiveClinicId) {
       // Check if primary vet owns the clinic where target vet is active
-      hasPermission = primaryVet.ownedClinics && 
-                     primaryVet.ownedClinics.some(clinicId => 
-                       clinicId.toString() === vetToDelete.currentActiveClinicId.toString()
-                     );
-      
+      hasPermission = primaryVet.ownedClinics &&
+        primaryVet.ownedClinics.some(clinicId =>
+          clinicId.toString() === vetToDelete.currentActiveClinicId.toString()
+        );
+
       console.log('Primary vet owned clinics:', primaryVet.ownedClinics?.map(c => c.toString()));
       console.log('Vet clinic ID:', vetToDelete.currentActiveClinicId.toString());
       console.log('Has permission?', hasPermission);
     }
 
     // Also check if the vet was created by this primary vet
-    const wasCreatedByPrimaryVet = vetToDelete.createdByVetId && 
-                                   vetToDelete.createdByVetId.toString() === primaryVetId.toString();
-    
+    const wasCreatedByPrimaryVet = vetToDelete.createdByVetId &&
+      vetToDelete.createdByVetId.toString() === primaryVetId.toString();
+
     console.log('Was created by primary vet?', wasCreatedByPrimaryVet);
     console.log('Created by:', vetToDelete.createdByVetId);
 
@@ -885,9 +892,9 @@ const deleteVet = async (req, res) => {
     // Soft delete (recommended) - change status to 'Deleted'
     vetToDelete.status = 'Deleted';
     await vetToDelete.save();
-    
+
     console.log('Veterinarian soft-deleted successfully');
-    
+
     // Or for hard delete (use with caution):
     // await Veterinarian.findByIdAndDelete(id);
     // console.log('Veterinarian hard-deleted successfully');
@@ -930,8 +937,8 @@ const deleteClinicStaff = async (req, res) => {
     // Find the primary vet
     const primaryVet = await Veterinarian.findById(primaryVetId);
     if (!primaryVet || primaryVet.accessLevel !== 'Primary') {
-      return res.status(403).json({ 
-        message: 'Only Primary veterinarians can delete clinic staff' 
+      return res.status(403).json({
+        message: 'Only Primary veterinarians can delete clinic staff'
       });
     }
 
@@ -949,18 +956,18 @@ const deleteClinicStaff = async (req, res) => {
     console.log('Created by:', clinicStaff.createdBy);
 
     // Check if primary vet owns the clinic
-    const ownsClinic = primaryVet.ownedClinics && 
-                      primaryVet.ownedClinics.some(clinicId => 
-                        clinicId.toString() === clinicStaff.clinicId.toString()
-                      );
-    
+    const ownsClinic = primaryVet.ownedClinics &&
+      primaryVet.ownedClinics.some(clinicId =>
+        clinicId.toString() === clinicStaff.clinicId.toString()
+      );
+
     console.log('Primary vet owned clinics:', primaryVet.ownedClinics?.map(c => c.toString()));
     console.log('Owns clinic?', ownsClinic);
 
     // Also check if the staff was created by this primary vet
-    const wasCreatedByPrimaryVet = clinicStaff.createdBy && 
-                                   clinicStaff.createdBy.toString() === primaryVetId.toString();
-    
+    const wasCreatedByPrimaryVet = clinicStaff.createdBy &&
+      clinicStaff.createdBy.toString() === primaryVetId.toString();
+
     console.log('Was created by primary vet?', wasCreatedByPrimaryVet);
 
     if (!ownsClinic && !wasCreatedByPrimaryVet) {
@@ -972,9 +979,9 @@ const deleteClinicStaff = async (req, res) => {
     // Soft delete (recommended)
     clinicStaff.status = 'Deleted';
     await clinicStaff.save();
-    
+
     console.log('Clinic staff soft-deleted successfully');
-    
+
     // Or for hard delete:
     // await ClinicStaff.findByIdAndDelete(id);
     // console.log('Clinic staff hard-deleted successfully');
@@ -1017,8 +1024,8 @@ const activateVet = async (req, res) => {
     // Find the primary vet
     const primaryVet = await Veterinarian.findById(primaryVetId);
     if (!primaryVet || primaryVet.accessLevel !== 'Primary') {
-      return res.status(403).json({ 
-        message: 'Only Primary veterinarians can activate accounts' 
+      return res.status(403).json({
+        message: 'Only Primary veterinarians can activate accounts'
       });
     }
 
@@ -1042,20 +1049,20 @@ const activateVet = async (req, res) => {
     let hasPermission = false;
     if (vetToActivate.currentActiveClinicId) {
       // Check if primary vet owns the clinic where target vet is active
-      hasPermission = primaryVet.ownedClinics && 
-                     primaryVet.ownedClinics.some(clinicId => 
-                       clinicId.toString() === vetToActivate.currentActiveClinicId.toString()
-                     );
-      
+      hasPermission = primaryVet.ownedClinics &&
+        primaryVet.ownedClinics.some(clinicId =>
+          clinicId.toString() === vetToActivate.currentActiveClinicId.toString()
+        );
+
       console.log('Primary vet owned clinics:', primaryVet.ownedClinics?.map(c => c.toString()));
       console.log('Vet clinic ID:', vetToActivate.currentActiveClinicId?.toString());
       console.log('Has permission?', hasPermission);
     }
 
     // Also check if the vet was created by this primary vet
-    const wasCreatedByPrimaryVet = vetToActivate.createdByVetId && 
-                                   vetToActivate.createdByVetId.toString() === primaryVetId.toString();
-    
+    const wasCreatedByPrimaryVet = vetToActivate.createdByVetId &&
+      vetToActivate.createdByVetId.toString() === primaryVetId.toString();
+
     console.log('Was created by primary vet?', wasCreatedByPrimaryVet);
     console.log('Created by:', vetToActivate.createdByVetId);
 
@@ -1108,6 +1115,6 @@ module.exports = {
   createClinic,
   switchActiveClinic,
   getStaffByPrimaryVet,
-  deleteVet,         
-  deleteClinicStaff 
+  deleteVet,
+  deleteClinicStaff
 };

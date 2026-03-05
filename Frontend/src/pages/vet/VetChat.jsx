@@ -1,18 +1,17 @@
+// src/pages/vet/VetChat.jsx
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
+import Sidebar from '../../components/layout/sidebar';
+import VetAdminNavbar from '../../components/layout/VetAdminNavbar';
 import {
   Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, TextField, MenuItem, FormControl, Select, InputLabel, TablePagination,
-  IconButton, Chip
+  Paper, TextField, TablePagination, IconButton, Chip, useTheme, useMediaQuery
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChatIcon from '@mui/icons-material/Chat';
-import PersonIcon from '@mui/icons-material/Person';
 import PetsIcon from '@mui/icons-material/Pets';
-import Sidebar from '../../components/layout/Sidebar';
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
@@ -80,20 +79,21 @@ const ChatButton = styled(IconButton)(({ theme }) => ({
 }));
 
 const VetChat = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [owners, setOwners] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
-  const [rowsPerPage] = useState(10);
+  const [rowsPerPage] = useState(8);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchOwnersWithPets = async () => {
       try {
-        // Fetch all registered pets to group by owner
-        const response = await api.get('/pets');
-        const pets = Array.isArray(response.data) ? response.data : response.data.pets || [];
+        // Use the correct vet endpoint that returns approved registered pets with owner info
+        const response = await api.get('/pets/clinic/registered');
+        const pets = response.data?.registeredPets || response.data?.pets || [];
 
-        // Group pets by owner
         const ownersMap = {};
         pets.forEach(pet => {
           if (pet.ownerId) {
@@ -120,7 +120,6 @@ const VetChat = () => {
         setOwners(ownersList);
       } catch (error) {
         console.error('Error fetching owners:', error);
-        Swal.fire('Error', 'Failed to load pet owners', 'error');
         setOwners([]);
       }
     };
@@ -142,116 +141,114 @@ const VetChat = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
-      <Sidebar />
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <ContentContainer>
-          <SearchSection>
-            <Typography variant="h4" sx={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: '#49149eff' }}>
-              Chat with Pet Owners
-            </Typography>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      <VetAdminNavbar />
+      <Box sx={{ display: 'flex', flexGrow: 1 }}>
+        {!isMobile && <Sidebar />}
+        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
+          <ContentContainer>
+            <SearchSection>
+              <Typography variant="h4" sx={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: '#49149eff' }}>
+                Chat with Owners
+              </Typography>
 
-            <TextField
-              variant="outlined"
-              placeholder="Search by owner name or email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ width: 400, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-            />
-          </SearchSection>
+              <TextField
+                variant="outlined"
+                placeholder="Search owners..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                size="small"
+                sx={{ width: isMobile ? '100%' : 400, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+              />
+            </SearchSection>
 
-          <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
-            <Table>
-              <TableHead>
-                <TableHeadRow>
-                  <TableHeadCell>Owner</TableHeadCell>
-                  <TableHeadCell>Pets</TableHeadCell>
-                  <TableHeadCell>Contact</TableHeadCell>
-                  <TableHeadCell align="center">Chat with Owner</TableHeadCell>
-                </TableHeadRow>
-              </TableHead>
-              <TableBody>
-                {paginatedOwners.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
-                      <Typography variant="h6" color="textSecondary">
-                        No pet owners found
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedOwners.map((owner) => (
-                    <TableRowStyled key={owner._id}>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <OwnerAvatar>
-                            {owner.firstName.charAt(0).toUpperCase()}
-                          </OwnerAvatar>
-                          <Box>
-                            <Typography fontWeight="bold">
-                              {owner.firstName} {owner.lastName}
-                            </Typography>
-                            <Typography variant="body2" color="textSecondary">
-                              {owner.email}
-                            </Typography>
+            <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: 'hidden' }}>
+              <Table>
+                <TableHead>
+                  <TableHeadRow>
+                    <TableHeadCell>Owner</TableHeadCell>
+                    <TableHeadCell>Pets</TableHeadCell>
+                    {!isMobile && <TableHeadCell>Contact</TableHeadCell>}
+                    <TableHeadCell align="center">Chat</TableHeadCell>
+                  </TableHeadRow>
+                </TableHead>
+                <TableBody>
+                  {paginatedOwners.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={isMobile ? 3 : 4} align="center" sx={{ py: 8 }}>
+                        <Typography variant="h6" color="textSecondary">
+                          No owners found
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedOwners.map((owner) => (
+                      <TableRowStyled key={owner._id}>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <OwnerAvatar sx={{ width: 50, height: 50, fontSize: '1.4rem' }}>
+                              {owner.firstName.charAt(0).toUpperCase()}
+                            </OwnerAvatar>
+                            <Box>
+                              <Typography fontWeight="bold" variant="body1">
+                                {owner.firstName} {owner.lastName}
+                              </Typography>
+                              {!isMobile && <Typography variant="caption" color="textSecondary">{owner.email}</Typography>}
+                            </Box>
                           </Box>
-                        </Box>
-                      </TableCell>
+                        </TableCell>
 
-                      <TableCell>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                          {owner.pets.length > 0 ? (
-                            owner.pets.map((pet, idx) => (
-                              <Chip
-                                key={idx}
-                                icon={<PetsIcon />}
-                                label={`${pet.name} (${pet.species})`}
-                                size="small"
-                                color="primary"
-                                variant="outlined"
-                              />
-                            ))
-                          ) : (
-                            <Typography variant="body2" color="textSecondary">
-                              No pets registered
-                            </Typography>
-                          )}
-                        </Box>
-                      </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {owner.pets.length > 0 ? (
+                              owner.pets.map((pet, idx) => (
+                                <Chip
+                                  key={idx}
+                                  icon={<PetsIcon sx={{ fontSize: '0.8rem !important' }} />}
+                                  label={pet.name}
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                                />
+                              ))
+                            ) : (
+                              <Typography variant="caption" color="textSecondary">No pets</Typography>
+                            )}
+                          </Box>
+                        </TableCell>
 
-                      <TableCell>
-                        <Box>
-                          <Typography variant="body2">
-                            <strong>Phone:</strong> {owner.phoneNumber || 'N/A'}
-                          </Typography>
-                        </Box>
-                      </TableCell>
+                        {!isMobile && (
+                          <TableCell>
+                            <Typography variant="body2">{owner.phoneNumber || 'N/A'}</Typography>
+                          </TableCell>
+                        )}
 
-                      <TableCell align="center">
-                        <ChatButton
-                          onClick={() => handleChatClick(owner._id)}
-                          title="Chat with this owner"
-                        >
-                          <ChatIcon fontSize="large" />
-                        </ChatButton>
-                      </TableCell>
-                    </TableRowStyled>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                        <TableCell align="center">
+                          <ChatButton
+                            onClick={() => handleChatClick(owner._id)}
+                            size="small"
+                          >
+                            <ChatIcon fontSize="medium" />
+                          </ChatButton>
+                        </TableCell>
+                      </TableRowStyled>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
-          <TablePagination
-            component="div"
-            count={filteredOwners.length}
-            page={page}
-            onPageChange={(e, newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-            rowsPerPageOptions={[]}
-            labelRowsPerPage=""
-          />
-        </ContentContainer>
+            <TablePagination
+              component="div"
+              count={filteredOwners.length}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              rowsPerPageOptions={[]}
+              labelRowsPerPage=""
+            />
+          </ContentContainer>
+        </Box>
       </Box>
     </Box>
   );

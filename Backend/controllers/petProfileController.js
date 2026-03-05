@@ -687,42 +687,31 @@ exports.getRegisteredPetsForVetClinic = async (req, res) => {
       });
     }
 
-    // Get veterinarian
-    const veterinarian = await Veterinarian.findOne({
-      email: req.user.email
-    });
-
+    // 1. Get vet with access level
+    const veterinarian = await Veterinarian.findById(req.user.id);
     if (!veterinarian) {
-      return res.status(404).json({
-        success: false,
-        message: 'Veterinarian not found'
-      });
+      return res.status(404).json({ success: false, message: 'Veterinarian not found' });
     }
 
-    // Get vet's active clinic
-    const vetClinicId = veterinarian.currentActiveClinicId || veterinarian.clinicId;
-    if (!vetClinicId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Veterinarian is not associated with any clinic'
-      });
-    }
-
-    // Get clinic info
-    const clinic = await Clinic.findById(vetClinicId);
-    if (!clinic) {
-      return res.status(404).json({
-        success: false,
-        message: 'Clinic not found'
-      });
-    }
-
-    // Get approved pets for this clinic
-    const registeredPets = await PetProfile.find({
-      registeredClinicId: vetClinicId,
+    let query = {
       registrationStatus: 'Approved',
       isDeleted: { $ne: true }
-    })
+    };
+
+    // 2. If NOT Primary, filter by clinic
+    if (veterinarian.accessLevel !== 'Primary') {
+      const vetClinicId = veterinarian.currentActiveClinicId || veterinarian.clinicId;
+      if (!vetClinicId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Veterinarian is not associated with any clinic'
+        });
+      }
+      query.registeredClinicId = vetClinicId;
+    }
+
+    // 3. Get pets based on query
+    const registeredPets = await PetProfile.find(query)
       .populate('ownerId', 'firstName lastName email phoneNumber')
       .populate('registeredClinicId', 'name address phoneNumber')
       .sort({ registrationApprovedAt: -1, name: 1 });
@@ -731,11 +720,7 @@ exports.getRegisteredPetsForVetClinic = async (req, res) => {
       success: true,
       count: registeredPets.length,
       registeredPets: registeredPets,
-      clinicInfo: {
-        id: clinic._id,
-        name: clinic.name,
-        address: clinic.address
-      }
+      isGlobalView: veterinarian.accessLevel === 'Primary'
     });
 
   } catch (error) {

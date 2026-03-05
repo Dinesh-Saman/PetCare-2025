@@ -772,9 +772,34 @@ async function startServer() {
   io.on('connection', (socket) => {
     console.log('🔌 New client connected:', socket.id);
 
+    // Join a personal notification room (e.g. user_<userId>)
+    socket.on('join_user', (userId) => {
+      socket.join(`user_${userId}`);
+      console.log(`👤 User joined room: user_${userId}`);
+    });
+
+    // Join clinic notification room (e.g. clinic_<clinicId>)
+    socket.on('join_clinic', (clinicId) => {
+      socket.join(`clinic_${clinicId}`);
+      console.log(`🏥 Joined clinic room: clinic_${clinicId}`);
+    });
+
+    // Join pet-specific chat room for real-time messages
+    socket.on('join_chat', (petId) => {
+      socket.join(`chat_pet_${petId}`);
+      console.log(`🐾 Joined chat room: chat_pet_${petId}`);
+    });
+
+    // Leave a pet chat room
+    socket.on('leave_chat', (petId) => {
+      socket.leave(`chat_pet_${petId}`);
+      console.log(`🚪 Left chat room: chat_pet_${petId}`);
+    });
+
+    // Legacy join (kept for backward compatibility)
     socket.on('join', (userId) => {
-      console.log(`👤 User joined room: ${userId}`);
       socket.join(userId);
+      console.log(`👤 User joined room: ${userId}`);
     });
 
     socket.on('disconnect', () => {

@@ -26,7 +26,7 @@ import {
   Medication as MedicineIcon,
   Vaccines as VaccineIcon
 } from '@mui/icons-material';
-import Header from '../../components/layout/Header';
+import Navbar from '../../components/Navbar';
 
 // Styled Components
 const PageContainer = styled(Box)({
@@ -161,8 +161,8 @@ const PetProfile = () => {
   if (loading) {
     return (
       <PageContainer>
-        <Header />
-        <Container maxWidth="lg" sx={{ textAlign: 'center', mt: 10 }}>
+        <Navbar />
+        <Container maxWidth="lg" sx={{ textAlign: 'center', mt: 15 }}>
           <Typography>Loading pet profile...</Typography>
         </Container>
       </PageContainer>
@@ -173,8 +173,8 @@ const PetProfile = () => {
 
   return (
     <PageContainer>
-      <Header />
-      <Container maxWidth="xl" sx={{ mt: 10 }}>
+      <Navbar />
+      <Container maxWidth="xl" sx={{ mt: { xs: 12, md: 15 } }}>
         {/* Top Navigation */}
         <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button
@@ -188,7 +188,7 @@ const PetProfile = () => {
             <Button
               variant="outlined"
               startIcon={<ChatIcon />}
-              onClick={() => navigate(`/owner/messages?petId=${pet._id}`)}
+              onClick={() => navigate(`/owner/chat?petId=${pet._id}`)}
               sx={{ borderRadius: '12px', fontWeight: 600, px: 3 }}
             >
               Pet Chat
@@ -262,6 +262,7 @@ const PetProfile = () => {
                 <Button
                   variant="outlined"
                   startIcon={<ChatIcon />}
+                  onClick={() => navigate(`/owner/chat?petId=${pet._id}`)}
                   sx={{
                     borderRadius: '50px',
                     px: 3,
@@ -538,7 +539,7 @@ const PetProfile = () => {
           )}
         </Box>
       </Container>
-    </PageContainer>
+    </PageContainer >
   );
 };
 

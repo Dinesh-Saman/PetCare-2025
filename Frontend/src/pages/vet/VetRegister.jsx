@@ -82,102 +82,282 @@ const VetRegister = () => {
     <Box sx={{
       minHeight: '100vh',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#f8fafc',
-      p: { xs: 2, md: 4 }
+      alignItems: 'stretch',
+      bgcolor: '#fff',
+      overflow: 'hidden'
     }}>
+      {/* Left Section - Form */}
       <Box sx={{
-        width: '100%',
-        maxWidth: '600px',
+        flex: { xs: '1 1 100%', md: '0 0 600px', lg: '0 0 700px' },
+        display: 'flex',
+        flexDirection: 'column',
+        p: { xs: 4, md: 6, lg: 8 },
+        overflowY: 'auto',
         bgcolor: 'white',
-        borderRadius: '28px',
-        overflow: 'hidden',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.1)',
-        border: '1px solid rgba(0,0,0,0.05)'
+        position: 'relative',
+        zIndex: 1
       }}>
-        {/* Header */}
-        <Box sx={{ background: bgGradient, color: 'white', py: 4, px: 3, textAlign: 'center' }}>
-          <PetsIcon sx={{ fontSize: 40, mb: 1, opacity: 0.9 }} />
-          <Typography variant="h5" fontWeight="900">Join our Network</Typography>
-          <Typography variant="body2" sx={{ opacity: 0.8 }}>Create your professional veterinary account</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 6 }}>
+          <Box sx={{
+            width: 40, height: 40, bgcolor: mainColor, borderRadius: '12px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+            boxShadow: `0 8px 16px ${alpha(mainColor, 0.25)}`
+          }}>
+            <PetsIcon sx={{ fontSize: 22 }} />
+          </Box>
+          <Typography variant="h6" fontWeight="800" color="#1e293b" letterSpacing="-0.5px">Pawpal Vet</Typography>
         </Box>
 
-        <Box sx={{ p: { xs: 3, md: 5 } }}>
-          <form onSubmit={handleSubmit} noValidate>
-            {error && <Alert severity="error" sx={{ mb: 3, borderRadius: '12px' }}>{error}</Alert>}
+        <Box sx={{ maxWidth: '550px', width: '100%', mx: 'auto' }}>
+          <Typography variant="h3" fontWeight="900" sx={{ mb: 1, color: '#0f172a', letterSpacing: '-1.5px' }}>
+            Join our Network
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 5, color: '#64748b', fontWeight: 500 }}>
+            Create your professional veterinarian account and join Sri Lanka's leading pet care platform.
+          </Typography>
 
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField fullWidth size="small" label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required error={isFieldInvalid('firstName')}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><PersonOutline sx={{ color: alpha(mainColor, 0.4), fontSize: 18 }} /></InputAdornment>, sx: { borderRadius: '12px' } }} />
+          <form onSubmit={handleSubmit} noValidate>
+            {error && (
+              <Alert severity="error" sx={{ mb: 3, borderRadius: '14px', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+                {error}
+              </Alert>
+            )}
+
+            <Grid container spacing={2.5}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: '#334155' }}>First Name</Typography>
+                <TextField
+                  fullWidth
+                  name="firstName"
+                  placeholder="John"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  error={isFieldInvalid('firstName')}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><PersonOutline sx={{ color: '#94a3b8' }} /></InputAdornment>,
+                    sx: { borderRadius: '14px', bgcolor: '#f8fafc' }
+                  }}
+                />
               </Grid>
-              <Grid item xs={6}>
-                <TextField fullWidth size="small" label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required error={isFieldInvalid('lastName')}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><PersonOutline sx={{ color: alpha(mainColor, 0.4), fontSize: 18 }} /></InputAdornment>, sx: { borderRadius: '12px' } }} />
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: '#334155' }}>Last Name</Typography>
+                <TextField
+                  fullWidth
+                  name="lastName"
+                  placeholder="Doe"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  error={isFieldInvalid('lastName')}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><PersonOutline sx={{ color: '#94a3b8' }} /></InputAdornment>,
+                    sx: { borderRadius: '14px', bgcolor: '#f8fafc' }
+                  }}
+                />
               </Grid>
               <Grid item xs={12}>
-                <TextField fullWidth size="small" label="Email Address" type="email" name="email" value={formData.email} onChange={handleChange} required error={isFieldInvalid('email')}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><EmailOutlined sx={{ color: alpha(mainColor, 0.4), fontSize: 18 }} /></InputAdornment>, sx: { borderRadius: '12px' } }} />
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: '#334155' }}>Email Address</Typography>
+                <TextField
+                  fullWidth
+                  name="email"
+                  type="email"
+                  placeholder="doctor@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  error={isFieldInvalid('email')}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><EmailOutlined sx={{ color: '#94a3b8' }} /></InputAdornment>,
+                    sx: { borderRadius: '14px', bgcolor: '#f8fafc' }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: '#334155' }}>Password</Typography>
+                <TextField
+                  fullWidth
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={isFieldInvalid('password')}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><LockOutlined sx={{ color: '#94a3b8' }} /></InputAdornment>,
+                    sx: { borderRadius: '14px', bgcolor: '#f8fafc' }
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: '#334155' }}>Phone Number</Typography>
+                <TextField
+                  fullWidth
+                  name="phoneNumber"
+                  placeholder="+94 7X XXX XXXX"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><PhoneOutlined sx={{ color: '#94a3b8' }} /></InputAdornment>,
+                    sx: { borderRadius: '14px', bgcolor: '#f8fafc' }
+                  }}
+                />
               </Grid>
               <Grid item xs={12}>
-                <TextField fullWidth size="small" label="Password" type="password" name="password" value={formData.password} onChange={handleChange} required error={isFieldInvalid('password')}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><LockOutlined sx={{ color: alpha(mainColor, 0.4), fontSize: 18 }} /></InputAdornment>, sx: { borderRadius: '12px' } }} />
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: '#334155' }}>Veterinary License ID</Typography>
+                <TextField
+                  fullWidth
+                  name="veterinaryId"
+                  placeholder="VET-XXXXX"
+                  value={formData.veterinaryId}
+                  onChange={handleChange}
+                  error={isFieldInvalid('veterinaryId')}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><BadgeOutlined sx={{ color: '#94a3b8' }} /></InputAdornment>,
+                    sx: { borderRadius: '14px', bgcolor: '#f8fafc' }
+                  }}
+                />
               </Grid>
               <Grid item xs={12}>
-                <TextField fullWidth size="small" label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><PhoneOutlined sx={{ color: alpha(mainColor, 0.4), fontSize: 18 }} /></InputAdornment>, sx: { borderRadius: '12px' } }} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth size="small" label="Veterinary License ID" name="veterinaryId" value={formData.veterinaryId} onChange={handleChange} required error={isFieldInvalid('veterinaryId')}
-                  InputProps={{ startAdornment: <InputAdornment position="start"><BadgeOutlined sx={{ color: alpha(mainColor, 0.4), fontSize: 18 }} /></InputAdornment>, sx: { borderRadius: '12px' } }} />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Specialization</InputLabel>
-                  <Select name="specialization" value={formData.specialization} onChange={handleChange} label="Specialization" sx={{ borderRadius: '12px' }}
-                    startAdornment={<InputAdornment position="start"><WorkOutline sx={{ color: alpha(mainColor, 0.4), fontSize: 18, ml: 1, mr: -0.5 }} /></InputAdornment>}>
-                    <MenuItem value=""><em>None</em></MenuItem>
+                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: '#334155' }}>Specialization</Typography>
+                <FormControl fullWidth>
+                  <Select
+                    name="specialization"
+                    value={formData.specialization}
+                    onChange={handleChange}
+                    displayEmpty
+                    startIcon={<WorkOutline />}
+                    sx={{ borderRadius: '14px', bgcolor: '#f8fafc' }}
+                  >
+                    <MenuItem value="" disabled>Select Specialization</MenuItem>
                     {specializations.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
                   </Select>
                 </FormControl>
               </Grid>
 
               <Grid item xs={12}>
-                <FormControlLabel
-                  control={<Checkbox name="isPrimaryVet" checked={formData.isPrimaryVet} onChange={handleChange} color="secondary" />}
-                  label={<Typography variant="body2" color="textSecondary">I am the Primary Veterinarian of my clinic</Typography>}
-                />
+                <Box sx={{
+                  p: 2,
+                  borderRadius: '16px',
+                  bgcolor: alpha(mainColor, 0.04),
+                  border: `1px dashed ${alpha(mainColor, 0.2)}`
+                }}>
+                  <FormControlLabel
+                    control={<Checkbox name="isPrimaryVet" checked={formData.isPrimaryVet} onChange={handleChange} color="secondary" />}
+                    label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>I am the Primary Veterinarian of my clinic</Typography>}
+                  />
+                  {formData.isPrimaryVet && (
+                    <Box sx={{ mt: 2 }}>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Clinic ID (Optional)"
+                        name="clinicId"
+                        value={formData.clinicId}
+                        onChange={handleChange}
+                        placeholder="Leave blank to create a new clinic"
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start"><LocalHospitalOutlined sx={{ color: mainColor, fontSize: 18 }} /></InputAdornment>,
+                          sx: { borderRadius: '12px', bgcolor: 'white' }
+                        }}
+                      />
+                    </Box>
+                  )}
+                </Box>
               </Grid>
-
-              {formData.isPrimaryVet && (
-                <Grid item xs={12}>
-                  <TextField fullWidth size="small" label="Clinic ID (Optional)" name="clinicId" value={formData.clinicId} onChange={handleChange}
-                    placeholder="Leave blank to create a new clinic"
-                    InputProps={{ startAdornment: <InputAdornment position="start"><LocalHospitalOutlined sx={{ color: alpha(mainColor, 0.4), fontSize: 18 }} /></InputAdornment>, sx: { borderRadius: '12px' } }} />
-                </Grid>
-              )}
             </Grid>
 
-            <Button type="submit" fullWidth variant="contained" disabled={loading}
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={loading}
               sx={{
-                mt: 4, background: bgGradient, color: 'white', py: 1.5, borderRadius: '12px', fontSize: '1rem', fontWeight: 800, textTransform: 'none',
-                boxShadow: `0 10px 20px ${alpha(mainColor, 0.2)}`,
-                '&:hover': { transform: 'translateY(-2px)', boxShadow: `0 15px 25px ${alpha(mainColor, 0.3)}` }
-              }}>
+                background: bgGradient,
+                color: 'white',
+                py: 2,
+                mt: 4,
+                borderRadius: '16px',
+                fontSize: '1.05rem',
+                fontWeight: 800,
+                textTransform: 'none',
+                boxShadow: `0 12px 24px ${alpha(mainColor, 0.3)}`,
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 15px 30px ${alpha(mainColor, 0.4)}`,
+                  background: bgGradient
+                }
+              }}
+            >
               {loading ? <CircularProgress size={24} color="inherit" /> : 'Create Professional Account'}
             </Button>
           </form>
 
-          <Box textAlign="center" mt={4} pt={3} borderTop="1px solid #f1f5f9">
-            <Typography variant="body2" color="textSecondary">
-              Already part of our network?{' '}
-              <Link href="/vet/login" sx={{ color: mainColor, fontWeight: 800, textDecoration: 'none' }}>
-                Sign In Portals
+          <Box sx={{ textAlign: 'center', mt: 4, pt: 3, borderTop: '1px solid #f1f5f9' }}>
+            <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }}>
+              Already registered?{' '}
+              <Link
+                href="/vet/login"
+                sx={{ color: mainColor, fontWeight: 800, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+              >
+                Sign in to Portal
               </Link>
             </Typography>
-            <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/')} sx={{ mt: 2, color: '#94a3b8', textTransform: 'none' }}>Home</Button>
+            <Button
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate('/')}
+              sx={{ mt: 3, color: '#94a3b8', textTransform: 'none', fontWeight: 600, fontSize: '0.85rem' }}
+            >
+              Return to Website
+            </Button>
           </Box>
+        </Box>
+      </Box>
+
+      {/* Right Section - Illustration */}
+      <Box sx={{
+        flex: 1,
+        display: { xs: 'none', lg: 'block' },
+        position: 'relative',
+        background: bgGradient,
+        overflow: 'hidden'
+      }}>
+        <Box sx={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.05)',
+          zIndex: 1
+        }} />
+
+        <Box sx={{
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          px: 8,
+          position: 'relative',
+          zIndex: 2,
+          color: 'white',
+          textAlign: 'center'
+        }}>
+          <Box
+            component="img"
+            src="https://img.freepik.com/free-vector/veterinary-concept-illustration_114360-17300.jpg?w=826"
+            alt="Veterinary Concept"
+            sx={{
+              width: '100%',
+              maxWidth: '550px',
+              height: 'auto',
+              borderRadius: '40px',
+              mb: 6,
+              boxShadow: '0 40px 80px rgba(0,0,0,0.25)',
+              border: '10px solid rgba(255,255,255,0.15)'
+            }}
+          />
+          <Typography variant="h3" fontWeight="900" sx={{ mb: 2, letterSpacing: '-1px' }}>
+            Advanced Pet Care
+          </Typography>
+          <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, maxWidth: '500px', lineHeight: 1.6 }}>
+            Join thousands of professionals providing top-tier veterinary services. Manage your clinic, staff, and appointments with ease.
+          </Typography>
         </Box>
       </Box>
     </Box>

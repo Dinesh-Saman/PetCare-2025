@@ -127,12 +127,19 @@ exports.getAppointmentsByVet = async (req, res) => {
     const { vetId } = req.params;
     const { date, clinicId } = req.query;
 
-    // Security: Vet can only view their own appointments
-    if (req.user.role === 'vet' && req.user.id.toString() !== vetId) {
+    // Security: Only the assigned vet can view, UNLESS the requester is a Primary Vet
+    const isPrimary = req.user.role === 'vet' && req.user.accessLevel === 'Primary';
+    if (req.user.role === 'vet' && !isPrimary && req.user.id.toString() !== vetId) {
       return res.status(403).json({ message: 'You can only view your own appointments' });
     }
 
-    let query = { vetId };
+    let query = {};
+    if (isPrimary && req.user.id.toString() === vetId) {
+      // Primary vet looking at their own ID get global system view
+      query = {};
+    } else {
+      query = { vetId };
+    }
 
     if (clinicId) query.clinicId = clinicId;
 
@@ -151,6 +158,7 @@ exports.getAppointmentsByVet = async (req, res) => {
         populate: { path: 'ownerId', select: 'firstName lastName phoneNumber' }
       })
       .populate('clinicId', 'name address phoneNumber')
+      .populate('vetId', 'firstName lastName')
       .sort({ dateTime: 1 });
 
     res.status(200).json({
@@ -177,9 +185,17 @@ exports.cancelAppointment = async (req, res) => {
 
     // Security: Owner or vet from the same clinic can cancel
     const isOwner = req.user.role === 'owner' && appointment.petId.ownerId.toString() === req.user.id;
-    const isVet = req.user.role === 'vet' && appointment.vetId.toString() === req.user.id;
 
-    if (!isOwner && !isVet) {
+    // For vets, allow if Primary, or if assigned vet, or if vet in same clinic
+    let isVetAllowed = false;
+    if (req.user.role === 'vet') {
+      const isPrimary = req.user.accessLevel === 'Primary';
+      const isAssignedVet = appointment.vetId && appointment.vetId.toString() === req.user.id.toString();
+      const isClinicVet = req.user.clinicId && appointment.clinicId && appointment.clinicId.toString() === req.user.clinicId.toString();
+      isVetAllowed = isPrimary || isAssignedVet || isClinicVet;
+    }
+
+    if (!isOwner && !isVetAllowed) {
       return res.status(403).json({ message: 'You can only cancel your own appointments' });
     }
 
@@ -224,35 +240,76 @@ exports.confirmAppointment = async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
-    // Only the assigned vet can confirm
-    if (req.user.role === 'vet' && appointment.vetId.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'You can only confirm your own appointments' });
+    const isPrimary = req.user.accessLevel === 'Primary';
+    const isAssignedVet = appointment.vetId.toString() === req.user.id.toString();
+    const isClinicVet = req.user.clinicId && appointment.clinicId.toString() === req.user.clinicId.toString();
+
+    if (!isPrimary && !isAssignedVet && !isClinicVet) {
+      return res.status(403).json({
+        message: 'You can only confirm appointments belonging to your clinic'
+      });
     }
 
     const updated = await Appointment.findByIdAndUpdate(
       id,
       { status: 'Confirmed' },
       { new: true }
-    )
-      .populate('petId vetId clinicId ownerId');
+    ).populate('petId vetId clinicId ownerId');
 
     res.status(200).json({
       message: 'Appointment confirmed',
       appointment: updated
     });
 
-    // === REAL-TIME UPDATE ===
     const io = req.app.get('socketio');
     if (io) {
-      // Notify the owner
       io.to(updated.ownerId._id.toString()).emit('appointmentStatusChanged', updated);
-      console.log(`📡 Socket: Notified owner about confirmation of ${id}`);
     }
   } catch (error) {
     res.status(400).json({
       message: 'Error confirming appointment',
       error: error.message
     });
+  }
+};
+
+// Manage Appointment (Vet only) - Add notes, prescriptions, complete status
+exports.manageAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { notes, status } = req.body;
+
+    const appointment = await Appointment.findById(id);
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+
+    // Assuming files are handled by multer (req.files)
+    // Add file logic if needed here (e.g. saving URLs to a MedicalRecord schema or inside the appointment)
+    // For now we persist notes and status
+
+    appointment.notes = notes !== undefined ? notes : appointment.notes;
+    if (status) appointment.status = status;
+
+    await appointment.save();
+
+    // (Optional) if `medicalRecord` or `prescription` files exist, create/update related models
+    if (req.files) {
+      // handle storing logic, perhaps uploading to S3 or a local folder and saving references
+      // This logic depends on the specific MedRecord/Prescription Models
+    }
+
+    const updated = await Appointment.findById(id)
+      .populate('petId vetId clinicId ownerId');
+
+    res.status(200).json({
+      message: 'Appointment updated successfully',
+      appointment: updated
+    });
+
+    const io = req.app.get('socketio');
+    if (io) io.to(updated.ownerId._id.toString()).emit('appointmentStatusChanged', updated);
+
+  } catch (error) {
+    res.status(400).json({ message: 'Error managing appointment', error: error.message });
   }
 };
 
@@ -301,7 +358,9 @@ exports.getTodayAppointmentsCountByVet = async (req, res) => {
       });
     }
 
-    if (req.user.id.toString() !== vetId) {
+    // If Primary, allow viewing ANY vet's stats
+    const isPrimary = req.user.accessLevel === 'Primary';
+    if (!isPrimary && req.user.id.toString() !== vetId) {
       return res.status(403).json({
         message: 'You can only view your own appointment stats'
       });
@@ -314,16 +373,22 @@ exports.getTodayAppointmentsCountByVet = async (req, res) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Count appointments that are not canceled/completed
-    const count = await Appointment.countDocuments({
-      vetId,
+    // Count appointments for today
+    let countQuery = {
       dateTime: { $gte: today, $lt: tomorrow },
-      status: { $nin: ['Canceled', 'Completed'] }
-    });
+      status: 'Confirmed'
+    };
+
+    // If NOT Primary, only count for the specific vetId
+    if (!isPrimary) {
+      countQuery.vetId = vetId;
+    }
+
+    const count = await Appointment.countDocuments(countQuery);
 
     res.status(200).json({
-      message: "Today's appointments count retrieved successfully",
-      vetId,
+      message: isPrimary ? "Total today's appointments (Global)" : "Today's appointments count retrieved",
+      vetId: isPrimary ? 'GLOBAL' : vetId,
       todayDate: today.toISOString().split('T')[0],
       todayAppointmentsCount: count
     });

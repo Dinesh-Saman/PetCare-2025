@@ -12,18 +12,18 @@ api.interceptors.request.use(
 
     const pathname = window.location.pathname;
 
-    // Vet section → use vet_token
+    // Vet section → use vet_token (fallback to generic token)
     if (pathname.startsWith('/vet')) {
-      token = localStorage.getItem('vet_token');
+      token = localStorage.getItem('vet_token') || localStorage.getItem('token');
     }
-    // Owner section → use owner_token
+    // Owner section → use owner_token (fallback to generic token)
     else if (pathname.startsWith('/owner')) {
-      token = localStorage.getItem('owner_token');
+      token = localStorage.getItem('owner_token') || localStorage.getItem('token');
     }
     // Fallback (useful during development or if user refreshes on dashboard)
     else {
-      // Try vet first, then owner (or reverse based on your preference)
-      token = localStorage.getItem('vet_token') || localStorage.getItem('owner_token');
+      // Prioritize owner_token for non-prefixed routes if likely an owner-facing feature
+      token = localStorage.getItem('owner_token') || localStorage.getItem('vet_token') || localStorage.getItem('token');
     }
 
     if (token) {

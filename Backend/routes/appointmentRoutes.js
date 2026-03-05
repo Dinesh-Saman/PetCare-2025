@@ -8,6 +8,7 @@ const {
   updateAppointment,
   cancelAppointment,
   confirmAppointment,
+  manageAppointment,
   getAppointmentById,
   getTodayAppointmentsCountByVet,
   getMyAppointments
@@ -55,6 +56,9 @@ router.get(
 
 // Confirm appointment (vet only)
 router.patch('/:id/confirm', protect, authorize('vet'), confirmAppointment);
+
+// Manage appointment (vet only)
+router.patch('/:id/manage', protect, authorize('vet'), manageAppointment);
 
 // Cancel appointment (owner or vet)
 router.patch('/:id/cancel', protect, allowCancel, cancelAppointment);
