@@ -33,15 +33,17 @@ const GlassCard = styled(Card)(({ theme }) => ({
     width: '100%'
 }));
 
-const ContentCard = styled(Box)(({ theme }) => ({
-    background: 'white',
-    borderRadius: '32px',
-    padding: '40px',
-    border: '1px solid #e2e8f0',
+const ContentContainer = styled(Box)(({ theme }) => ({
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    boxSizing: 'border-box',
     boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
+    border: '1px solid #e2e8f0',
     minHeight: '80vh',
     width: '100%',
-    boxSizing: 'border-box'
+    padding: '32px',
+    display: 'flex',
+    flexDirection: 'column',
 }));
 
 const VetProfile = () => {
@@ -189,13 +191,12 @@ const VetProfile = () => {
             <VetAdminNavbar />
             <Box sx={{ display: 'flex', flexGrow: 1 }}>
                 {!isMobile && <Sidebar />}
-                <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 4, minWidth: 0, width: '100%' }}>
-                    <ContentCard>
-                        <Box sx={{ mb: 6 }}>
-                            <Typography variant="h4" fontWeight="900" sx={{ color: '#0f172a' }}>
+                <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2, minWidth: 0, width: '100%' }}>
+                    <ContentContainer>
+                        <Box sx={{ mb: 4 }}>
+                            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>
                                 My Profile
                             </Typography>
-                            <Divider sx={{ mt: 2, width: '60px', height: '4px', bgcolor: '#49149e', borderRadius: '2px' }} />
                         </Box>
 
                         <Grid container spacing={4} sx={{ width: '100%', m: 0 }}>
@@ -264,17 +265,23 @@ const VetProfile = () => {
                                                     type="submit" variant="contained"
                                                     disabled={saving}
                                                     sx={{
-                                                        background: 'linear-gradient(135deg, #49149e 0%, #7b1fa2 100%)',
-                                                        borderRadius: '50px',
+                                                        background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
+                                                        borderRadius: '12px',
                                                         px: 6,
                                                         py: 1.5,
                                                         fontWeight: 700,
                                                         textTransform: 'none',
                                                         fontSize: '1rem',
-                                                        boxShadow: '0 10px 25px rgba(73, 20, 158, 0.2)',
+                                                        boxShadow: '0 10px 25px rgba(142, 36, 170, 0.2)',
+                                                        transition: 'all 0.3s ease',
                                                         '&:hover': {
-                                                            background: 'linear-gradient(135deg, #3d1184 0%, #6a1b8e 100%)',
-                                                        }
+                                                            background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                                                            transform: 'translateY(-2px)',
+                                                            boxShadow: '0 15px 30px rgba(142, 36, 170, 0.3)',
+                                                        },
+                                                        '&:active': {
+                                                            transform: 'translateY(0)',
+                                                        },
                                                     }}
                                                 >
                                                     {saving ? <CircularProgress size={24} color="inherit" /> : 'Update Professional Profile'}
@@ -375,12 +382,21 @@ const VetProfile = () => {
                                                         disabled={passwordLoading}
                                                         fullWidth
                                                         sx={{
-                                                            background: 'linear-gradient(135deg, #49149e 0%, #7b1fa2 100%)',
-                                                            borderRadius: '50px',
+                                                            background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
+                                                            borderRadius: '12px',
                                                             py: 1.5,
                                                             fontWeight: 700,
                                                             textTransform: 'none',
-                                                            boxShadow: '0 10px 25px rgba(73, 20, 158, 0.2)'
+                                                            boxShadow: '0 10px 25px rgba(142, 36, 170, 0.2)',
+                                                            transition: 'all 0.3s ease',
+                                                            '&:hover': {
+                                                                background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                                                                transform: 'translateY(-2px)',
+                                                                boxShadow: '0 15px 30px rgba(142, 36, 170, 0.3)',
+                                                            },
+                                                            '&:active': {
+                                                                transform: 'translateY(0)',
+                                                            },
                                                         }}
                                                     >
                                                         {passwordLoading ? <CircularProgress size={24} color="inherit" /> : 'Change Password'}
@@ -393,7 +409,7 @@ const VetProfile = () => {
                             </Grid>
 
                         </Grid>
-                    </ContentCard>
+                    </ContentContainer>
                 </Box>
             </Box>
         </Box>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     AppBar,
     Toolbar,
@@ -13,8 +13,15 @@ import {
     Divider,
     useTheme,
     useMediaQuery,
-    alpha
+    alpha,
+    Badge,
+    List,
+    ListItem,
+    ListItemText,
+    CircularProgress
 } from '@mui/material';
+import api from '../../services/api';
+import dayjs from 'dayjs';
 import {
     Menu as MenuIcon,
     Notifications as NotificationsIcon,
@@ -35,12 +42,44 @@ import Sidebar from './sidebar';
 import { useAuth } from '../../context/AuthContext';
 
 const VetAdminNavbar = () => {
-    const { logout } = useAuth();
+    const { user, logout } = useAuth();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
+    const [notifAnchorEl, setNotifAnchorEl] = useState(null);
+    const [notifications, setNotifications] = useState({
+        pendingRegistrations: [],
+        appointments: [],
+        unreadChats: []
+    });
+    const [loadingNotifs, setLoadingNotifs] = useState(false);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const navigate = useNavigate();
+
+    useEffect(() => {
+        fetchNotifications();
+        // Refresh every 5 minutes
+        const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchNotifications = async () => {
+        try {
+            setLoadingNotifs(true);
+            const response = await api.get(`/vets/notifications?t=${Date.now()}`);
+            if (response.data.success) {
+                setNotifications({
+                    pendingRegistrations: response.data.notifications?.pendingRegistrations || [],
+                    appointments: response.data.notifications?.appointments || [],
+                    unreadChats: response.data.notifications?.unreadChats || []
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching notifications:', error);
+        } finally {
+            setLoadingNotifs(false);
+        }
+    };
 
     const handleProfileMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
@@ -49,6 +88,18 @@ const VetAdminNavbar = () => {
     const handleProfileMenuClose = () => {
         setAnchorEl(null);
     };
+
+    const handleNotifMenuOpen = (event) => {
+        setNotifAnchorEl(event.currentTarget);
+    };
+
+    const handleNotifMenuClose = () => {
+        setNotifAnchorEl(null);
+    };
+
+    const totalNotifs = (notifications.pendingRegistrations?.length || 0) +
+        (notifications.appointments?.length || 0) +
+        (notifications.unreadChats?.length || 0);
 
     const handleLogout = () => {
         logout();
@@ -97,8 +148,10 @@ const VetAdminNavbar = () => {
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <IconButton color="inherit">
-                            <NotificationsIcon />
+                        <IconButton color="inherit" onClick={handleNotifMenuOpen}>
+                            <Badge badgeContent={totalNotifs} color="error">
+                                <NotificationsIcon />
+                            </Badge>
                         </IconButton>
                         <Box
                             onClick={handleProfileMenuOpen}
@@ -116,12 +169,12 @@ const VetAdminNavbar = () => {
                                 }
                             }}
                         >
-                            <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#fff', 0.2), fontSize: '0.9rem', border: '1px solid rgba(255,255,255,0.4)' }}>
-                                V
+                            <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#fff', 0.2), fontSize: '0.9rem', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}>
+                                {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'V'}
                             </Avatar>
                             {!isMobile && (
                                 <Typography variant="body2" fontWeight="600">
-                                    Vet Admin
+                                    {user?.firstName ? `${user.firstName} ${user.lastName || ''}` : 'Vet Admin'}
                                 </Typography>
                             )}
                         </Box>
@@ -195,16 +248,198 @@ const VetAdminNavbar = () => {
                             <ListItemIcon><GroupIcon fontSize="small" /></ListItemIcon>
                             All Staff
                         </MenuItem>
-                        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/add-new-staff'); }}>
-                            <ListItemIcon><PersonAddIcon fontSize="small" /></ListItemIcon>
-                            Add Staff Member
-                        </MenuItem>
                         <Divider sx={{ my: 1 }} />
 
                         <MenuItem onClick={handleLogout} sx={{ color: '#ef4444' }}>
                             <ListItemIcon><ExitToApp fontSize="small" sx={{ color: '#ef4444' }} /></ListItemIcon>
                             Logout
                         </MenuItem>
+                    </Menu>
+
+                    {/* Notifications Menu */}
+                    <Menu
+                        anchorEl={notifAnchorEl}
+                        open={Boolean(notifAnchorEl)}
+                        onClose={handleNotifMenuClose}
+                        PaperProps={{
+                            sx: {
+                                mt: 1.5,
+                                width: 350,
+                                maxHeight: 500,
+                                borderRadius: '16px',
+                                boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                                border: '1px solid #e2e8f0',
+                                overflow: 'auto',
+                                zIndex: 9999
+                            }
+                        }}
+                        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                    >
+                        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="subtitle1" fontWeight="800">Notifications</Typography>
+                            {loadingNotifs && <CircularProgress size={16} />}
+                        </Box>
+                        <Divider />
+
+                        <List sx={{ p: 0 }}>
+                            {/* Pending Registrations */}
+                            {notifications.pendingRegistrations?.length > 0 && (
+                                <>
+                                    <Box sx={{ px: 2, pt: 1, pb: 0.5 }}>
+                                        <Typography variant="caption" fontWeight="bold" color="warning.main">PENDING REGISTRATIONS</Typography>
+                                    </Box>
+                                    {notifications.pendingRegistrations.map(reg => (
+                                        <MenuItem key={reg._id} onClick={async () => {
+                                            handleNotifMenuClose();
+                                            // Immediately update local state to hide it
+                                            setNotifications(prev => ({
+                                                ...prev,
+                                                pendingRegistrations: prev.pendingRegistrations.filter(r => r._id !== reg._id)
+                                            }));
+
+                                            try {
+                                                await api.patch(`/vets/notifications/registration/${reg._id}/read`);
+                                            } catch (error) {
+                                                console.error('Failed to mark read:', error);
+                                            }
+
+                                            // Then navigate
+                                            navigate('/vet/pets/pending', { state: { highlightId: reg._id } });
+                                        }}>
+                                            <ListItemIcon><HourglassEmptyIcon color="warning" /></ListItemIcon>
+                                            <ListItemText
+                                                primary={reg.name}
+                                                secondary={`From ${reg.ownerId?.firstName} ${reg.ownerId?.lastName || ''}`}
+                                                primaryTypographyProps={{ fontWeight: 700, fontSize: '0.85rem' }}
+                                                secondaryTypographyProps={{ variant: 'caption' }}
+                                            />
+                                        </MenuItem>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* Appointments Today/Tomorrow */}
+                            {notifications.appointments.length > 0 && (
+                                <>
+                                    <Box sx={{ px: 2, pt: 1, pb: 0.5 }}>
+                                        <Typography variant="caption" fontWeight="bold" color="primary">UPCOMING APPOINTMENTS</Typography>
+                                    </Box>
+                                    {notifications.appointments.map(app => (
+                                        <MenuItem key={app._id} onClick={async () => {
+                                            handleNotifMenuClose();
+                                            // Immediately update local state to hide it
+                                            setNotifications(prev => ({
+                                                ...prev,
+                                                appointments: prev.appointments.filter(a => a._id !== app._id)
+                                            }));
+
+                                            try {
+                                                await api.patch(`/vets/notifications/appointment/${app._id}/read`);
+                                            } catch (error) {
+                                                console.error('Failed to mark read:', error);
+                                            }
+
+                                            navigate('/vet/appointments', { state: { highlightId: app._id } });
+                                        }}>
+                                            <ListItemIcon>
+                                                {app.status === 'Booked' ? (
+                                                    <Badge color="warning" variant="dot" overlap="circular">
+                                                        <HourglassEmptyIcon sx={{ color: '#f59e0b' }} />
+                                                    </Badge>
+                                                ) : (
+                                                    <CalendarMonthIcon color="info" />
+                                                )}
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary={
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        {app.petId?.name || 'Pet'}
+                                                        {app.status === 'Booked' && (
+                                                            <Typography component="span" sx={{ fontSize: '0.65rem', bgcolor: '#fef3c7', color: '#92400e', px: 0.8, py: 0.2, borderRadius: '4px', fontWeight: 800 }}>REQUEST</Typography>
+                                                        )}
+                                                    </Box>
+                                                }
+                                                secondary={
+                                                    <>
+                                                        <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: app.status === 'Booked' ? '#92400e' : 'inherit' }}>
+                                                            {dayjs(app.dateTime).format('h:mm A')}
+                                                        </Typography>
+                                                        {` | ${dayjs(app.dateTime).format('MMM D')} | ${app.clinicId?.name || 'Clinic'}`}
+                                                    </>
+                                                }
+                                                primaryTypographyProps={{ fontWeight: 600, fontSize: '0.85rem' }}
+                                            />
+                                        </MenuItem>
+                                    ))}
+                                </>
+                            )}
+
+                            {/* Unread Chats */}
+                            {notifications.unreadChats.length > 0 && (
+                                <>
+                                    <Box sx={{ px: 2, pt: 1, pb: 0.5 }}>
+                                        <Typography variant="caption" fontWeight="bold" color="secondary">NEW MESSAGES</Typography>
+                                    </Box>
+                                    {notifications.unreadChats.map(chat => (
+                                        <MenuItem key={chat._id} onClick={async () => {
+                                            handleNotifMenuClose();
+                                            const ownerId = chat.ownerId || chat.senderId;
+                                            const petId = chat.petId?._id || chat.petId;
+
+                                            setNotifications(prev => ({
+                                                ...prev,
+                                                unreadChats: prev.unreadChats.filter(c => c._id !== chat._id)
+                                            }));
+
+                                            try {
+                                                if (petId) {
+                                                    await api.patch('/chat/read', { petId });
+                                                }
+                                            } catch (error) {
+                                                console.error('Failed to mark chat read:', error);
+                                            }
+
+                                            if (ownerId) {
+                                                navigate(`/vet/chat/owner/${ownerId}`, {
+                                                    state: { selectedPetId: petId }
+                                                });
+                                            } else {
+                                                navigate('/vet/chat');
+                                            }
+                                        }}>
+                                            <ListItemIcon><ChatIcon color="secondary" /></ListItemIcon>
+                                            <ListItemText
+                                                primary={`${chat.petId?.name || 'Owner'}`}
+                                                secondary={chat.content.substring(0, 40) + (chat.content.length > 40 ? '...' : '')}
+                                                primaryTypographyProps={{ fontWeight: 600, fontSize: '0.85rem' }}
+                                                secondaryTypographyProps={{ variant: 'caption' }}
+                                            />
+                                        </MenuItem>
+                                    ))}
+                                </>
+                            )}
+
+                            {totalNotifs === 0 && !loadingNotifs && (
+                                <Box sx={{ p: 4, textAlign: 'center' }}>
+                                    <Typography color="textSecondary">No new notifications</Typography>
+                                </Box>
+                            )}
+                        </List>
+                        <Divider />
+                        <Box sx={{ p: 1, textAlign: 'center' }}>
+                            <Typography
+                                variant="caption"
+                                color="primary"
+                                sx={{ cursor: 'pointer', fontWeight: 700 }}
+                                onClick={fetchNotifications}
+                            >
+                                Refresh Notifications
+                            </Typography>
+                            <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 0.5, fontSize: '0.65rem' }}>
+                                Last updated: {dayjs().format('h:mm:ss A')}
+                            </Typography>
+                        </Box>
                     </Menu>
                 </Toolbar>
             </AppBar>

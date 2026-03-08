@@ -14,7 +14,8 @@ const appointmentSchema = new mongoose.Schema({
   reason: { type: String },
   notes: { type: String },
   medicalRecordUrl: { type: String },
-  prescriptionUrl: { type: String }
+  prescriptionUrl: { type: String },
+  isReadByVet: { type: Boolean, default: false }
 });
 
 // Compound index for faster queries

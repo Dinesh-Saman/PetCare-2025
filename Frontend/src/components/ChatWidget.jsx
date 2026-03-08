@@ -190,8 +190,6 @@ const ChatWidget = () => {
           </button>
         )}
       </div>
-
-      <div style={{ height: 12 }} />
     </div>
   );
 };

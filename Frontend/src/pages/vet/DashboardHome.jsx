@@ -329,32 +329,26 @@ const DashboardHome = () => {
                             const isToday = props.day.isSame(dayjs(), 'day');
                             const hasAppointment = appointmentDates.includes(props.day.format('YYYY-MM-DD'));
                             return (
-                              <Badge
+                              <PickersDay
+                                {...props}
                                 key={props.day.toString()}
-                                overlap="circular"
-                                badgeContent={hasAppointment ? <Box sx={{ width: 6, height: 6, bgcolor: '#10b981', borderRadius: '50%' }} /> : undefined}
-                                sx={{ '& .MuiBadge-badge': { bottom: 6, right: '50%', transform: 'translateX(50%)' } }}
-                              >
-                                <PickersDay
-                                  {...props}
-                                  sx={{
-                                    borderRadius: '12px',
-                                    ...(isToday && {
-                                      bgcolor: alpha('#4f46e5', 0.1) + ' !important',
-                                      border: '2px solid #4f46e5 !important',
-                                      color: '#4f46e5 !important',
-                                      fontWeight: '900',
-                                    }),
-                                    ...(hasAppointment && !isToday && {
-                                      bgcolor: alpha('#10b981', 0.12) + ' !important',
-                                      border: '1px solid #10b981 !important',
-                                      color: '#059669 !important',
-                                      fontWeight: '700'
-                                    }),
-                                    '&:hover': { bgcolor: alpha('#4f46e5', 0.05) + ' !important' }
-                                  }}
-                                />
-                              </Badge>
+                                sx={{
+                                  borderRadius: '12px',
+                                  ...(isToday && {
+                                    bgcolor: alpha('#4f46e5', 0.1) + ' !important',
+                                    border: '2px solid #4f46e5 !important',
+                                    color: '#4f46e5 !important',
+                                    fontWeight: '900',
+                                  }),
+                                  ...(hasAppointment && !isToday && {
+                                    bgcolor: alpha('#10b981', 0.12) + ' !important',
+                                    border: '1px solid #10b981 !important',
+                                    color: '#059669 !important',
+                                    fontWeight: '700'
+                                  }),
+                                  '&:hover': { bgcolor: alpha('#4f46e5', 0.05) + ' !important' }
+                                }}
+                              />
                             );
                           }
                         }}
@@ -385,137 +379,106 @@ const DashboardHome = () => {
                 display: 'flex',
                 flexDirection: 'column',
               }}>
-                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Box>
-                    <Typography variant="h5" fontWeight="900" sx={{ color: '#0f172a' }}>
-                      Appointment Details
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" fontWeight="600">
-                      {selectedDate.format('MMMM DD, YYYY')}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Typography variant="h3" fontWeight="900" color="#4f46e5">
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Typography variant="h6" fontWeight="800" sx={{ color: '#0f172a', flexGrow: 1 }}>
+                    Appointments for {selectedDate.format('dddd, MMMM D, YYYY')}
+                  </Typography>
+                  {selectedDateAppointments.length > 0 && (
+                    <Box sx={{
+                      bgcolor: '#4f46e5', color: 'white', borderRadius: '50%',
+                      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '13px', fontWeight: 800, flexShrink: 0
+                    }}>
                       {selectedDateAppointments.length}
-                    </Typography>
-                    <Typography variant="subtitle2" fontWeight="800" color="text.secondary" sx={{ textTransform: 'uppercase' }}>
-                      Confirmed Bookings
-                    </Typography>
-                  </Box>
+                    </Box>
+                  )}
                 </Box>
 
                 <Divider sx={{ mb: 2 }} />
 
                 <Box sx={{
-                  overflowY: selectedDateAppointments.length > 2 ? 'auto' : 'visible',
-                  maxHeight: selectedDateAppointments.length > 2 ? '480px' : 'none',
-                  pr: selectedDateAppointments.length > 2 ? 1 : 0
+                  overflowY: selectedDateAppointments.length > 4 ? 'auto' : 'visible',
+                  maxHeight: selectedDateAppointments.length > 4 ? '480px' : 'none',
+                  pr: selectedDateAppointments.length > 4 ? 1 : 0
                 }}>
                   {fetchingAppointments ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
                       <CircularProgress size={30} />
                     </Box>
                   ) : selectedDateAppointments.length > 0 ? (
-                    selectedDateAppointments.map((appt) => (
-                      <Paper key={appt._id} elevation={0} sx={{
-                        p: 3,
-                        borderRadius: '12px',
-                        border: '1px solid #e8f5e9',
-                        background: 'linear-gradient(135deg, #f0fdf4 0%, #fafffe 100%)',
-                        transition: 'all 0.2s ease',
-                        mb: 2,
-                        '&:hover': {
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 8px 24px rgba(16, 185, 129, 0.12)',
-                          borderColor: '#10b981',
-                        }
-                      }}>
-                        <Grid container alignItems="center" spacing={3}>
-                          {/* Column 1: Pet Profile */}
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Stack direction="row" spacing={2} alignItems="center">
-                              <Avatar
-                                src={appt.petId?.photo}
-                                sx={{ width: 56, height: 56, borderRadius: '12px', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}
-                              >
-                                <FaPaw size={24} />
-                              </Avatar>
-                              <Box>
-                                <Typography variant="subtitle1" fontWeight="800" sx={{ color: '#1e293b', lineHeight: 1.2 }}>
-                                  {appt.petId?.name}
-                                </Typography>
-                                <Typography variant="caption" fontWeight="700" sx={{ color: '#64748b', textTransform: 'uppercase' }}>
-                                  {appt.petId?.type || 'Pet'}
-                                </Typography>
-                              </Box>
-                            </Stack>
-                          </Grid>
+                    selectedDateAppointments.map((appt, idx) => (
+                      <Box
+                        key={appt._id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          py: 2,
+                          px: 1,
+                          borderBottom: idx < selectedDateAppointments.length - 1 ? '1px solid #f1f5f9' : 'none',
+                          transition: 'background 0.15s ease',
+                          borderRadius: '8px',
+                          '&:hover': { bgcolor: '#f8fafc' },
+                        }}
+                      >
+                        {/* Time */}
+                        <Typography
+                          variant="body2"
+                          fontWeight="700"
+                          sx={{ color: '#374151', minWidth: 72, flexShrink: 0 }}
+                        >
+                          {dayjs(appt.dateTime).format('h:mm A')}
+                        </Typography>
 
-                          {/* Column 2: Owner Info */}
-                          <Grid item xs={12} sm={6} md={3}>
-                            <Stack spacing={0.5}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#475569' }}>
-                                <FaUserAlt size={12} color="#94a3b8" />
-                                <Typography variant="body2" fontWeight="700">
-                                  {appt.petId?.ownerId?.firstName} {appt.petId?.ownerId?.lastName}
-                                </Typography>
-                              </Box>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
-                                <FaPhone size={12} color="#94a3b8" />
-                                <Typography variant="caption" fontWeight="600">
-                                  {appt.petId?.ownerId?.phoneNumber}
-                                </Typography>
-                              </Box>
-                            </Stack>
-                          </Grid>
+                        {/* Avatar + Pet Name + Owner */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 170, flexShrink: 0 }}>
+                          <Avatar
+                            src={appt.petId?.photo}
+                            sx={{ width: 38, height: 38, borderRadius: '8px', border: '1.5px solid #e2e8f0' }}
+                          >
+                            <FaPaw size={16} />
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" fontWeight="700" sx={{ color: '#111827', lineHeight: 1.2 }}>
+                              {appt.petId?.name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 500 }}>
+                              {appt.petId?.ownerId?.firstName} {appt.petId?.ownerId?.lastName}
+                            </Typography>
+                          </Box>
+                        </Box>
 
-                          {/* Column 3: Appt Info & Reason */}
-                          <Grid item xs={12} md={4}>
-                            <Stack spacing={0.5}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#4f46e5' }}>
-                                  <FaClock size={14} />
-                                  <Typography variant="body2" fontWeight="900">
-                                    {dayjs(appt.dateTime).format('hh:mm A')}
-                                  </Typography>
-                                </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#1e293b', bgcolor: alpha('#4f46e5', 0.05), px: 1, py: 0.2, borderRadius: '6px' }}>
-                                  <FaHospital size={12} color="#4f46e5" />
-                                  <Typography variant="caption" fontWeight="800">
-                                    {appt.clinicId?.name || 'Main Clinic'}
-                                  </Typography>
-                                </Box>
-                              </Box>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
-                                <FaNotesMedical size={12} color="#94a3b8" />
-                                <Typography variant="caption" fontWeight="600" sx={{
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                  lineHeight: 1.3
-                                }}>
-                                  <Box component="span" sx={{ fontWeight: 800, color: '#475569' }}>Reason:</Box> {appt.reason || 'Regular Checkup'}
-                                </Typography>
-                              </Box>
-                            </Stack>
-                          </Grid>
+                        {/* Reason */}
+                        <Typography
+                          variant="body2"
+                          sx={{ color: '#4b5563', flexGrow: 1, fontStyle: 'italic' }}
+                          noWrap
+                        >
+                          {appt.reason || 'Regular Checkup'}
+                        </Typography>
 
-                          {/* Column 4: Status & Actions */}
-                          <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
-                            <Box sx={{
-                              px: 1.5, py: 0.5, borderRadius: '8px',
-                              bgcolor: '#ecfdf5', color: '#10b981',
-                              display: 'inline-flex', alignItems: 'center', gap: 1
-                            }}>
-                              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10b981' }} />
-                              <Typography variant="caption" fontWeight="800" sx={{ textTransform: 'uppercase' }}>
-                                Confirmed
-                              </Typography>
-                            </Box>
-                          </Grid>
-                        </Grid>
-                      </Paper>
+                        {/* Clinic */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0, minWidth: 120 }}>
+                          <FaHospital size={12} color="#94a3b8" />
+                          <Typography variant="caption" sx={{ color: '#6b7280', fontWeight: 500 }} noWrap>
+                            {appt.clinicId?.name || 'Main Clinic'}
+                          </Typography>
+                        </Box>
+
+                        {/* Status Badge */}
+                        <Box sx={{
+                          px: 1.5, py: 0.4,
+                          borderRadius: '6px',
+                          bgcolor: appt.status === 'Confirmed' ? '#eff6ff' : appt.status === 'Completed' ? '#f0fdf4' : '#fef9c3',
+                          color: appt.status === 'Confirmed' ? '#3b82f6' : appt.status === 'Completed' ? '#16a34a' : '#ca8a04',
+                          border: `1px solid ${appt.status === 'Confirmed' ? '#bfdbfe' : appt.status === 'Completed' ? '#bbf7d0' : '#fde68a'}`,
+                          flexShrink: 0,
+                        }}>
+                          <Typography variant="caption" fontWeight="700">
+                            {appt.status || 'Confirmed'}
+                          </Typography>
+                        </Box>
+                      </Box>
                     ))
                   ) : (
                     <Paper sx={{
@@ -539,3 +502,4 @@ const DashboardHome = () => {
 };
 
 export default DashboardHome;
+

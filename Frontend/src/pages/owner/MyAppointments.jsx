@@ -54,6 +54,7 @@ import {
 
 import Navbar from '../../components/Navbar';
 import socket, { connectSocket, disconnectSocket } from '../../services/socket';
+import BookAppointmentModal from '../../components/owner/BookAppointmentModal';
 
 const AppointmentsContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -252,6 +253,7 @@ const MyAppointments = () => {
   const [sortOption, setSortOption] = useState('dateAsc');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [bookModalOpen, setBookModalOpen] = useState(false);
 
   const fetchAppointments = async (showLoading = true) => {
     try {
@@ -396,9 +398,9 @@ const MyAppointments = () => {
             variant="contained"
             sx={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}
             startIcon={<Plus size={20} />}
-            onClick={() => navigate('/owner/appointments')}
+            onClick={() => setBookModalOpen(true)}
           >
-            Book New Session
+            Book New Appointment
           </ActionButton>
         </PageHeader>
 
@@ -496,7 +498,7 @@ const MyAppointments = () => {
             <ActionButton
               variant="contained"
               sx={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}
-              onClick={() => navigate('/owner/appointments')}
+              onClick={() => setBookModalOpen(true)}
             >
               Book Now
             </ActionButton>
@@ -777,6 +779,12 @@ const MyAppointments = () => {
             </Box>
           )}
         </GlassDialog>
+
+        <BookAppointmentModal
+          open={bookModalOpen}
+          onClose={() => setBookModalOpen(false)}
+          onSuccess={() => fetchAppointments()}
+        />
       </AppointmentsContainer >
     </>
   );

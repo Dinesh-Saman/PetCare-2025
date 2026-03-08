@@ -52,8 +52,10 @@ const CustomPagination = ({ count, page, rowsPerPage, onPageChange }) => (
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
-  borderRadius: 12,
-  boxShadow: '0px 0px 15px rgba(0,0,0,0.1)',
+  borderRadius: '16px',
+  boxSizing: 'border-box',
+  boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
+  border: '1px solid #e2e8f0',
   flex: 1,
   padding: '32px',
   display: 'flex',
@@ -108,7 +110,7 @@ const InfoRow = styled(Box)(({ theme }) => ({
 const InfoLabel = styled(Typography)({
   fontWeight: 'bold',
   color: '#555',
-  minWidth: 140,
+  minWidth: 90,
 });
 
 const InfoValue = styled(Typography)({
@@ -131,6 +133,27 @@ const DayChip = styled(Box)(({ active }) => ({
   '&:hover': {
     background: active ? alpha('#49149e', 0.15) : '#f1f5f9',
   }
+}));
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
+  color: 'white',
+  padding: '10px 24px',
+  borderRadius: '12px',
+  fontWeight: 700,
+  textTransform: 'none',
+  fontSize: '0.95rem',
+  boxShadow: '0 10px 25px rgba(142, 36, 170, 0.2)',
+  transition: 'all 0.3s ease',
+  height: 44,
+  '&:hover': {
+    background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 15px 30px rgba(142, 36, 170, 0.3)',
+  },
+  '&:active': {
+    transform: 'translateY(0)',
+  },
 }));
 
 const ClinicList = () => {
@@ -328,8 +351,8 @@ const ClinicList = () => {
 
 
 
-  const handleViewPets = (clinicName) => {
-    navigate(`/vet/pets?clinic=${encodeURIComponent(clinicName)}`);
+  const handleViewPets = (clinicId) => {
+    navigate(`/vet/pets?clinicId=${encodeURIComponent(clinicId)}`);
   };
 
   const filteredClinics = clinics.filter(c =>
@@ -343,10 +366,10 @@ const ClinicList = () => {
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
+        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
           <ContentContainer>
             <SearchSection>
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#49149e' }}>My Clinics</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>My Clinics</Typography>
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
                 <ToggleButtonGroup
                   value={viewMode}
@@ -377,16 +400,15 @@ const ClinicList = () => {
                   placeholder="Search clinics..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  sx={{ width: { xs: '100%', sm: 300 } }}
+                  sx={{ width: { xs: '100%', sm: 300 }, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                 />
-                <Button
+                <StyledButton
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={handleOpenPopup}
-                  sx={{ bgcolor: '#8e24aa', '&:hover': { bgcolor: '#7b1fa2' }, height: 40 }}
                 >
                   Create New Clinic
-                </Button>
+                </StyledButton>
               </Box>
             </SearchSection>
 
@@ -421,7 +443,7 @@ const ClinicList = () => {
                             <TableCell>{clinic.phoneNumber}</TableCell>
                             <TableCell>
                               <Box display="flex" gap={1}>
-                                <Button size="small" variant="outlined" startIcon={<FaPaw />} onClick={() => handleViewPets(clinic.name)} sx={{ borderRadius: '8px', textTransform: 'none', color: '#8e24aa', borderColor: '#8e24aa' }}>
+                                <Button size="small" variant="outlined" startIcon={<FaPaw />} onClick={() => handleViewPets(clinic._id)} sx={{ borderRadius: '8px', textTransform: 'none', color: '#8e24aa', borderColor: '#8e24aa' }}>
                                   View Pets
                                 </Button>
                                 <IconButton color="primary" onClick={() => handleEditOpen(clinic)}><EditIcon /></IconButton>
@@ -431,27 +453,71 @@ const ClinicList = () => {
                           <TableRow>
                             <TableCell colSpan={5} sx={{ p: 0 }}>
                               <Collapse in={expandedRow === clinic._id}>
-                                <Box sx={{ p: 3 }}>
-                                  <Grid container spacing={2}>
-                                    <Grid item xs={12} md={6}>
-                                      <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#49149e', mb: 1 }}>Clinic Info</Typography>
-                                      <Typography variant="body2" sx={{ color: '#64748b', lineHeight: 1.6 }}>{clinic.description || 'No description'}</Typography>
+                                <DetailsCard>
+                                  <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
+                                    {/* Left panel: Clinic Info */}
+                                    <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+                                      <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                                        <Typography variant="h6" sx={{ color: '#49149e', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <BusinessIcon /> Clinic Information
+                                        </Typography>
+                                        <Box sx={{ px: 1, flexGrow: 1 }}>
+                                          <InfoRow>
+                                            <LocationOnIcon />
+                                            <InfoLabel sx={{ minWidth: 105 }}>Address:</InfoLabel>
+                                            <InfoValue>{clinic.address || 'N/A'}</InfoValue>
+                                          </InfoRow>
+                                          <InfoRow>
+                                            <PhoneIcon />
+                                            <InfoLabel sx={{ minWidth: 105 }}>Phone:</InfoLabel>
+                                            <InfoValue>{clinic.phoneNumber || 'N/A'}</InfoValue>
+                                          </InfoRow>
+                                          <InfoRow>
+                                            <DescriptionIcon />
+                                            <InfoLabel sx={{ minWidth: 105 }}>Description:</InfoLabel>
+                                            <InfoValue sx={{ fontStyle: clinic.description ? 'normal' : 'italic', color: clinic.description ? 'inherit' : '#94a3b8' }}>
+                                              {clinic.description || 'No description provided.'}
+                                            </InfoValue>
+                                          </InfoRow>
+                                        </Box>
+                                      </Box>
                                     </Grid>
-                                    <Grid item xs={12} md={6}>
-                                      <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#49149e', mb: 1 }}>Schedules</Typography>
-                                      <Stack spacing={1}>
-                                        <Box display="flex" alignItems="center" gap={1}>
-                                          <CalendarIcon sx={{ fontSize: 18, color: '#8e24aa' }} />
-                                          <Typography variant="body2" fontWeight="600">{clinic.operatingDays?.join(', ') || 'N/A'}</Typography>
+
+                                    {/* Right panel: Schedule */}
+                                    <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+                                      <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                                        <Typography variant="h6" sx={{ color: '#e08c0e', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <CalendarIcon /> Operating Schedule
+                                        </Typography>
+                                        <Box sx={{ px: 1, flexGrow: 1 }}>
+                                          <InfoRow>
+                                            <CalendarIcon />
+                                            <InfoLabel sx={{ minWidth: 60 }}>Days:</InfoLabel>
+                                            <InfoValue>
+                                              {clinic.operatingDays?.length > 1
+                                                ? `${clinic.operatingDays[0]} – ${clinic.operatingDays[clinic.operatingDays.length - 1]}`
+                                                : clinic.operatingDays?.[0] || 'N/A'}
+                                            </InfoValue>
+                                          </InfoRow>
+                                          <InfoRow>
+                                            <AccessTimeIcon />
+                                            <InfoLabel sx={{ minWidth: 60 }}>Hours:</InfoLabel>
+                                            <InfoValue>{clinic.operatingHours || 'N/A'}</InfoValue>
+                                          </InfoRow>
+                                          <Divider sx={{ my: 1.5 }} />
+                                          <Box sx={{ p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, borderLeft: '4px solid #e08c0e' }}>
+                                            <Typography variant="body2" fontWeight="700" color="#64748b" sx={{ mb: 0.5 }}>Operating Days</Typography>
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                                              {(clinic.operatingDays || []).map(day => (
+                                                <DayChip key={day} active={true}>{day.slice(0, 3)}</DayChip>
+                                              ))}
+                                            </Box>
+                                          </Box>
                                         </Box>
-                                        <Box display="flex" alignItems="center" gap={1}>
-                                          <AccessTimeIcon sx={{ fontSize: 18, color: '#8e24aa' }} />
-                                          <Typography variant="body2">{clinic.operatingHours}</Typography>
-                                        </Box>
-                                      </Stack>
+                                      </Box>
                                     </Grid>
                                   </Grid>
-                                </Box>
+                                </DetailsCard>
                               </Collapse>
                             </TableCell>
                           </TableRow>
@@ -486,16 +552,13 @@ const ClinicList = () => {
                         '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }
                       }}>
                         <CardContent sx={{ flexGrow: 1, p: 3, pb: 2 }}>
-                          <Typography variant="h6" fontWeight="800" sx={{ color: '#1e293b', mb: 0.5 }}>{clinic.name}</Typography>
-
-                          <Box display="flex" alignItems="flex-start" gap={1} mb={2.5}>
-                            <LocationOnOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18, mt: 0.2 }} />
-                            <Typography variant="body2" color="#64748b">{clinic.address}</Typography>
-                          </Box>
-
-                          <Divider sx={{ mb: 2.5, borderColor: '#f1f5f9' }} />
+                          <Typography variant="h6" fontWeight="800" sx={{ color: '#1e293b', mb: 2 }}>{clinic.name}</Typography>
 
                           <Stack spacing={1.5} mb={3}>
+                            <Box display="flex" alignItems="flex-start" gap={1}>
+                              <LocationOnOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18, mt: 0.2 }} />
+                              <Typography variant="body2" color="#64748b">{clinic.address}</Typography>
+                            </Box>
                             <Box display="flex" alignItems="center" gap={1.5}>
                               <PhoneOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18 }} />
                               <Typography variant="body2" color="#475569" fontWeight="500">{clinic.phoneNumber}</Typography>
@@ -530,16 +593,22 @@ const ClinicList = () => {
                             onClick={() => handleViewPets(clinic.name)}
                             fullWidth
                             sx={{
-                              borderRadius: '8px',
+                              borderRadius: '12px',
                               textTransform: 'none',
-                              bgcolor: '#49149e',
+                              background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
                               color: 'white',
                               fontWeight: 700,
                               py: 1.2,
                               justifyContent: 'space-between',
-                              px: 2,
-                              boxShadow: 'none',
-                              '&:hover': { bgcolor: '#3a1080', boxShadow: '0 4px 12px rgba(73, 20, 158, 0.2)' }
+                              px: 3,
+                              boxShadow: '0 10px 25px rgba(142, 36, 170, 0.15)',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 15px 30px rgba(142, 36, 170, 0.25)'
+                              },
+                              '&:active': { transform: 'translateY(0)' }
                             }}
                           >
                             <Box display="flex" alignItems="center" gap={1.5}>
@@ -555,13 +624,13 @@ const ClinicList = () => {
                             startIcon={<EditOutlinedIcon />}
                             fullWidth
                             sx={{
-                              borderRadius: '8px',
+                              borderRadius: '12px',
                               textTransform: 'none',
                               color: '#64748b',
                               borderColor: '#e2e8f0',
                               fontWeight: 600,
                               py: 0.8,
-                              '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1' }
+                              '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }
                             }}
                           >
                             Edit

@@ -1,6 +1,6 @@
 // src/pages/vet/VetChatWindow.jsx
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import io from 'socket.io-client';
@@ -23,22 +23,22 @@ const SOCKET_URL = 'http://localhost:5000';
 // Modern Styled Components (consistent with DashboardHome)
 const PageContainer = styled(Box)({
     display: 'flex',
-    height: 'calc(100vh - 64px)', // Explicitly subtract navbar height
+    flex: '1 1 0',       // grow to fill remaining space, don't shrink below 0
+    minHeight: 0,        // critical: allow flex child to shrink below content size
     background: '#f8fafc',
     overflow: 'hidden',
 });
 
 const MainContent = styled(Box)(({ theme }) => ({
-    flexGrow: 1,
-    padding: '24px', // Reduced padding for better vertical fit
-    minWidth: 0,
-    width: '100%',
-    height: '100%', // Strict height
+    flex: '1 1 0',       // grow, shrink, basis 0
+    minWidth: 0,         // prevent overflowing sidebar
+    minHeight: 0,
+    padding: '16px',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
     [theme.breakpoints.down('md')]: {
-        padding: '16px',
+        padding: '12px',
     },
 }));
 
@@ -47,11 +47,12 @@ const ContentCard = styled(Paper)(({ theme }) => ({
     borderRadius: '32px',
     border: '1px solid #e2e8f0',
     boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
-    height: '100%', // Fills MainContent
+    flex: '1 1 0',       // fill MainContent height
+    minHeight: 0,
     width: '100%',
     boxSizing: 'border-box',
     display: 'flex',
-    overflow: 'hidden', // Contain children
+    overflow: 'hidden',
 }));
 
 const VetChatWindow = () => {
@@ -59,6 +60,7 @@ const VetChatWindow = () => {
     const navigate = useNavigate();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const location = useLocation();
 
     const [owner, setOwner] = useState(null);
     const [pets, setPets] = useState([]);
@@ -124,38 +126,65 @@ const VetChatWindow = () => {
     }, [selectedPet?._id]);
 
     // ── Fetch owner's pets ──
-    useEffect(() => {
-        const load = async () => {
-            try {
-                setLoading(true);
-                // Use clinic/registered (already proven to work for vets) and filter by ownerId
-                const res = await api.get('/pets/clinic/registered');
-                const allPets = res.data?.registeredPets || [];
-                const ownerPets = allPets.filter(p => {
-                    const petOwnerId = p.ownerId?._id || p.ownerId;
-                    return petOwnerId?.toString() === ownerId;
+    // ── Fetch owner's pets ──
+    const loadOwnerData = useCallback(async () => {
+        if (!ownerId) return;
+        try {
+            setLoading(true);
+
+            // Use pets/owner/:ownerId which returns ALL pets (Approved + Pending)
+            const res = await api.get(`/pets/owner/${ownerId}`);
+            const allOwnerPets = res.data?.pets || [];
+
+            // Filter pets relevant to this vet (optional safety)
+            const vetClinics = [
+                currentVet.clinicId,
+                currentVet.currentActiveClinicId,
+                ...(currentVet.ownedClinics || [])
+            ].filter(Boolean);
+
+            const clinicIds = vetClinics.map(id => (typeof id === 'object' ? id._id : id)?.toString());
+
+            const visiblePets = currentVet.accessLevel === 'Enhanced'
+                ? allOwnerPets
+                : allOwnerPets.filter(p => {
+                    const petClinicId = (p.registeredClinicId?._id || p.registeredClinicId)?.toString();
+                    return clinicIds.includes(petClinicId);
                 });
 
-                if (ownerPets.length > 0) {
-                    // ownerId is populated with firstName/lastName from this endpoint
-                    const ownerInfo = typeof ownerPets[0].ownerId === 'object' && ownerPets[0].ownerId?.firstName
-                        ? ownerPets[0].ownerId
-                        : { _id: ownerId, firstName: 'Owner', lastName: '' };
-                    setOwner(ownerInfo);
-                    setPets(ownerPets);
-                    setSelectedPet(ownerPets[0]);
-                } else {
-                    setOwner({ _id: ownerId, firstName: 'Owner', lastName: '' });
+            if (visiblePets.length > 0) {
+                const firstPetWithInfo = visiblePets.find(p => typeof p.ownerId === 'object');
+                setOwner(firstPetWithInfo?.ownerId || { _id: ownerId, firstName: 'Owner', lastName: '' });
+                setPets(visiblePets);
+
+                // Handle initial selection from notification state
+                const targetPetId = location.state?.selectedPetId;
+                const initialPet = targetPetId
+                    ? (visiblePets.find(p => p._id === targetPetId) || visiblePets[0])
+                    : visiblePets[0];
+
+                setSelectedPet(initialPet);
+
+                if (targetPetId) {
+                    window.history.replaceState({}, document.title);
                 }
-            } catch (err) {
-                console.error('Failed to load owner pets:', err);
-                Swal.fire('Error', 'Could not load owner data', 'error');
-            } finally {
-                setLoading(false);
+            } else {
+                setOwner({ _id: ownerId, firstName: 'Owner', lastName: '' });
+                setPets([]);
+                setSelectedPet(null);
             }
-        };
-        load();
-    }, [ownerId]);
+        } catch (err) {
+            console.error('Failed to load owner data:', err);
+            setPets([]);
+            setSelectedPet(null);
+        } finally {
+            setLoading(false);
+        }
+    }, [ownerId, location.state?.selectedPetId, currentVet._id, currentVet.id]);
+
+    useEffect(() => {
+        loadOwnerData();
+    }, [loadOwnerData]);
 
     // ── Fetch messages ──
     const fetchMessages = useCallback(async () => {
@@ -165,6 +194,9 @@ const VetChatWindow = () => {
             setMessages(res.data.messages || []);
             // Initial load: force scroll to bottom
             setTimeout(() => scrollToBottom(true), 150);
+
+            // Mark as read
+            api.patch('/chat/read', { petId: selectedPet._id }).catch(e => console.error(e));
         } catch (err) {
             console.error('Failed to load messages:', err);
         }
@@ -214,7 +246,7 @@ const VetChatWindow = () => {
             <VetAdminNavbar />
             <PageContainer>
                 {!isMobile && <Sidebar computedHeight="100%" />}
-                <MainContent>
+                <MainContent style={{ minWidth: 0 }}>
                     <ContentCard elevation={0}>
                         {/* Pet list panel */}
                         {!isMobile && (

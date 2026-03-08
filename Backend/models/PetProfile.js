@@ -19,6 +19,7 @@ const petProfileSchema = new mongoose.Schema({
     default: 'Pending'
   },
   registeredClinicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clinic' },
+  isReadByVet: { type: Boolean, default: false },
 
   // === ADD THESE SOFT DELETE FIELDS ===
   isDeleted: { type: Boolean, default: false },

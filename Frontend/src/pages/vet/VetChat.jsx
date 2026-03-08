@@ -15,10 +15,11 @@ import PetsIcon from '@mui/icons-material/Pets';
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
-  borderRadius: 12,
-  boxShadow: '0px 0px 15px rgba(0,0,0,0.1)',
+  borderRadius: '16px',
+  boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
+  border: '1px solid #e2e8f0',
   flex: 1,
-  padding: '16px',
+  padding: '32px',
   display: 'flex',
   flexDirection: 'column',
 }));
@@ -67,14 +68,17 @@ const OwnerAvatar = styled('div')({
 });
 
 const ChatButton = styled(IconButton)(({ theme }) => ({
-  backgroundColor: '#8e24aa',
+  background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
   color: 'white',
   '&:hover': {
-    backgroundColor: '#7b1fa2',
+    background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
     transform: 'scale(1.1)',
+    boxShadow: '0 6px 20px rgba(142, 36, 170, 0.4)',
   },
   boxShadow: '0 4px 15px rgba(142, 36, 170, 0.3)',
   padding: 12,
+  borderRadius: '12px',
+  transition: 'all 0.3s ease',
 }));
 
 const VetChat = () => {
@@ -144,10 +148,10 @@ const VetChat = () => {
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
+        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2, display: 'flex', flexDirection: 'column' }}>
           <ContentContainer>
             <SearchSection>
-              <Typography variant="h4" sx={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: '#49149eff' }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>
                 Chat with Owners
               </Typography>
 

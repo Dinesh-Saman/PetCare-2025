@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import DashboardHome from './pages/vet/DashboardHome';
 import AppointmentsList from './pages/vet/AppointmentsList';
 import TodayAppointments from './pages/vet/TodayAppointments';
@@ -22,7 +22,6 @@ import PetProfile from './pages/owner/PetProfile';
 import EditPet from './pages/owner/EditPet';
 import OwnerAppointments from './pages/owner/Appointments';
 import OwnerChat from './pages/owner/OwnerChat';
-import AddNewStaff from './pages/vet/AddNewStaff';
 import BookAppointment from './pages/owner/BookAppointment';
 import ClinicEdit from './pages/vet/ClinicEdit';
 import PetProfileAdmin from './pages/vet/PetProfile';
@@ -47,12 +46,10 @@ import IllnessTips from './pages/tips/SignsOfIllness';
 import ToxicFoodsTips from './pages/tips/ToxicFoods';
 
 function App() {
-  // Mock auth - replace with real AuthContext later
-  // const isVetLoggedIn = true; 
+  const location = useLocation();
 
-  // if (!isVetLoggedIn) {
-  //   return <div>Please log in</div>;
-  // }
+  // Hide footer on dashboard pages to prevent sidebar clipping
+  const shouldHideFooter = location.pathname.startsWith('/vet');
 
   return (
     <>
@@ -83,7 +80,6 @@ function App() {
         <Route path="/vet/chat/owner/:ownerId" element={<VetChatWindow />} />
         <Route path="vet/staff" element={<VetStaff />} />
         <Route path="vet/clinic-settings" element={<ClinicSettings />} />
-        <Route path="vet/add-new-staff" element={<AddNewStaff />} />
         <Route path="/vet/pets/profile/:petId" element={<PetProfileAdmin />} />
         <Route path="/vet/profile" element={<VetProfile />} />
 
@@ -111,7 +107,7 @@ function App() {
 
       </Routes>
       <ChatWidget />
-      <Footer />
+      {!shouldHideFooter && <Footer />}
     </>
   );
 }

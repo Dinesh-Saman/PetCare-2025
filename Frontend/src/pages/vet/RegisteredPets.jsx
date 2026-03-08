@@ -20,8 +20,10 @@ import dayjs from 'dayjs';
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
-  borderRadius: 16,
-  boxShadow: '0px 8px 30px rgba(0,0,0,0.08)',
+  borderRadius: '16px',
+  boxSizing: 'border-box',
+  boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
+  border: '1px solid #e2e8f0',
   width: '100%',
   padding: '32px',
   margin: '0 auto',
@@ -151,7 +153,7 @@ const RegisteredPets = () => {
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
+        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
           <ContentContainer>
             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 3 }}>
               Registered Pets
@@ -159,8 +161,8 @@ const RegisteredPets = () => {
 
             <Box>
               <SearchSection>
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
-                  <FormControl sx={{ minWidth: 160 }}>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <FormControl sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                     <InputLabel>Search By</InputLabel>
                     <Select value={searchCriteriaApproved} onChange={(e) => setSearchCriteriaApproved(e.target.value)} label="Search By" size="small">
                       <MenuItem value="petName">Pet Name</MenuItem>
@@ -175,18 +177,18 @@ const RegisteredPets = () => {
                     onChange={(e) => setSearchQueryApproved(e.target.value)}
                     variant="outlined"
                     size="small"
-                    sx={{ width: isMobile ? '100%' : 300 }}
+                    sx={{ width: isMobile ? '100%' : 300, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <FormControl sx={{ minWidth: 150 }}>
+                  <FormControl sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                     <InputLabel>Species</InputLabel>
                     <Select value={speciesFilterApproved} onChange={(e) => setSpeciesFilterApproved(e.target.value)} label="Species" size="small">
                       <MenuItem value="all">All Species</MenuItem>
                       {getUniqueSpecies().map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
                     </Select>
                   </FormControl>
-                  <FormControl sx={{ minWidth: 150 }}>
+                  <FormControl sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                     <InputLabel>Clinic</InputLabel>
                     <Select value={clinicFilterApproved} onChange={(e) => setClinicFilterApproved(e.target.value)} label="Clinic" size="small">
                       <MenuItem value="all">All Clinics</MenuItem>
@@ -259,7 +261,17 @@ const RegisteredPets = () => {
                                   variant="contained"
                                   size="small"
                                   onClick={(e) => { e.stopPropagation(); handleRowClick(pet._id); }}
-                                  sx={{ textTransform: 'none', borderRadius: 2, backgroundColor: '#49149eff' }}
+                                  sx={{
+                                    textTransform: 'none',
+                                    borderRadius: '12px',
+                                    background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
+                                    fontWeight: 700,
+                                    px: 3,
+                                    '&:hover': {
+                                      background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                                      transform: 'translateY(-1px)',
+                                    }
+                                  }}
                                 >
                                   View
                                 </Button>

@@ -1,5 +1,6 @@
 const ChatMessage = require('../models/ChatMessage');
 const PetProfile = require('../models/PetProfile');
+const mongoose = require('mongoose');
 
 // Send a new message (Owner or Vet) — uses req.user from auth middleware
 exports.sendMessage = async (req, res) => {
@@ -125,7 +126,20 @@ exports.getUserChatList = async (req, res) => {
         $group: {
           _id: '$petId',
           latestMessage: { $first: '$$ROOT' },
-          unreadCount: { $sum: 0 }
+          unreadCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ['$isRead', false] },
+                    { $ne: ['$senderId', new mongoose.Types.ObjectId(userId)] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          }
         }
       },
       {
@@ -154,6 +168,7 @@ exports.getUserChatList = async (req, res) => {
           petSpecies: '$pet.species',
           ownerName: { $concat: ['$owner.firstName', ' ', '$owner.lastName'] },
           ownerId: '$pet.ownerId',
+          unreadCount: 1,
           latestMessage: {
             content: '$latestMessage.content',
             timestamp: '$latestMessage.timestamp',
@@ -187,8 +202,27 @@ exports.getLatestMessageByPet = async (req, res) => {
 // Mark messages as read (placeholder)
 exports.markMessagesAsRead = async (req, res) => {
   try {
-    res.status(200).json({ message: 'Messages marked as read' });
+    const { petId } = req.body;
+    if (!petId) return res.status(400).json({ message: 'petId is required' });
+
+    const userRole = req.user.role === 'owner' ? 'Owner' : 'Vet';
+    const senderToMark = userRole === 'Owner' ? 'Vet' : 'Owner';
+
+    const result = await ChatMessage.updateMany(
+      {
+        petId,
+        senderType: senderToMark,
+        isRead: { $ne: true }
+      },
+      { $set: { isRead: true } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Messages marked as read',
+      modified: result.modifiedCount > 0
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: 'Error marking messages as read', error: error.message });
   }
 };

@@ -33,8 +33,10 @@ import BusinessIcon from '@mui/icons-material/Business';
 // Styled Components
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
-  borderRadius: 12,
-  boxShadow: '0px 0px 15px rgba(0,0,0,0.1)',
+  borderRadius: '16px',
+  boxSizing: 'border-box',
+  boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
+  border: '1px solid #e2e8f0',
   flex: 1,
   padding: '32px',
   display: 'flex',
@@ -77,17 +79,23 @@ const AccessChip = styled(Chip)(({ level }) => ({
 }));
 
 const AddButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(90deg, #8e24aa, #ab47bc)',
+  background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
   color: 'white',
-  padding: '12px 24px',
-  borderRadius: 30,
-  fontWeight: 'bold',
+  padding: '10px 24px',
+  borderRadius: '12px',
+  fontWeight: 700,
   textTransform: 'none',
-  fontSize: '1.1rem',
-  boxShadow: '0 6px 20px rgba(142, 36, 170, 0.3)',
+  fontSize: '0.95rem',
+  boxShadow: '0 10px 25px rgba(142, 36, 170, 0.2)',
+  transition: 'all 0.3s ease',
+  height: 44,
   '&:hover': {
-    background: 'linear-gradient(90deg, #7b1fa2, #9c27b0)',
+    background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
     transform: 'translateY(-2px)',
+    boxShadow: '0 15px 30px rgba(142, 36, 170, 0.3)',
+  },
+  '&:active': {
+    transform: 'translateY(0)',
   },
 }));
 
@@ -147,7 +155,7 @@ const SearchField = styled(TextField)(({ theme }) => ({
   flex: 1,
   maxWidth: 400,
   '& .MuiOutlinedInput-root': {
-    borderRadius: '10px',
+    borderRadius: '12px',
     backgroundColor: '#f9f9f9',
   },
 }));
@@ -171,6 +179,83 @@ const ClinicStaff = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(8);
   const navigate = useNavigate();
+
+  const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    staffType: 'receptionist',
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    phoneNumber: '',
+    veterinaryId: '',
+    specialization: '',
+    accessLevel: 'Basic',
+    role: 'Receptionist',
+    clinicId: ''
+  });
+
+  const handleOpenAddPopup = () => setIsAddPopupOpen(true);
+  const handleCloseAddPopup = () => {
+    setIsAddPopupOpen(false);
+    setFormData({
+      staffType: 'receptionist',
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      phoneNumber: '',
+      veterinaryId: '',
+      specialization: '',
+      accessLevel: 'Basic',
+      role: 'Receptionist',
+      clinicId: ''
+    });
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'staffType') {
+      let role = '';
+      if (value === 'receptionist') role = 'Receptionist';
+      if (value === 'vetTech') role = 'Vet Tech';
+      if (value === 'assistant') role = 'Assistant';
+      if (value === 'manager') role = 'Manager';
+      if (value === 'nurse') role = 'Nurse';
+      if (value === 'kennelStaff') role = 'Kennel Staff';
+      if (value === 'veterinarian') role = 'Veterinarian';
+      setFormData(prev => ({ ...prev, staffType: value, role: role }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleAddStaffSubmit = async () => {
+    const required = ['firstName', 'lastName', 'email', 'password', 'phoneNumber'];
+    if (formData.staffType === 'veterinarian') required.push('veterinaryId');
+
+    const missing = required.filter(field => !formData[field]?.trim());
+    if (missing.length > 0) {
+      Swal.fire('Missing Fields', 'Please fill all required fields', 'warning');
+      return;
+    }
+
+    try {
+      const payload = {
+        ...formData,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.toLowerCase().trim(),
+      };
+      await api.post('/clinics/staff', payload);
+      Swal.fire('Success!', 'Staff member added successfully.', 'success');
+      handleCloseAddPopup();
+      const response = await api.get('/vets/clinics/staff');
+      setStaff(response.data.staff || []);
+    } catch (error) {
+      Swal.fire('Error!', error.response?.data?.message || 'Failed to add staff', 'error');
+    }
+  };
 
   useEffect(() => {
     const fetchClinicStaff = async () => {
@@ -377,10 +462,10 @@ const ClinicStaff = () => {
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
+        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
           <ContentContainer>
             <HeaderContainer>
-              <Typography variant="h4" sx={{ fontWeight: 700, color: '#49149eff', fontFamily: 'Georgia, serif' }}>Clinic Staff</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>Clinic Staff</Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', ml: 'auto' }}>
                 <SearchField
                   variant="outlined"
@@ -392,7 +477,7 @@ const ClinicStaff = () => {
                 />
                 <AddButton
                   startIcon={<PersonAddIcon />}
-                  onClick={() => navigate('/vet/add-new-staff')}
+                  onClick={handleOpenAddPopup}
                   size="small"
                   sx={{ ml: 'auto' }}
                 >
@@ -522,6 +607,105 @@ const ClinicStaff = () => {
           </ContentContainer>
         </Box>
       </Box>
+
+      {/* Add Staff Modal */}
+      <Dialog
+        open={isAddPopupOpen}
+        onClose={handleCloseAddPopup}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: '24px', overflow: 'hidden' }
+        }}
+      >
+        <DialogTitle sx={{
+          color: '#1e293b',
+          fontWeight: 800,
+          pb: 1,
+          px: 4,
+          pt: 4
+        }}>
+          Add Staff Member
+        </DialogTitle>
+        <DialogContent sx={{ p: 4, pt: 1, bgcolor: '#fbfcfd' }}>
+          <Typography variant="body2" sx={{ color: '#64748b', mb: 4 }}>
+            Expand your clinic team with skilled professionals
+          </Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Staff Type</InputLabel>
+                <Select name="staffType" value={formData.staffType} onChange={handleFormChange} label="Staff Type">
+                  <MenuItem value="veterinarian">Veterinarian</MenuItem>
+                  <MenuItem value="receptionist">Receptionist</MenuItem>
+                  <MenuItem value="vetTech">Vet Technician</MenuItem>
+                  <MenuItem value="assistant">Assistant</MenuItem>
+                  <MenuItem value="manager">Manager</MenuItem>
+                  <MenuItem value="nurse">Nurse</MenuItem>
+                  <MenuItem value="kennelStaff">Kennel Staff</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Select Clinic (Optional)</InputLabel>
+                <Select name="clinicId" value={formData.clinicId} onChange={handleFormChange} label="Select Clinic (Optional)">
+                  <MenuItem value=""><em>None selected</em></MenuItem>
+                  {clinics.map(c => <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="First Name" name="firstName" value={formData.firstName} onChange={handleFormChange} size="small" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Last Name" name="lastName" value={formData.lastName} onChange={handleFormChange} size="small" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleFormChange} size="small" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Access Level</InputLabel>
+                <Select name="accessLevel" value={formData.accessLevel} onChange={handleFormChange} label="Access Level">
+                  <MenuItem value="Basic">Basic</MenuItem>
+                  <MenuItem value="Enhanced">Enhanced</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Email" name="email" value={formData.email} onChange={handleFormChange} size="small" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth label="Password" name="password" type="password" value={formData.password} onChange={handleFormChange} size="small" />
+            </Grid>
+            {formData.staffType === 'veterinarian' && (
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth label="Veterinary License ID" name="veterinaryId" value={formData.veterinaryId} onChange={handleFormChange} size="small" />
+              </Grid>
+            )}
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ px: 4, pb: 4, pt: 0, bgcolor: '#fbfcfd' }}>
+          <Button onClick={handleCloseAddPopup} sx={{ color: '#64748b', fontWeight: 600 }}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleAddStaffSubmit}
+            sx={{
+              borderRadius: '8px',
+              bgcolor: '#49149e',
+              px: 4,
+              fontWeight: 700,
+              boxShadow: '0 4px 12px rgba(73, 20, 158, 0.2)',
+              '&:hover': { bgcolor: '#3a1080' }
+            }}
+          >
+            Add Staff Member
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Edit Staff Modal */}
       <Dialog open={isEditModalOpen} onClose={handleCloseEdit} maxWidth="md" fullWidth>

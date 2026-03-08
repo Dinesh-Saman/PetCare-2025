@@ -14,7 +14,10 @@ const {
   switchActiveClinic,
   getStaffByEnhancedVet,
   deleteVet,
-  deleteClinicStaff
+  deleteClinicStaff,
+  getVetNotifications,
+  getAllVets,
+  markNotificationAsRead
 } = require('../controllers/veterinarianController');  // Ensure this path is correct
 
 // Import middleware
@@ -29,6 +32,15 @@ router.use(protect);
 
 // Get all staff from all clinics owned by the Enhanced vet
 router.get('/clinics/staff', getStaffByEnhancedVet);
+
+// Get all active veterinarians (for public booking)
+router.get('/all-vets', getAllVets);
+
+// Get vet notifications
+router.get('/notifications', getVetNotifications);
+
+// Mark notification as read
+router.patch('/notifications/:type/:id/read', markNotificationAsRead);
 
 // Get logged-in vet's clinics
 router.get('/my-clinics', (req, res) => {

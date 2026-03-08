@@ -46,8 +46,10 @@ const CustomPagination = ({ count, page, rowsPerPage, onPageChange }) => {
 
 const ContentContainer = styled(Box)(({ theme }) => ({
     backgroundColor: 'white',
-    borderRadius: 12,
-    boxShadow: '0px 0px 15px rgba(0,0,0,0.1)',
+    borderRadius: '16px',
+    boxSizing: 'border-box',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
+    border: '1px solid #e2e8f0',
     flex: 1,
     padding: '32px',
     display: 'flex',
@@ -135,6 +137,26 @@ const InfoLabel = styled(Typography)({
 const InfoValue = styled(Typography)({
     color: '#333',
 });
+
+const StyledButton = styled(Button)(({ theme }) => ({
+    background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
+    color: 'white',
+    padding: '10px 24px',
+    borderRadius: '12px',
+    fontWeight: 700,
+    textTransform: 'none',
+    fontSize: '0.9rem',
+    boxShadow: '0 10px 25px rgba(142, 36, 170, 0.2)',
+    transition: 'all 0.3s ease',
+    '&:hover': {
+        background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+        transform: 'translateY(-2px)',
+        boxShadow: '0 15px 30px rgba(142, 36, 170, 0.3)',
+    },
+    '&:active': {
+        transform: 'translateY(0)',
+    },
+}));
 
 const TodayAppointments = () => {
     const theme = useTheme();
@@ -340,7 +362,7 @@ const TodayAppointments = () => {
             <VetAdminNavbar />
             <Box sx={{ display: 'flex', flexGrow: 1 }}>
                 {!isMobile && <Sidebar />}
-                <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
+                <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
                     <ContentContainer>
                         <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 3 }}>
                             Today's Appointments
@@ -349,26 +371,28 @@ const TodayAppointments = () => {
                         <SearchSection>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 2 }}>
                                 <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
-                                    <FormControl sx={{ minWidth: 150 }}>
+                                    <FormControl sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                                         <InputLabel>Search By</InputLabel>
-                                        <Select value={searchCriteria} onChange={(e) => setSearchCriteria(e.target.value)} label="Search By">
+                                        <Select size="small" value={searchCriteria} onChange={(e) => setSearchCriteria(e.target.value)} label="Search By">
                                             <MenuItem value="petName">Pet Name</MenuItem>
                                             <MenuItem value="ownerName">Owner Name</MenuItem>
                                             <MenuItem value="reason">Reason</MenuItem>
                                         </Select>
                                     </FormControl>
                                     <TextField
+                                        size="small"
                                         variant="outlined"
                                         placeholder={`Search...`}
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        sx={{ width: 300, '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                                        sx={{ width: 300, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                     />
                                 </Box>
                                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                                    <FormControl sx={{ minWidth: 200 }}>
+                                    <FormControl sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                                         <InputLabel>Clinic</InputLabel>
                                         <Select
+                                            size="small"
                                             value={clinicFilter}
                                             onChange={(e) => setClinicFilter(e.target.value)}
                                             label="Clinic"
@@ -379,9 +403,9 @@ const TodayAppointments = () => {
                                             ))}
                                         </Select>
                                     </FormControl>
-                                    <FormControl sx={{ minWidth: 150 }}>
+                                    <FormControl sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                                         <InputLabel>Status</InputLabel>
-                                        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status">
+                                        <Select size="small" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status">
                                             <MenuItem value="all">All</MenuItem>
                                             <MenuItem value="Booked">Pending</MenuItem>
                                             <MenuItem value="Confirmed">Confirmed</MenuItem>
@@ -425,7 +449,7 @@ const TodayAppointments = () => {
                                                     <TableCell>
                                                         <Box sx={{ display: 'flex', gap: 1 }}>
                                                             {app.status === 'Booked' && <IconButton color="success" onClick={() => handleConfirm(app._id)}><CheckCircleIcon /></IconButton>}
-                                                            {app.status === 'Confirmed' && <Button variant="contained" size="small" onClick={() => handleOpenManage(app)} sx={{ borderRadius: "20px", px: 3 }}>Manage</Button>}
+                                                            {app.status === 'Confirmed' && <StyledButton size="small" onClick={() => handleOpenManage(app)}>Manage</StyledButton>}
                                                             {app.status !== 'Canceled' && <IconButton color="error" onClick={() => handleCancel(app._id)}><CancelIcon /></IconButton>}
                                                         </Box>
                                                     </TableCell>
@@ -433,39 +457,65 @@ const TodayAppointments = () => {
                                                 <TableRow>
                                                     <TableCell colSpan={5} style={{ padding: 0 }}>
                                                         <Collapse in={expandedRow === app._id} timeout="auto" unmountOnExit>
-                                                            <Box sx={{ p: 2, backgroundColor: '#f9f9f9', borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
-                                                                <Box sx={{ backgroundColor: 'white', p: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                                                                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#49149eff' }}>Appointment Details</Typography>
-                                                                    <Typography variant="body2" sx={{ mb: 1 }}><strong>Date:</strong> {new Date(app.dateTime).toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Typography>
-                                                                    <Typography variant="body2" sx={{ mb: 1 }}><strong>Time:</strong> {new Date(app.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Typography>
-                                                                    <Typography variant="body2" sx={{ mb: 1 }}><strong>Reason:</strong> {app.reason || 'N/A'}</Typography>
-                                                                    <Typography variant="body2"><strong>Notes:</strong> {app.notes || 'No notes'}</Typography>
-
-                                                                    {app.petId?.ownerId?._id && (
-                                                                        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                                                                            <Button
-                                                                                variant="outlined"
-                                                                                size="small"
-                                                                                startIcon={<ChatIcon />}
-                                                                                onClick={() => navigate(`/vet/chat/owner/${app.petId.ownerId._id}`)}
-                                                                                sx={{
-                                                                                    borderRadius: '20px',
-                                                                                    textTransform: 'none',
-                                                                                    fontWeight: 'bold',
-                                                                                    color: '#49149eff',
-                                                                                    borderColor: '#49149eff',
-                                                                                    '&:hover': {
-                                                                                        borderColor: '#49149eff',
-                                                                                        backgroundColor: alpha('#49149eff', 0.04)
-                                                                                    }
-                                                                                }}
-                                                                            >
-                                                                                Chat with Owner
-                                                                            </Button>
+                                                            <DetailsCard sx={{ m: 2 }}>
+                                                                <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
+                                                                    <Grid item xs={6} sx={{ display: 'flex' }}>
+                                                                        <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                                                                            <Typography variant="h6" sx={{ color: '#49149eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                                <LocationOnIcon /> Clinic Information
+                                                                            </Typography>
+                                                                            <Box sx={{ px: 1, flexGrow: 1 }}>
+                                                                                <InfoRow><LocationOnIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Name:</InfoLabel><Typography variant="body2">{app.clinicId?.name || 'N/A'}</Typography></InfoRow>
+                                                                                <InfoRow><LocationOnIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Address:</InfoLabel><Typography variant="body2">{app.clinicId?.address || 'N/A'}</Typography></InfoRow>
+                                                                                <InfoRow><PhoneIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Phone:</InfoLabel><Typography variant="body2">{app.clinicId?.phoneNumber || 'N/A'}</Typography></InfoRow>
+                                                                            </Box>
                                                                         </Box>
-                                                                    )}
-                                                                </Box>
-                                                            </Box>
+                                                                    </Grid>
+
+                                                                    <Grid item xs={6} sx={{ display: 'flex' }}>
+                                                                        <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                                                                            <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                                <CalendarTodayIcon /> Appointment Details
+                                                                            </Typography>
+                                                                            <Box sx={{ px: 1, flexGrow: 1 }}>
+                                                                                <InfoRow><CalendarTodayIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Date:</InfoLabel><Typography variant="body2"><strong>{new Date(app.dateTime).toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong></Typography></InfoRow>
+                                                                                <InfoRow><AccessTimeIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Time:</InfoLabel><Typography variant="body2"><strong>{new Date(app.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></Typography></InfoRow>
+                                                                                <InfoRow><DescriptionIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Reason:</InfoLabel><Typography variant="body2">{app.reason || 'N/A'}</Typography></InfoRow>
+                                                                                {app.notes && (
+                                                                                    <Box sx={{ mt: 1, p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, borderLeft: '4px solid #e08c0eff' }}>
+                                                                                        <Typography variant="body2"><strong>Notes:</strong> {app.notes}</Typography>
+                                                                                    </Box>
+                                                                                )}
+
+                                                                                {app.petId?.ownerId?._id && (
+                                                                                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                                                                                        <Button
+                                                                                            variant="outlined"
+                                                                                            size="small"
+                                                                                            startIcon={<ChatIcon />}
+                                                                                            onClick={() => navigate(`/vet/chat/owner/${app.petId.ownerId._id}`)}
+                                                                                            sx={{
+                                                                                                borderRadius: '12px',
+                                                                                                textTransform: 'none',
+                                                                                                fontWeight: 'bold',
+                                                                                                color: '#49149eff',
+                                                                                                borderColor: '#49149eff',
+                                                                                                '&:hover': {
+                                                                                                    borderColor: '#49149eff',
+                                                                                                    backgroundColor: alpha('#49149eff', 0.04),
+                                                                                                    boxShadow: '0 4px 12px rgba(73, 20, 158, 0.1)'
+                                                                                                }
+                                                                                            }}
+                                                                                        >
+                                                                                            Chat with Owner
+                                                                                        </Button>
+                                                                                    </Box>
+                                                                                )}
+                                                                            </Box>
+                                                                        </Box>
+                                                                    </Grid>
+                                                                </Grid>
+                                                            </DetailsCard>
                                                         </Collapse>
                                                     </TableCell>
                                                 </TableRow>

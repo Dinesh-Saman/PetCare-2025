@@ -185,7 +185,6 @@ const Sidebar = ({ computedHeight, mobileView, onClose }) => {
       title: "Staff Management",
       items: [
         { to: "/vet/staff", icon: <FaUsers />, label: "All Staff" },
-        { to: "/vet/add-new-staff", icon: <FaPlusCircle />, label: "Add Staff Member" },
         { to: "/vet/profile", icon: <FaUser />, label: "My Profile" },
       ]
     }

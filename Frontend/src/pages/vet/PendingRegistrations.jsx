@@ -1,5 +1,6 @@
 // src/pages/vet/PendingRegistrations.jsx
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import Sidebar from '../../components/layout/sidebar';
@@ -36,7 +37,7 @@ import {
   Tooltip,
   Divider
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { styled, alpha } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PetsIcon from '@mui/icons-material/Pets';
 import PersonIcon from '@mui/icons-material/Person';
@@ -55,8 +56,10 @@ import dayjs from 'dayjs';
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
-  borderRadius: 16,
-  boxShadow: '0px 8px 30px rgba(0,0,0,0.08)',
+  borderRadius: '16px',
+  boxSizing: 'border-box',
+  boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
+  border: '1px solid #e2e8f0',
   width: '100%',
   padding: '32px',
 }));
@@ -75,6 +78,17 @@ const TableRowStyled = styled(TableRow)(({ theme }) => ({
     backgroundColor: '#f5f0ff !important',
   },
   cursor: 'pointer',
+  transition: 'all 0.3s ease',
+  '&.highlight-row': {
+    backgroundColor: alpha(theme.palette.warning.main || '#ff9800', 0.1),
+    borderLeft: `5px solid ${theme.palette.warning.main || '#ff9800'}`,
+    animation: 'pulse 2s infinite'
+  },
+  '@keyframes pulse': {
+    '0%': { opacity: 1 },
+    '50%': { opacity: 0.7 },
+    '100%': { opacity: 1 }
+  }
 }));
 
 const TableHeadCell = styled(TableCell)({
@@ -92,10 +106,9 @@ const PetAvatar = styled(Avatar)(({ theme }) => ({
 }));
 
 const DetailsCard = styled(Card)(({ theme }) => ({
-  marginTop: theme.spacing(2),
-  borderRadius: 16,
-  boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-  borderLeft: '5px solid #49149e',
+  margin: theme.spacing(2, 0),
+  borderRadius: 12,
+  boxShadow: '0 6px 20px rgba(0,0,0,0.08)',
 }));
 
 const InfoRow = styled(Box)(({ theme }) => ({
@@ -118,6 +131,16 @@ const InfoLabel = styled(Typography)({
 const PendingRegistrations = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.state?.highlightId) {
+      setExpandedRow(location.state.highlightId);
+      // Optional: Clear state so it doesn't re-expand on other actions
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   const [pendingPets, setPendingPets] = useState([]);
   const [filteredPets, setFilteredPets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -294,11 +317,11 @@ const PendingRegistrations = () => {
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
+        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
           <ContentContainer>
             <Box sx={{ mb: 4 }}>
               <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 1 }}>
-                Registration Requests
+                Pending Registrations
               </Typography>
               <Typography variant="body1" color="textSecondary">
                 Manage and review pet registration requests for your clinics.
@@ -307,7 +330,7 @@ const PendingRegistrations = () => {
 
             <SearchSection>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                <FormControl sx={{ minWidth: 150 }} size="small">
+                <FormControl sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} size="small">
                   <InputLabel>Status</InputLabel>
                   <Select
                     value={statusFilter}
@@ -320,7 +343,7 @@ const PendingRegistrations = () => {
                   </Select>
                 </FormControl>
 
-                <FormControl sx={{ minWidth: 200 }} size="small">
+                <FormControl sx={{ minWidth: 200, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} size="small">
                   <InputLabel>Clinic</InputLabel>
                   <Select
                     value={clinicFilter}
@@ -334,7 +357,7 @@ const PendingRegistrations = () => {
                   </Select>
                 </FormControl>
 
-                <FormControl sx={{ minWidth: 150 }} size="small">
+                <FormControl sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} size="small">
                   <InputLabel>Search By</InputLabel>
                   <Select
                     value={searchCriteria}
@@ -353,7 +376,7 @@ const PendingRegistrations = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   variant="outlined"
-                  sx={{ width: isMobile ? '100%' : 250 }}
+                  sx={{ width: isMobile ? '100%' : 250, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                   size="small"
                 />
 
@@ -362,7 +385,16 @@ const PendingRegistrations = () => {
                   startIcon={<RefreshIcon />}
                   onClick={fetchPendingRegistrations}
                   size="small"
-                  sx={{ height: 40 }}
+                  sx={{
+                    height: 40,
+                    borderRadius: '12px',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    px: 1.5,
+                    color: '#64748b',
+                    borderColor: '#e2e8f0',
+                    '&:hover': { borderColor: '#cbd5e1', bgcolor: '#f8fafc' }
+                  }}
                 >
                   Refresh
                 </Button>
@@ -399,7 +431,10 @@ const PendingRegistrations = () => {
                         <TableRow><TableCell colSpan={6} sx={{ py: 10, textAlign: 'center' }}><CircularProgress color="secondary" /></TableCell></TableRow>
                       ) : paginatedPets.map((pet) => (
                         <React.Fragment key={pet._id}>
-                          <TableRowStyled onClick={() => handleExpandRow(pet._id)}>
+                          <TableRowStyled
+                            onClick={() => handleExpandRow(pet._id)}
+                            className={expandedRow === pet._id ? 'highlight-row' : ''}
+                          >
                             <TableCell>
                               <IconButton size="small">
                                 <ExpandMoreIcon
@@ -450,62 +485,54 @@ const PendingRegistrations = () => {
                           <TableRow>
                             <TableCell colSpan={6} sx={{ p: 0 }}>
                               <Collapse in={expandedRow === pet._id} timeout="auto" unmountOnExit>
-                                <Box sx={{ p: 3, bgcolor: '#fbfaff' }}>
-                                  <Grid container spacing={3}>
-                                    <Grid item xs={12} md={4}>
-                                      <Typography variant="h6" color="#49149e" mb={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <PetsIcon fontSize="small" /> Pet Details
-                                      </Typography>
-                                      <DetailsCard>
-                                        <CardContent>
-                                          <InfoRow><InfoLabel>Species:</InfoLabel><Typography>{pet.species}</Typography></InfoRow>
+                                <DetailsCard>
+                                  <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
+                                    <Grid item xs={6} sx={{ display: 'flex' }}>
+                                      <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                                        <Typography variant="h6" sx={{ color: '#49149eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <PetsIcon /> Pet Information
+                                        </Typography>
+                                        <Box sx={{ px: 1, flexGrow: 1 }}>
+                                          <InfoRow><InfoLabel>Species:</InfoLabel><Typography sx={{ fontWeight: 600 }}>{pet.species}</Typography></InfoRow>
                                           <InfoRow><InfoLabel>Breed:</InfoLabel><Typography>{pet.breed || 'N/A'}</Typography></InfoRow>
                                           <InfoRow><InfoLabel>Age:</InfoLabel><Typography>{calculateAge(pet.dateOfBirth)}</Typography></InfoRow>
-                                          <InfoRow><InfoLabel>Gender:</InfoLabel><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            {pet.gender === 'Male' ? <MaleIcon color="primary" /> : <FemaleIcon color="secondary" />}
-                                            <Typography>{pet.gender}</Typography>
-                                          </Box></InfoRow>
-                                          <InfoRow><InfoLabel>Weight:</InfoLabel><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <ScaleIcon fontSize="small" />
-                                            <Typography>{pet.weight ? `${pet.weight} kg` : 'N/A'}</Typography>
-                                          </Box></InfoRow>
-                                        </CardContent>
-                                      </DetailsCard>
+                                          <InfoRow><InfoLabel>Gender:</InfoLabel>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                              {pet.gender === 'Male' ? <MaleIcon color="primary" /> : <FemaleIcon color="secondary" />}
+                                              <Typography>{pet.gender}</Typography>
+                                            </Box>
+                                          </InfoRow>
+                                          <InfoRow><InfoLabel>Weight:</InfoLabel>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                              <ScaleIcon fontSize="small" sx={{ color: '#49149e' }} />
+                                              <Typography>{pet.weight ? `${pet.weight} kg` : 'N/A'}</Typography>
+                                            </Box>
+                                          </InfoRow>
+                                          <InfoRow><InfoLabel>Clinic:</InfoLabel><Typography fontWeight="bold" color="#e08c0eff">{pet.registeredClinicId?.name || 'N/A'}</Typography></InfoRow>
+                                        </Box>
+                                      </Box>
                                     </Grid>
 
-                                    <Grid item xs={12} md={4}>
-                                      <Typography variant="h6" color="#49149e" mb={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <PersonIcon fontSize="small" /> Owner Information
-                                      </Typography>
-                                      <DetailsCard sx={{ borderLeftColor: '#2196f3' }}>
-                                        <CardContent>
-                                          <InfoRow><InfoLabel>Email:</InfoLabel><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <EmailIcon fontSize="small" />
-                                            <Typography>{pet.ownerId?.email || 'N/A'}</Typography>
-                                          </Box></InfoRow>
-                                          <InfoRow><InfoLabel>Phone:</InfoLabel><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <PhoneIcon fontSize="small" />
-                                            <Typography>{pet.ownerId?.phoneNumber || 'N/A'}</Typography>
-                                          </Box></InfoRow>
-                                        </CardContent>
-                                      </DetailsCard>
-                                    </Grid>
-
-                                    <Grid item xs={12} md={4}>
-                                      <Typography variant="h6" color="#49149e" mb={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <DescriptionIcon fontSize="small" /> Additional Notes
-                                      </Typography>
-                                      <DetailsCard sx={{ borderLeftColor: '#ff9800' }}>
-                                        <CardContent>
-                                          <Typography variant="body2" sx={{ fontStyle: pet.notes ? 'normal' : 'italic', color: pet.notes ? 'textPrimary' : 'textSecondary' }}>
-                                            {pet.notes || "No notes provided by the owner."}
-                                          </Typography>
-                                        </CardContent>
-                                      </DetailsCard>
+                                    <Grid item xs={6} sx={{ display: 'flex' }}>
+                                      <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                                        <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <PersonIcon /> Owner & Notes
+                                        </Typography>
+                                        <Box sx={{ px: 1, flexGrow: 1 }}>
+                                          <InfoRow><EmailIcon /><InfoLabel>Email:</InfoLabel><Typography>{pet.ownerId?.email || 'N/A'}</Typography></InfoRow>
+                                          <InfoRow><PhoneIcon /><InfoLabel>Phone:</InfoLabel><Typography>{pet.ownerId?.phoneNumber || 'N/A'}</Typography></InfoRow>
+                                          <Divider sx={{ my: 2 }} />
+                                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: '#64748b' }}>Additional Notes:</Typography>
+                                          <Box sx={{ p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, borderLeft: '4px solid #e08c0eff' }}>
+                                            <Typography variant="body2" sx={{ fontStyle: pet.notes ? 'normal' : 'italic', color: pet.notes ? 'textPrimary' : 'textSecondary' }}>
+                                              {pet.notes || "No notes provided by the owner."}
+                                            </Typography>
+                                          </Box>
+                                        </Box>
+                                      </Box>
                                     </Grid>
                                   </Grid>
-                                </Box>
-                                <Divider />
+                                </DetailsCard>
                               </Collapse>
                             </TableCell>
                           </TableRow>

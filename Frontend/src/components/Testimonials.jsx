@@ -442,7 +442,6 @@ const Testimonials = () => {
 
         .dot {
           width: 12px;
-          height: 12px;
           border-radius: 50%;
           background: rgba(16,185,129,0.3);
           border: none;
