@@ -18,8 +18,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   borderRadius: 12,
   boxShadow: '0px 0px 15px rgba(0,0,0,0.1)',
   flex: 1,
-  margin: '20px',
-  padding: '30px',
+  padding: '16px',
   display: 'flex',
   flexDirection: 'column',
 }));

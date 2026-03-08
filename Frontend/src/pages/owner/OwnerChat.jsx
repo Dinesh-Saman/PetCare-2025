@@ -365,7 +365,6 @@ const OwnerChat = () => {
                             <MessageBubble isowner={isOwner ? 'true' : 'false'}>
                               <Typography variant="body2" lineHeight={1.5}>{msg.content}</Typography>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, justifyContent: isOwner ? 'flex-end' : 'flex-start' }}>
-                                <AccessTimeIcon sx={{ fontSize: 10, opacity: 0.6 }} />
                                 <Typography variant="caption" sx={{ opacity: 0.7, fontSize: '0.68rem' }}>
                                   {formatTime(msg.timestamp)}
                                 </Typography>

@@ -32,30 +32,33 @@ import {
   Button,
   Alert,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Tooltip,
+  Divider
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PetsIcon from '@mui/icons-material/Pets';
 import PersonIcon from '@mui/icons-material/Person';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
+import EmailIcon from '@mui/icons-material/Email';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import MaleIcon from '@mui/icons-material/Male';
 import FemaleIcon from '@mui/icons-material/Female';
 import ScaleIcon from '@mui/icons-material/Scale';
-import ColorLensIcon from '@mui/icons-material/ColorLens';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ClinicIcon from '@mui/icons-material/LocalHospital';
+import DescriptionIcon from '@mui/icons-material/Description';
+import dayjs from 'dayjs';
 
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
   borderRadius: 16,
   boxShadow: '0px 8px 30px rgba(0,0,0,0.08)',
   width: '100%',
-  padding: theme.spacing(3),
+  padding: '32px',
 }));
 
 const SearchSection = styled(Box)(({ theme }) => ({
@@ -75,9 +78,10 @@ const TableRowStyled = styled(TableRow)(({ theme }) => ({
 }));
 
 const TableHeadCell = styled(TableCell)({
-  backgroundColor: '#8e24aa',
+  backgroundColor: '#e08c0eff',
   color: 'white',
   fontWeight: 'bold',
+  fontSize: '1rem',
 });
 
 const PetAvatar = styled(Avatar)(({ theme }) => ({
@@ -87,44 +91,28 @@ const PetAvatar = styled(Avatar)(({ theme }) => ({
   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
 }));
 
-const StatusChip = styled(Chip)(({ theme }) => ({
-  backgroundColor: '#ff9800',
-  color: 'white',
-  fontWeight: 'bold',
-}));
-
-const ClinicBadge = styled(Chip)(({ theme }) => ({
-  backgroundColor: '#4caf50',
-  color: 'white',
-  fontWeight: 'bold',
-  marginLeft: theme.spacing(1),
-}));
-
 const DetailsCard = styled(Card)(({ theme }) => ({
   marginTop: theme.spacing(2),
   borderRadius: 16,
   boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+  borderLeft: '5px solid #49149e',
 }));
 
 const InfoRow = styled(Box)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
-  margin: theme.spacing(2, 0),
+  margin: theme.spacing(1.5, 0),
   '& svg': {
-    marginRight: 16,
-    color: '#8e24aa',
-    fontSize: 30,
+    marginRight: 12,
+    color: '#49149e',
+    fontSize: 24,
   },
 }));
 
 const InfoLabel = styled(Typography)({
   fontWeight: 'bold',
   color: '#444',
-  minWidth: 150,
-});
-
-const InfoValue = styled(Typography)({
-  color: '#333',
+  minWidth: 120,
 });
 
 const PendingRegistrations = () => {
@@ -133,59 +121,67 @@ const PendingRegistrations = () => {
   const [pendingPets, setPendingPets] = useState([]);
   const [filteredPets, setFilteredPets] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCriteria, setSearchCriteria] = useState('petName');
+  const [statusFilter, setStatusFilter] = useState('Pending');
+  const [clinicFilter, setClinicFilter] = useState('all');
+  const [clinics, setClinics] = useState([]);
+
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(8);
   const [expandedRow, setExpandedRow] = useState(null);
-  const [clinicInfo, setClinicInfo] = useState(null);
   const [error, setError] = useState(null);
+
+  const fetchClinics = async () => {
+    try {
+      const response = await api.get('/clinics');
+      if (response.data && response.data.clinics) {
+        setClinics(response.data.clinics);
+      } else if (response.data) {
+        setClinics(response.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch clinics:', err);
+    }
+  };
 
   const fetchPendingRegistrations = async () => {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('vet_token');
-      if (!token) {
-        Swal.fire('Error', 'Please log in again.', 'error');
-        window.location.href = '/login';
-        return;
+
+      // Use clinicFilter if selected, otherwise endpoint might handle default clinic
+      let url = '/pets/clinic/pending';
+      if (clinicFilter !== 'all') {
+        url = `/pets/clinic/${clinicFilter}/pending`;
       }
 
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      try {
-        const response = await api.get('/pets/clinic/pending');
-        if (response.data.success) {
-          const petsData = response.data.pendingPets || [];
-          setPendingPets(petsData);
-          setFilteredPets(petsData);
-          setClinicInfo(response.data.clinicInfo || null);
-        } else {
-          setError(response.data.message || 'Request failed');
-        }
-      } catch (apiErr) {
-        let msg = 'Failed to load pending registrations';
-        if (apiErr.response?.status === 401) {
-          msg = 'Session expired. Please log in again.';
-          localStorage.removeItem('vet_token');
-          localStorage.removeItem('vet_user');
-          setTimeout(() => window.location.href = '/login', 1500);
-        } else if (apiErr.response?.data?.message) {
-          msg = apiErr.response.data.message;
-        }
-        setError(msg);
+      const response = await api.get(`${url}?status=${statusFilter}`);
+      if (response.data) {
+        const petsData = response.data.pendingPets || response.data.approvedPets || response.data.registeredPets || [];
+        setPendingPets(petsData);
+        setFilteredPets(petsData);
       }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+    } catch (apiErr) {
+      let msg = 'Failed to load registrations';
+      if (apiErr.response?.data?.message) {
+        msg = apiErr.response.data.message;
+      }
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPendingRegistrations();
+    fetchClinics();
   }, []);
+
+  useEffect(() => {
+    fetchPendingRegistrations();
+  }, [statusFilter, clinicFilter]);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
@@ -205,8 +201,6 @@ const PendingRegistrations = () => {
           return pet.species?.toLowerCase().includes(query);
         case 'breed':
           return pet.breed?.toLowerCase().includes(query);
-        case 'microchip':
-          return pet.microchipNumber?.toLowerCase().includes(query);
         default:
           return true;
       }
@@ -223,16 +217,13 @@ const PendingRegistrations = () => {
       showCancelButton: true,
       confirmButtonColor: '#4caf50',
       cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, Approve',
-      cancelButtonText: 'Cancel'
+      confirmButtonText: 'Yes, Approve'
     });
 
     if (result.isConfirmed) {
       try {
         await api.patch(`/pets/${petId}/approve`);
-        const updatedPets = pendingPets.filter(p => p._id !== petId);
-        setPendingPets(updatedPets);
-        setFilteredPets(updatedPets);
+        fetchPendingRegistrations();
         Swal.fire({
           title: 'Approved!',
           text: 'Pet has been registered successfully.',
@@ -241,7 +232,7 @@ const PendingRegistrations = () => {
           showConfirmButton: false
         });
       } catch (err) {
-        Swal.fire('Error', 'Could not approve registration. Please try again.', 'error');
+        Swal.fire('Error', 'Could not approve registration.', 'error');
       }
     }
   };
@@ -254,16 +245,13 @@ const PendingRegistrations = () => {
       showCancelButton: true,
       confirmButtonColor: '#f44336',
       cancelButtonColor: '#666',
-      confirmButtonText: 'Yes, Reject',
-      cancelButtonText: 'Cancel'
+      confirmButtonText: 'Yes, Reject'
     });
 
     if (result.isConfirmed) {
       try {
         await api.patch(`/pets/${petId}/reject`, { reason: 'Registration rejected by veterinarian' });
-        const updatedPets = pendingPets.filter(p => p._id !== petId);
-        setPendingPets(updatedPets);
-        setFilteredPets(updatedPets);
+        fetchPendingRegistrations();
         Swal.fire({
           title: 'Rejected!',
           text: 'Registration request has been rejected.',
@@ -272,32 +260,31 @@ const PendingRegistrations = () => {
           showConfirmButton: false
         });
       } catch (err) {
-        Swal.fire('Error', 'Could not reject registration. Please try again.', 'error');
+        Swal.fire('Error', 'Could not reject registration.', 'error');
       }
     }
   };
 
   const calculateAge = (dob) => {
     if (!dob) return 'Unknown';
-    const birth = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-    return `${age} year${age !== 1 ? 's' : ''}`;
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Unknown';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    const numYears = dayjs().diff(dayjs(dob), 'year');
+    if (numYears > 0) return `${numYears} year${numYears !== 1 ? 's' : ''}`;
+    const numMonths = dayjs().diff(dayjs(dob), 'month');
+    if (numMonths > 0) return `${numMonths} month${numMonths !== 1 ? 's' : ''}`;
+    return 'Less than a month';
   };
 
   const handleExpandRow = (id) => {
     setExpandedRow(expandedRow === id ? null : id);
+  };
+
+  const getStatusChip = (status) => {
+    switch (status) {
+      case 'Pending': return <Chip label="Pending" size="small" sx={{ bgcolor: '#ff9800', color: 'white', fontWeight: 'bold' }} />;
+      case 'Approved': return <Chip label="Approved" size="small" sx={{ bgcolor: '#4caf50', color: 'white', fontWeight: 'bold' }} />;
+      case 'Rejected': return <Chip label="Rejected" size="small" sx={{ bgcolor: '#f44336', color: 'white', fontWeight: 'bold' }} />;
+      default: return <Chip label={status} size="small" />;
+    }
   };
 
   const paginatedPets = filteredPets.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
@@ -309,27 +296,55 @@ const PendingRegistrations = () => {
         {!isMobile && <Sidebar />}
         <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
           <ContentContainer>
-            <SearchSection>
-              <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: '#8e24aa', fontFamily: 'Georgia, serif', mb: 1 }}>
-                  Pending Pet Registrations
-                </Typography>
-              </Box>
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 1 }}>
+                Registration Requests
+              </Typography>
+              <Typography variant="body1" color="textSecondary">
+                Manage and review pet registration requests for your clinics.
+              </Typography>
+            </Box>
 
+            <SearchSection>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                <FormControl sx={{ minWidth: 160 }}>
+                <FormControl sx={{ minWidth: 150 }} size="small">
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    label="Status"
+                  >
+                    <MenuItem value="Pending">Pending</MenuItem>
+                    <MenuItem value="Approved">Approved</MenuItem>
+                    <MenuItem value="Rejected">Rejected</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl sx={{ minWidth: 200 }} size="small">
+                  <InputLabel>Clinic</InputLabel>
+                  <Select
+                    value={clinicFilter}
+                    onChange={(e) => setClinicFilter(e.target.value)}
+                    label="Clinic"
+                  >
+                    <MenuItem value="all">All Clinics</MenuItem>
+                    {clinics.map(c => (
+                      <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl sx={{ minWidth: 150 }} size="small">
                   <InputLabel>Search By</InputLabel>
                   <Select
                     value={searchCriteria}
                     onChange={(e) => setSearchCriteria(e.target.value)}
                     label="Search By"
-                    size="small"
                   >
                     <MenuItem value="petName">Pet Name</MenuItem>
                     <MenuItem value="ownerName">Owner Name</MenuItem>
                     <MenuItem value="species">Species</MenuItem>
                     <MenuItem value="breed">Breed</MenuItem>
-                    <MenuItem value="microchip">Microchip</MenuItem>
                   </Select>
                 </FormControl>
 
@@ -338,7 +353,7 @@ const PendingRegistrations = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   variant="outlined"
-                  sx={{ width: isMobile ? '100%' : 300 }}
+                  sx={{ width: isMobile ? '100%' : 250 }}
                   size="small"
                 />
 
@@ -355,68 +370,33 @@ const PendingRegistrations = () => {
             </SearchSection>
 
             {error && (
-              <Alert
-                severity="error"
-                sx={{ mb: 3 }}
-                action={
-                  <Button color="inherit" size="small" onClick={fetchPendingRegistrations}>
-                    Retry
-                  </Button>
-                }
-              >
+              <Alert severity="error" sx={{ mb: 3 }} action={<Button color="inherit" size="small" onClick={fetchPendingRegistrations}>Retry</Button>}>
                 {error}
               </Alert>
             )}
 
-            {!error && pendingPets.length === 0 && !loading ? (
+            {!error && filteredPets.length === 0 && !loading ? (
               <Box sx={{ textAlign: 'center', py: 12 }}>
                 <PetsIcon sx={{ fontSize: 100, color: '#ddd', mb: 3 }} />
-                <Typography variant="h5" color="textSecondary" gutterBottom>
-                  No Pending Registrations
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<RefreshIcon />}
-                  onClick={fetchPendingRegistrations}
-                  sx={{ mt: 3 }}
-                >
-                  Check Again
-                </Button>
+                <Typography variant="h5" color="textSecondary">No Requests Found</Typography>
               </Box>
             ) : !error && (
               <>
-                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Typography variant="body2" color="textSecondary">
-                      Showing {filteredPets.length} pending registration{filteredPets.length !== 1 ? 's' : ''}
-                    </Typography>
-                    {clinicInfo && (
-                      <ClinicBadge
-                        icon={<ClinicIcon />}
-                        label={clinicInfo.name}
-                        size="small"
-                        sx={{ ml: 2, bgcolor: '#4caf50' }}
-                      />
-                    )}
-                  </Box>
-                </Box>
-
-                <TableContainer component={Paper} elevation={6} sx={{ mb: 2, borderRadius: 3, overflow: 'hidden' }}>
+                <TableContainer component={Paper} elevation={4} sx={{ mb: 2, borderRadius: 3, overflow: 'hidden' }}>
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableHeadCell></TableHeadCell>
-                        <TableHeadCell>Pet</TableHeadCell>
+                        <TableHeadCell width={50}></TableHeadCell>
+                        <TableHeadCell>Pet Name</TableHeadCell>
                         <TableHeadCell>Owner</TableHeadCell>
-                        <TableHeadCell>Species & Breed</TableHeadCell>
-                        <TableHeadCell>Age & Gender</TableHeadCell>
+                        <TableHeadCell>Clinic</TableHeadCell>
                         <TableHeadCell>Status</TableHeadCell>
                         <TableHeadCell align="center">Actions</TableHeadCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {loading ? (
-                        <TableRow><TableCell colSpan={7} sx={{ py: 10, textAlign: 'center' }}><CircularProgress color="secondary" /></TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6} sx={{ py: 10, textAlign: 'center' }}><CircularProgress color="secondary" /></TableCell></TableRow>
                       ) : paginatedPets.map((pet) => (
                         <React.Fragment key={pet._id}>
                           <TableRowStyled onClick={() => handleExpandRow(pet._id)}>
@@ -432,116 +412,100 @@ const PendingRegistrations = () => {
                             </TableCell>
                             <TableCell>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <PetAvatar src={pet.photo} alt={pet.name}>
-                                  {pet.name?.[0]?.toUpperCase() || 'P'}
-                                </PetAvatar>
-                                <Box>
-                                  <Typography variant="body1" fontWeight="bold">{pet.name}</Typography>
-                                  <Typography variant="caption" color="textSecondary">
-                                    {pet.microchipNumber ? `Microchip: ${pet.microchipNumber}` : 'No microchip'}
-                                  </Typography>
-                                </Box>
+                                <Avatar src={pet.photo} sx={{ width: 50, height: 50 }}>{pet.name?.[0]}</Avatar>
+                                <Typography variant="body1" fontWeight="bold">{pet.name}</Typography>
                               </Box>
                             </TableCell>
                             <TableCell>
                               <Typography variant="body2" fontWeight="bold">
                                 {pet.ownerId ? `${pet.ownerId.firstName} ${pet.ownerId.lastName}` : 'N/A'}
                               </Typography>
-                              <Typography variant="caption" color="textSecondary">
-                                {pet.ownerId?.email || 'No email'}
-                              </Typography>
                             </TableCell>
                             <TableCell>
-                              <Typography variant="body2" fontWeight="bold">{pet.species}</Typography>
-                              <Typography variant="caption" color="textSecondary">
-                                {pet.breed || 'Not specified'}
-                              </Typography>
+                              <Typography variant="body2">{pet.registeredClinicId?.name || 'N/A'}</Typography>
                             </TableCell>
                             <TableCell>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {pet.gender === 'Male' ? <MaleIcon color="primary" sx={{ fontSize: 18 }} /> : pet.gender === 'Female' ? <FemaleIcon color="secondary" sx={{ fontSize: 18 }} /> : null}
-                                <Typography variant="body2">
-                                  {calculateAge(pet.dateOfBirth)}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <StatusChip label="Pending" size="small" />
+                              {getStatusChip(pet.registrationStatus)}
                             </TableCell>
                             <TableCell align="center">
-                              <IconButton
-                                color="success"
-                                onClick={(e) => { e.stopPropagation(); handleApprove(pet._id); }}
-                                size="small"
-                              >
-                                <CheckCircleIcon />
-                              </IconButton>
-                              <IconButton
-                                color="error"
-                                onClick={(e) => { e.stopPropagation(); handleReject(pet._id); }}
-                                size="small"
-                              >
-                                <CancelIcon />
-                              </IconButton>
+                              {pet.registrationStatus === 'Pending' ? (
+                                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                                  <Tooltip title="Approve">
+                                    <IconButton color="success" onClick={(e) => { e.stopPropagation(); handleApprove(pet._id); }}>
+                                      <CheckCircleIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Reject">
+                                    <IconButton color="error" onClick={(e) => { e.stopPropagation(); handleReject(pet._id); }}>
+                                      <CancelIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </Box>
+                              ) : (
+                                <Typography variant="caption" color="textSecondary">No Actions Available</Typography>
+                              )}
                             </TableCell>
                           </TableRowStyled>
 
                           <TableRow>
-                            <TableCell colSpan={7} sx={{ p: 0 }}>
+                            <TableCell colSpan={6} sx={{ p: 0 }}>
                               <Collapse in={expandedRow === pet._id} timeout="auto" unmountOnExit>
-                                <DetailsCard>
-                                  <Grid container spacing={4} sx={{ p: 4 }}>
-                                    <Grid item xs={12} md={6}>
-                                      <CardHeader
-                                        title="Pet Details"
-                                        sx={{
-                                          bgcolor: '#4caf50',
-                                          color: 'white',
-                                          borderRadius: '12px 12px 0 0'
-                                        }}
-                                      />
-                                      <CardContent>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-                                          <PetAvatar src={pet.photo} sx={{ width: 100, height: 100, mr: 4 }} />
-                                          <Box>
-                                            <Typography variant="h6">{pet.name}</Typography>
-                                            <Typography variant="body2">
-                                              {pet.species} • {pet.breed || 'Mixed'}
-                                            </Typography>
-                                          </Box>
-                                        </Box>
-                                        <InfoRow>
-                                          <CalendarTodayIcon sx={{ fontSize: 20 }} />
-                                          <InfoLabel sx={{ minWidth: 100 }}>Born:</InfoLabel>
-                                          <InfoValue>{formatDate(pet.dateOfBirth)}</InfoValue>
-                                        </InfoRow>
-                                      </CardContent>
+                                <Box sx={{ p: 3, bgcolor: '#fbfaff' }}>
+                                  <Grid container spacing={3}>
+                                    <Grid item xs={12} md={4}>
+                                      <Typography variant="h6" color="#49149e" mb={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <PetsIcon fontSize="small" /> Pet Details
+                                      </Typography>
+                                      <DetailsCard>
+                                        <CardContent>
+                                          <InfoRow><InfoLabel>Species:</InfoLabel><Typography>{pet.species}</Typography></InfoRow>
+                                          <InfoRow><InfoLabel>Breed:</InfoLabel><Typography>{pet.breed || 'N/A'}</Typography></InfoRow>
+                                          <InfoRow><InfoLabel>Age:</InfoLabel><Typography>{calculateAge(pet.dateOfBirth)}</Typography></InfoRow>
+                                          <InfoRow><InfoLabel>Gender:</InfoLabel><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            {pet.gender === 'Male' ? <MaleIcon color="primary" /> : <FemaleIcon color="secondary" />}
+                                            <Typography>{pet.gender}</Typography>
+                                          </Box></InfoRow>
+                                          <InfoRow><InfoLabel>Weight:</InfoLabel><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <ScaleIcon fontSize="small" />
+                                            <Typography>{pet.weight ? `${pet.weight} kg` : 'N/A'}</Typography>
+                                          </Box></InfoRow>
+                                        </CardContent>
+                                      </DetailsCard>
                                     </Grid>
 
-                                    <Grid item xs={12} md={6}>
-                                      <CardHeader
-                                        title="Owner Information"
-                                        sx={{
-                                          bgcolor: '#2196f3',
-                                          color: 'white',
-                                          borderRadius: '12px 12px 0 0'
-                                        }}
-                                      />
-                                      <CardContent>
-                                        <InfoRow>
-                                          <PersonIcon sx={{ fontSize: 20 }} />
-                                          <InfoLabel sx={{ minWidth: 100 }}>Name:</InfoLabel>
-                                          <InfoValue>{pet.ownerId ? `${pet.ownerId.firstName} ${pet.ownerId.lastName}` : 'N/A'}</InfoValue>
-                                        </InfoRow>
-                                        <InfoRow>
-                                          <PhoneIcon sx={{ fontSize: 20 }} />
-                                          <InfoLabel sx={{ minWidth: 100 }}>Phone:</InfoLabel>
-                                          <InfoValue>{pet.ownerId?.phoneNumber || 'N/A'}</InfoValue>
-                                        </InfoRow>
-                                      </CardContent>
+                                    <Grid item xs={12} md={4}>
+                                      <Typography variant="h6" color="#49149e" mb={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <PersonIcon fontSize="small" /> Owner Information
+                                      </Typography>
+                                      <DetailsCard sx={{ borderLeftColor: '#2196f3' }}>
+                                        <CardContent>
+                                          <InfoRow><InfoLabel>Email:</InfoLabel><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <EmailIcon fontSize="small" />
+                                            <Typography>{pet.ownerId?.email || 'N/A'}</Typography>
+                                          </Box></InfoRow>
+                                          <InfoRow><InfoLabel>Phone:</InfoLabel><Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <PhoneIcon fontSize="small" />
+                                            <Typography>{pet.ownerId?.phoneNumber || 'N/A'}</Typography>
+                                          </Box></InfoRow>
+                                        </CardContent>
+                                      </DetailsCard>
+                                    </Grid>
+
+                                    <Grid item xs={12} md={4}>
+                                      <Typography variant="h6" color="#49149e" mb={2} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <DescriptionIcon fontSize="small" /> Additional Notes
+                                      </Typography>
+                                      <DetailsCard sx={{ borderLeftColor: '#ff9800' }}>
+                                        <CardContent>
+                                          <Typography variant="body2" sx={{ fontStyle: pet.notes ? 'normal' : 'italic', color: pet.notes ? 'textPrimary' : 'textSecondary' }}>
+                                            {pet.notes || "No notes provided by the owner."}
+                                          </Typography>
+                                        </CardContent>
+                                      </DetailsCard>
                                     </Grid>
                                   </Grid>
-                                </DetailsCard>
+                                </Box>
+                                <Divider />
                               </Collapse>
                             </TableCell>
                           </TableRow>
@@ -558,7 +522,6 @@ const PendingRegistrations = () => {
                   rowsPerPage={rowsPerPage}
                   page={page}
                   onPageChange={(_, p) => setPage(p)}
-                  labelRowsPerPage=""
                 />
               </>
             )}

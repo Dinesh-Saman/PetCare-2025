@@ -3,7 +3,7 @@ const Veterinarian = require('../models/Veterinarian');
 const ClinicStaff = require('../models/ClinicStaff');
 const bcrypt = require('bcryptjs');
 
-// Create a new clinic (Primary vet can create multiple clinics)
+// Create a new clinic (Enhanced vet can create multiple clinics)
 exports.createClinic = async (req, res) => {
   try {
     const {
@@ -24,9 +24,9 @@ exports.createClinic = async (req, res) => {
     }
 
     const vet = await Veterinarian.findById(req.user.id);
-    if (!vet || vet.accessLevel !== 'Primary') {
+    if (!vet || vet.accessLevel !== 'Enhanced') {
       return res.status(403).json({
-        message: 'Access denied: Only Primary veterinarians can create clinics'
+        message: 'Access denied: Only Enhanced veterinarians can create clinics'
       });
     }
 
@@ -115,7 +115,7 @@ exports.getMyClinic = async (req, res) => {
       }
     }
 
-    if (vet.accessLevel === 'Primary' && vet.ownedClinics.length > 0) {
+    if (vet.accessLevel === 'Enhanced' && vet.ownedClinics.length > 0) {
       clinics = clinics.concat(vet.ownedClinics);
     }
 
@@ -124,7 +124,7 @@ exports.getMyClinic = async (req, res) => {
       vetInfo: {
         accessLevel: vet.accessLevel,
         hasClinics: clinics.length > 0,
-        isPrimaryVet: vet.accessLevel === 'Primary'
+        isPrimaryVet: vet.accessLevel === 'Enhanced'
       }
     });
   } catch (error) {
@@ -202,7 +202,7 @@ exports.getClinicById = async (req, res) => {
   }
 };
 
-// Update clinic details (only allowed for Primary or Full Access vets)
+// Update clinic details (only allowed for Primary or Enhanced vets)
 exports.updateClinic = async (req, res) => {
   try {
     const { id } = req.params;
@@ -225,14 +225,11 @@ exports.updateClinic = async (req, res) => {
     // Check permissions
     let hasPermission = false;
 
-    if (vet.accessLevel === 'Primary') {
-      // Primary vets can update clinics they own
-      hasPermission = vet.ownedClinics &&
-        vet.ownedClinics.some(clinicId => clinicId.toString() === id);
-    } else if (vet.accessLevel === 'Full Access') {
-      // Full Access vets can update their current active clinic
-      hasPermission = vet.currentActiveClinicId &&
-        vet.currentActiveClinicId.toString() === id;
+    if (vet.accessLevel === 'Enhanced') {
+      // Enhanced vets can update clinics they own OR their current active clinic
+      const isOwner = vet.ownedClinics && vet.ownedClinics.some(clinicId => clinicId.toString() === id);
+      const isActive = vet.currentActiveClinicId && vet.currentActiveClinicId.toString() === id;
+      hasPermission = isOwner || isActive;
     }
 
     if (!hasPermission) {
@@ -279,7 +276,7 @@ exports.updateClinic = async (req, res) => {
   }
 };
 
-// Delete a clinic (Primary Vet only, and only clinics they own)
+// Delete a clinic (Enhanced Vet only, and only clinics they own)
 exports.deleteClinic = async (req, res) => {
   try {
     const { id } = req.params;
@@ -292,9 +289,9 @@ exports.deleteClinic = async (req, res) => {
     }
 
     const vet = await Veterinarian.findById(req.user.id);
-    if (!vet || vet.accessLevel !== 'Primary') {
+    if (!vet || vet.accessLevel !== 'Enhanced') {
       return res.status(403).json({
-        message: 'Access denied: Only Primary veterinarians can delete clinics'
+        message: 'Access denied: Only Enhanced veterinarians can delete clinics'
       });
     }
 
@@ -350,7 +347,7 @@ exports.addClinicStaff = async (req, res) => {
       phoneNumber,
       veterinaryId,        // Required only for veterinarian
       specialization,      // Optional for veterinarian
-      accessLevel = 'Normal Access', // For veterinarian: 'Normal Access' or 'Full Access'
+      accessLevel = 'Basic', // For veterinarian: 'Basic' or 'Enhanced'
       role,                // For non-vet: 'Receptionist', 'Vet Tech', 'Manager', 'Assistant', 'Kennel Staff'
       clinicId             // REQUIRED: Which clinic to add staff to
     } = req.body;
@@ -378,64 +375,58 @@ exports.addClinicStaff = async (req, res) => {
       currentActiveClinicId: creator.currentActiveClinicId
     });
 
-    // Only Primary or Full Access vets can add staff
-    if (!['Primary', 'Full Access'].includes(creator.accessLevel)) {
+    // Only Enhanced vets can add staff
+    if (creator.accessLevel !== 'Enhanced') {
       return res.status(403).json({
-        message: 'Permission denied: Only Primary or Full Access veterinarians can add staff'
+        message: 'Permission denied: Only Enhanced veterinarians can add staff'
       });
     }
 
-    // === 2. Clinic Validation ===
-    if (!clinicId) {
-      return res.status(400).json({
-        message: 'clinicId is required'
-      });
+    // === 2. Clinic Validation (Optional) ===
+    let clinic = null;
+    if (clinicId) {
+      console.log('Checking access to clinic:', clinicId);
+
+      // Check if creator has access to this clinic
+      let hasAccessToClinic = false;
+
+      if (creator.accessLevel === 'Enhanced') {
+        const targetClinicIdStr = clinicId.toString();
+
+        // Enhanced vets can add staff to clinics they own OR their current active clinic OR assigned
+        const isOwner = creator.ownedClinics && creator.ownedClinics.some(id => id.toString() === targetClinicIdStr);
+        const isActive = creator.currentActiveClinicId && creator.currentActiveClinicId.toString() === targetClinicIdStr;
+        const isAssigned = creator.assignedClinics && creator.assignedClinics.some(id => id.toString() === targetClinicIdStr);
+
+        hasAccessToClinic = isOwner || isActive || isAssigned;
+
+        console.log('Enhanced vet clinic check:', {
+          target: targetClinicIdStr,
+          hasAccessToClinic
+        });
+      }
+
+      if (!hasAccessToClinic) {
+        return res.status(403).json({
+          message: 'Permission denied: You do not have access to add staff to this clinic'
+        });
+      }
+
+      // Verify clinic exists
+      clinic = await Clinic.findById(clinicId);
+      if (!clinic) {
+        return res.status(404).json({
+          message: 'Clinic not found'
+        });
+      }
+
+      console.log('Clinic verified:', clinic.name);
     }
-
-    console.log('Checking access to clinic:', clinicId);
-
-    // Check if creator has access to this clinic
-    let hasAccessToClinic = false;
-
-    console.log('creator ', creator.ownedClinics.some(id => id.toString() === clinicId));
-
-    if (creator.accessLevel === 'Primary') {
-      // Primary vets must own the clinic
-      hasAccessToClinic = creator.ownedClinics;
-      console.log('Primary vet clinic check:', {
-        ownedClinics: creator.ownedClinics,
-        hasAccessToClinic
-      });
-    } else if (creator.accessLevel === 'Full Access') {
-      // Full Access vets must have it as current active clinic
-      hasAccessToClinic = creator.currentActiveClinicId &&
-        creator.currentActiveClinicId.toString() === clinicId;
-      console.log('Full Access vet clinic check:', {
-        currentActiveClinicId: creator.currentActiveClinicId,
-        hasAccessToClinic
-      });
-    }
-
-    if (!hasAccessToClinic) {
-      return res.status(403).json({
-        message: 'Permission denied: You do not have access to add staff to this clinic'
-      });
-    }
-
-    // Verify clinic exists
-    const clinic = await Clinic.findById(clinicId);
-    if (!clinic) {
-      return res.status(404).json({
-        message: 'Clinic not found'
-      });
-    }
-
-    console.log('Clinic verified:', clinic.name);
 
     // === 3. Basic Validation ===
-    if (!staffType || !firstName?.trim() || !lastName?.trim() || !email?.trim() || !password) {
+    if (!staffType || !firstName?.trim() || !lastName?.trim() || !email?.trim() || !password || !phoneNumber?.trim()) {
       return res.status(400).json({
-        message: 'firstName, lastName, email, password, and staffType are required'
+        message: 'firstName, lastName, email, password, phoneNumber, and staffType are required'
       });
     }
 
@@ -450,12 +441,8 @@ exports.addClinicStaff = async (req, res) => {
         });
       }
 
-      // Prevent creating another Primary Vet
-      if (accessLevel === 'Primary') {
-        return res.status(403).json({
-          message: 'Cannot create another Primary Veterinarian via sub-account'
-        });
-      }
+      // Prevent creating another Enhanced Vet via this endpoint if needed (optional)
+      // For now, we allow it if the creator is Enhanced.
 
       // Check for duplicate email or license
       const existingVet = await Veterinarian.findOne({
@@ -474,7 +461,7 @@ exports.addClinicStaff = async (req, res) => {
       const salt = await bcrypt.genSalt(12);
       const passwordHash = await bcrypt.hash(password, salt);
 
-      const newVet = new Veterinarian({
+      const newVetData = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: normalizedEmail,
@@ -482,12 +469,19 @@ exports.addClinicStaff = async (req, res) => {
         phoneNumber: phoneNumber?.trim() || '',
         veterinaryId: veterinaryId.trim(),
         specialization: specialization?.trim() || '',
-        currentActiveClinicId: clinicId,
-        accessLevel: accessLevel || 'Normal Access',
+        accessLevel: accessLevel || 'Basic',
         createdByVetId: creator._id,
         status: 'Active'
-      });
+      };
 
+      if (clinicId) {
+        newVetData.currentActiveClinicId = clinicId;
+        newVetData.assignedClinics = [clinicId];
+      } else {
+        newVetData.assignedClinics = [];
+      }
+
+      const newVet = new Veterinarian(newVetData);
       await newVet.save();
 
       const response = newVet.toObject();
@@ -500,10 +494,8 @@ exports.addClinicStaff = async (req, res) => {
     }
 
     // === 5. Add Non-Veterinarian Clinic Staff ===
-    // Handle different staff type values from frontend
-    const nonVetStaffTypes = ['receptionist', 'vettech', 'manager', 'assistant', 'kennelstaff'];
-
-    if (nonVetStaffTypes.includes(normalizedStaffType)) {
+    // Any type that is not 'veterinarian' is treated as non-vet staff
+    if (normalizedStaffType !== 'veterinarian') {
       if (!role) {
         return res.status(400).json({
           message: 'Role is required for non-veterinarian staff'
@@ -522,23 +514,11 @@ exports.addClinicStaff = async (req, res) => {
       const passwordHash = await bcrypt.hash(password, salt);
 
       // Map role to access level - handle all frontend role values
-      let staffAccessLevel = 'Basic';
-      if (role === 'Manager') {
-        staffAccessLevel = 'Admin';
-      } else if (role === 'Vet Tech') {
-        staffAccessLevel = 'Moderate';
-      } else if (role === 'Receptionist') {
-        staffAccessLevel = 'Basic';
-      } else if (role === 'Assistant') {
-        staffAccessLevel = 'Basic';
-      } else if (role === 'Kennel Staff') {
-        staffAccessLevel = 'Basic';
-      }
+      const staffAccessLevel = accessLevel || 'Basic';
 
       console.log('Creating staff with role:', role, 'accessLevel:', staffAccessLevel);
 
-      const newStaff = new ClinicStaff({
-        clinicId: clinicId,
+      const newStaffData = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: normalizedEmail,
@@ -548,7 +528,14 @@ exports.addClinicStaff = async (req, res) => {
         accessLevel: staffAccessLevel,
         createdBy: creator._id,
         status: 'Active'
-      });
+      };
+
+      if (clinicId) {
+        newStaffData.clinicId = clinicId;
+        newStaffData.assignedClinics = [clinicId];
+      }
+
+      const newStaff = new ClinicStaff(newStaffData);
 
       await newStaff.save();
 
@@ -558,10 +545,6 @@ exports.addClinicStaff = async (req, res) => {
       return res.status(201).json({
         message: `${role} added successfully`,
         staff: response
-      });
-    } else {
-      return res.status(400).json({
-        message: `Invalid staff type: ${staffType}. Must be 'veterinarian', 'receptionist', 'vetTech', 'manager', 'assistant', or 'kennelStaff'`
       });
     }
 
@@ -647,13 +630,17 @@ exports.getClinicStaff = async (req, res) => {
 
     if (req.query.clinicId) {
       // If clinicId is specified in query, validate access
-      if (vet.accessLevel === 'Primary') {
-        if (!vet.ownedClinics || !vet.ownedClinics.some(id => id.toString() === req.query.clinicId)) {
+      if (vet.accessLevel === 'Enhanced') {
+        const isOwner = vet.ownedClinics && vet.ownedClinics.some(id => id.toString() === req.query.clinicId);
+        const isActive = vet.currentActiveClinicId && vet.currentActiveClinicId.toString() === req.query.clinicId;
+        const isAssigned = vet.assignedClinics && vet.assignedClinics.some(id => id.toString() === req.query.clinicId);
+        if (!isOwner && !isActive && !isAssigned) {
           return res.status(403).json({
             message: 'You do not have access to this clinic'
           });
         }
-      } else {
+      }
+      else {
         if (!vet.currentActiveClinicId || vet.currentActiveClinicId.toString() !== req.query.clinicId) {
           return res.status(403).json({
             message: 'You do not have access to this clinic'
@@ -663,11 +650,11 @@ exports.getClinicStaff = async (req, res) => {
       clinicId = req.query.clinicId;
     } else {
       // If no clinicId specified, use current active clinic
-      if (vet.accessLevel === 'Primary' && vet.currentActiveClinicId) {
+      // For Enhanced vets, determine the clinic
+      if (vet.currentActiveClinicId) {
         clinicId = vet.currentActiveClinicId;
-      } else if (vet.currentActiveClinicId) {
-        clinicId = vet.currentActiveClinicId;
-      } else {
+      }
+      else {
         return res.status(400).json({
           message: 'You are not associated with any clinic'
         });
@@ -705,7 +692,7 @@ exports.getClinicStaff = async (req, res) => {
         licenseId: v.veterinaryId || 'N/A',
         specialization: v.specialization || 'General',
         accessLevel: v.accessLevel,
-        isPrimary: v.accessLevel === 'Primary'
+        isEnhanced: v.accessLevel === 'Enhanced'
       },
       createdAt: v.createdAt
     }));
@@ -764,12 +751,10 @@ exports.getClinicStaffCount = async (req, res) => {
     // Check if vet has access to this clinic
     let hasAccess = false;
 
-    if (vet.accessLevel === 'Primary') {
-      hasAccess = vet.ownedClinics &&
-        vet.ownedClinics.some(id => id.toString() === clinicId);
-    } else {
-      hasAccess = vet.currentActiveClinicId &&
-        vet.currentActiveClinicId.toString() === clinicId;
+    if (vet.accessLevel === 'Enhanced') {
+      const isOwner = vet.ownedClinics && vet.ownedClinics.some(id => id.toString() === clinicId);
+      const isActive = vet.currentActiveClinicId && vet.currentActiveClinicId.toString() === clinicId;
+      hasAccess = isOwner || isActive;
     }
 
     if (!hasAccess) {
@@ -853,16 +838,11 @@ exports.getClinicStaffById = async (req, res) => {
     const user = await Veterinarian.findById(userId);
     let hasPermission = false;
 
-    if (user && user.accessLevel === 'Primary') {
-      // Primary vet must own the clinic
-      hasPermission = user.ownedClinics &&
-        user.ownedClinics.some(clinicId =>
-          clinicId.toString() === staffMember.clinicId._id.toString()
-        );
-    } else if (user && user.accessLevel === 'Full Access') {
-      // Full Access vet must be in the same clinic
-      hasPermission = user.currentActiveClinicId &&
-        user.currentActiveClinicId.toString() === staffMember.clinicId._id.toString();
+    if (user && user.accessLevel === 'Enhanced') {
+      // Enhanced vet must own the clinic OR have it as active
+      hasPermission = (user.ownedClinics && user.ownedClinics.some(clinicId =>
+        clinicId.toString() === staffMember.clinicId._id.toString()
+      )) || (user.currentActiveClinicId && user.currentActiveClinicId.toString() === staffMember.clinicId._id.toString());
     }
 
     console.log('Has permission?', hasPermission);
@@ -931,14 +911,8 @@ exports.updateClinicStaff = async (req, res) => {
     const user = await Veterinarian.findById(userId);
     let hasPermission = false;
 
-    if (user.accessLevel === 'Primary') {
-      hasPermission = user.ownedClinics &&
-        user.ownedClinics.some(clinicId =>
-          clinicId.toString() === staffMember.clinicId.toString()
-        );
-    } else if (user.accessLevel === 'Full Access') {
-      hasPermission = user.currentActiveClinicId &&
-        user.currentActiveClinicId.toString() === staffMember.clinicId.toString();
+    if (user.accessLevel === 'Enhanced') {
+      hasPermission = true; // Enhanced vets can update any staff member
     }
 
     if (!hasPermission) {
@@ -947,21 +921,20 @@ exports.updateClinicStaff = async (req, res) => {
       });
     }
 
-    // Prevent changing critical fields - Remove 'email' from restricted fields
-    const restrictedFields = ['passwordHash', 'createdBy']; // Email can be modified
+    // Clean up the updates object
+    const cleanUpdates = { ...updates };
+
+    // Prevent changing critical fields
+    const restrictedFields = ['passwordHash', 'createdBy'];
     for (let field of restrictedFields) {
-      if (updates[field]) {
-        return res.status(403).json({
-          message: `${field} cannot be modified`
-        });
-      }
+      delete cleanUpdates[field];
     }
 
     // If email is being changed, check if new email already exists
-    if (updates.email && updates.email !== staffMember.email) {
+    if (cleanUpdates.email && cleanUpdates.email.toLowerCase().trim() !== staffMember.email.toLowerCase()) {
       const existingStaffWithEmail = await ClinicStaff.findOne({
-        email: updates.email.toLowerCase().trim(),
-        _id: { $ne: id } // Exclude current staff member
+        email: cleanUpdates.email.toLowerCase().trim(),
+        _id: { $ne: id }
       });
 
       if (existingStaffWithEmail) {
@@ -971,36 +944,22 @@ exports.updateClinicStaff = async (req, res) => {
       }
     }
 
-    // If changing clinicId, verify permissions for new clinic
-    if (updates.clinicId && updates.clinicId !== staffMember.clinicId.toString()) {
-      if (user.accessLevel === 'Primary') {
-        // Primary vet must own the new clinic
-        const ownsNewClinic = user.ownedClinics &&
-          user.ownedClinics.some(clinicId =>
-            clinicId.toString() === updates.clinicId
-          );
-        if (!ownsNewClinic) {
-          return res.status(403).json({
-            message: 'You can only assign staff to clinics you own'
-          });
-        }
-      } else {
-        // Full Access vets cannot change clinic assignments
-        return res.status(403).json({
-          message: 'You cannot change staff clinic assignments'
-        });
-      }
-    }
-
-    // Clean up the updates object
-    const cleanUpdates = { ...updates };
-
     // Trim string fields
     if (cleanUpdates.firstName) cleanUpdates.firstName = cleanUpdates.firstName.trim();
     if (cleanUpdates.lastName) cleanUpdates.lastName = cleanUpdates.lastName.trim();
     if (cleanUpdates.email) cleanUpdates.email = cleanUpdates.email.toLowerCase().trim();
     if (cleanUpdates.phoneNumber) cleanUpdates.phoneNumber = cleanUpdates.phoneNumber.trim();
     if (cleanUpdates.role) cleanUpdates.role = cleanUpdates.role.trim();
+
+    // If assignedClinics is provided, update clinicId for backward compatibility
+    if (cleanUpdates.assignedClinics && Array.isArray(cleanUpdates.assignedClinics)) {
+      if (cleanUpdates.assignedClinics.length > 0) {
+        cleanUpdates.clinicId = cleanUpdates.assignedClinics[0];
+      } else {
+        cleanUpdates.clinicId = null;
+      }
+    }
+
 
     // Update the staff member
     const updatedStaff = await ClinicStaff.findByIdAndUpdate(
@@ -1045,14 +1004,8 @@ exports.deactivateClinicStaff = async (req, res) => {
     const user = await Veterinarian.findById(userId);
     let hasPermission = false;
 
-    if (user.accessLevel === 'Primary') {
-      hasPermission = user.ownedClinics &&
-        user.ownedClinics.some(clinicId =>
-          clinicId.toString() === staffMember.clinicId.toString()
-        );
-    } else if (user.accessLevel === 'Full Access') {
-      hasPermission = user.currentActiveClinicId &&
-        user.currentActiveClinicId.toString() === staffMember.clinicId.toString();
+    if (user.accessLevel === 'Enhanced') {
+      hasPermission = true; // Enhanced vets can deactivate any staff member
     }
 
     if (!hasPermission) {
@@ -1106,14 +1059,8 @@ exports.activateClinicStaff = async (req, res) => {
     const user = await Veterinarian.findById(userId);
     let hasPermission = false;
 
-    if (user.accessLevel === 'Primary') {
-      hasPermission = user.ownedClinics &&
-        user.ownedClinics.some(clinicId =>
-          clinicId.toString() === staffMember.clinicId.toString()
-        );
-    } else if (user.accessLevel === 'Full Access') {
-      hasPermission = user.currentActiveClinicId &&
-        user.currentActiveClinicId.toString() === staffMember.clinicId.toString();
+    if (user.accessLevel === 'Enhanced') {
+      hasPermission = true; // Enhanced vets can activate any staff member
     }
 
     if (!hasPermission) {
@@ -1140,6 +1087,54 @@ exports.activateClinicStaff = async (req, res) => {
     console.error('Error activating clinic staff:', error);
     res.status(500).json({
       message: 'Error activating staff member',
+      error: error.message
+    });
+  }
+};
+
+// Delete clinic staff
+exports.deleteClinicStaff = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    console.log('=== DELETE CLINIC STAFF DEBUG ===');
+    console.log('Staff ID:', id);
+    console.log('User ID:', userId);
+
+    const ClinicStaff = require('../models/ClinicStaff');
+    const Veterinarian = require('../models/Veterinarian');
+
+    const staffMember = await ClinicStaff.findById(id);
+    if (!staffMember) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+
+    // Check permissions
+    const user = await Veterinarian.findById(userId);
+    let hasPermission = false;
+
+    if (user.accessLevel === 'Enhanced') {
+      hasPermission = true; // Enhanced vets can delete any staff member
+    }
+
+    if (!hasPermission) {
+      return res.status(403).json({
+        message: 'You do not have permission to delete this staff member'
+      });
+    }
+
+    // Delete the staff member
+    await ClinicStaff.findByIdAndDelete(id);
+
+    res.status(200).json({
+      message: 'Staff member deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting clinic staff:', error);
+    res.status(500).json({
+      message: 'Error deleting staff member',
       error: error.message
     });
   }

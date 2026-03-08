@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
-  const { openAuthModal } = useAuth();
+  const { user, openAuthModal } = useAuth();
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // High-quality, relevant images for pet care / veterinary theme
@@ -23,7 +25,15 @@ const HeroSection = () => {
   }, [slides.length]);
 
   const handleGetStarted = () => {
-    openAuthModal('register', 'owner');
+    if (!user) {
+      openAuthModal('login', 'owner');
+    } else {
+      if (user.role === 'vet') {
+        navigate('/vet/dashboard');
+      } else {
+        navigate('/owner/pets/new', { state: { fromHome: true } });
+      }
+    }
   };
 
   return (
@@ -210,7 +220,7 @@ const HeroSection = () => {
               chat with veterinarians, track vaccinations & medications, and get instant AI-powered pet care advice.
             </p>
             <button onClick={handleGetStarted} className="hero-button">
-              Get Started — Add Your Pet Today
+              {user ? "Get Started — Add Your Pet Today" : "Login Your Account"}
             </button>
           </div>
         </div>

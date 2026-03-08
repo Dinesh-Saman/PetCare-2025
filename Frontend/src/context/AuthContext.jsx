@@ -14,7 +14,17 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const initAuth = async () => {
-            const token = localStorage.getItem('token') || localStorage.getItem('owner_token') || localStorage.getItem('vet_token');
+            const pathname = window.location.pathname;
+            let token = null;
+
+            if (pathname.startsWith('/vet')) {
+                token = localStorage.getItem('vet_token');
+            } else if (pathname.startsWith('/owner')) {
+                token = localStorage.getItem('owner_token');
+            } else {
+                token = localStorage.getItem('owner_token') || localStorage.getItem('vet_token');
+            }
+
             if (token) {
                 try {
                     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -47,18 +57,27 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('owner_token', token);
             localStorage.setItem('owner_user', JSON.stringify(userData));
         }
-        localStorage.setItem('token', token);
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         setAuthModalOpen(false);
     };
 
     const logout = () => {
         setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('owner_token');
-        localStorage.removeItem('owner_user');
-        localStorage.removeItem('vet_token');
-        localStorage.removeItem('vet_user');
+        const pathname = window.location.pathname;
+        if (pathname.startsWith('/vet')) {
+            localStorage.removeItem('vet_token');
+            localStorage.removeItem('vet_user');
+        } else if (pathname.startsWith('/owner')) {
+            localStorage.removeItem('owner_token');
+            localStorage.removeItem('owner_user');
+        } else {
+            // If logging out from home page or elsewhere, clear all.
+            localStorage.removeItem('owner_token');
+            localStorage.removeItem('owner_user');
+            localStorage.removeItem('vet_token');
+            localStorage.removeItem('vet_user');
+        }
+        localStorage.removeItem('token'); // Clear legacy token if it exists
         delete api.defaults.headers.common['Authorization'];
     };
 

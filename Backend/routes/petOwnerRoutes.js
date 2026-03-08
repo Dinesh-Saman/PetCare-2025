@@ -40,14 +40,14 @@ router.put('/:id', protect, authorize('owner'), updateOwner);
 // Soft-delete own account (optional — dangerous, you might want to disable)
 router.delete('/:id', protect, authorize('owner'), authorizeSelf, deleteOwner);
 
-// === Admin / Vet Primary Routes ===
+// === Admin / Vet Enhanced Routes ===
 // List all owners (useful for clinic admins or support)
-router.get('/', protect, authorize('vet'), authorizeVetAccess('Primary'), getAllOwners);
+router.get('/', protect, authorize('vet'), authorizeVetAccess('Enhanced'), getAllOwners);
 
-// Primary Vet can delete owner accounts if needed (rare, but possible for support)
-router.delete('/:id', protect, authorize('vet'), authorizeVetAccess('Primary'), deleteOwner);
+// Enhanced Vet can delete owner accounts if needed (rare, but possible for support)
+router.delete('/:id', protect, authorize('vet'), authorizeVetAccess('Enhanced'), deleteOwner);
 
-// Optional: Allow Primary Vets to view any owner profile (e.g., during support)
-router.get('/:id', protect, authorize('vet'), authorizeVetAccess('Primary'), getOwnerById);
+// Optional: Allow Enhanced Vets to view any owner profile (e.g., during support)
+router.get('/:id', protect, authorize('vet'), authorizeVetAccess('Enhanced'), getOwnerById);
 
 module.exports = router;

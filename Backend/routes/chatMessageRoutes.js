@@ -26,15 +26,15 @@ const authorizePetChat = async (req, res, next) => {
     const isOwner = req.user.role === 'owner' &&
       pet.ownerId.toString() === req.user.id.toString();
 
-    // Vet: Primary vets can access any pet; other vets must match the pet's clinic
-    const isPrimaryVet = req.user.role === 'vet' && req.user.accessLevel === 'Primary';
+    // Vet: Enhanced vets can access any pet; other vets must match the pet's clinic
+    const isEnhancedVet = req.user.role === 'vet' && req.user.accessLevel === 'Enhanced';
     const isClinicVet = req.user.role === 'vet' && (
       !pet.registeredClinicId || // pet has no clinic assignment yet — allow
       !req.user.clinicId ||      // vet has no clinic yet — allow (edge case)
       pet.registeredClinicId._id.toString() === req.user.clinicId.toString()
     );
 
-    if (!isOwner && !isPrimaryVet && !isClinicVet) {
+    if (!isOwner && !isEnhancedVet && !isClinicVet) {
       return res.status(403).json({
         message: 'Not authorized to access chat for this pet'
       });

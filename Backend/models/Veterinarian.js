@@ -6,6 +6,11 @@ const veterinarianSchema = new mongoose.Schema({
     ref: 'Clinic',
     default: []
   }],
+  assignedClinics: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Clinic',
+    default: []
+  }],
 
   // This is what you have
   currentActiveClinicId: {
@@ -34,13 +39,13 @@ const veterinarianSchema = new mongoose.Schema({
 
   accessLevel: {
     type: String,
-    enum: ['Primary', 'Full Access', 'Normal Access'],
+    enum: ['Enhanced', 'Basic'],
     required: true
   },
 
   status: {
     type: String,
-    enum: ['Active', 'Deactivated'],
+    enum: ['Active', 'Deactivated', 'Deleted'],
     default: 'Active'
   },
 

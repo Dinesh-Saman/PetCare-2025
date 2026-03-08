@@ -36,21 +36,17 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   borderRadius: 12,
   boxShadow: '0px 0px 15px rgba(0,0,0,0.1)',
   flex: 1,
-  margin: '20px',
-  padding: '30px',
+  padding: '32px',
   display: 'flex',
   flexDirection: 'column',
 }));
 
-const PageTitle = styled(Typography)(({ theme }) => ({
-  fontFamily: 'Georgia, serif',
-  fontWeight: 700,
-  color: '#49149eff',
-  textAlign: 'center',
-  marginBottom: 40,
-  fontSize: '2.6rem',
-  letterSpacing: '1px',
-}));
+const PageTitle = styled(Typography)({
+  fontWeight: 900,
+  color: '#0f172a',
+  letterSpacing: '-0.5px',
+  marginBottom: 24,
+});
 
 const TableRowStyled = styled(TableRow)(({ theme }) => ({
   backgroundColor: '#f9f9f9',
@@ -74,11 +70,10 @@ const AccessChip = styled(Chip)(({ level }) => ({
   fontWeight: 'bold',
   color: 'white',
   backgroundColor:
-    level === 'Primary' ? '#d32f2f' :
-      level === 'Full Access' ? '#1976d2' :
-        level === 'Admin' ? '#7b1fa2' :
-          level === 'Moderate' ? '#f57c00' :
-            '#43a047',
+    level === 'Enhanced' ? '#1976d2' :
+      level === 'Admin' ? '#7b1fa2' :
+        level === 'Moderate' ? '#f57c00' :
+          '#43a047',
 }));
 
 const AddButton = styled(Button)(({ theme }) => ({
@@ -195,12 +190,12 @@ const ClinicStaff = () => {
   const getStaffNumber = (id) => (id ? id.slice(-6).toUpperCase() : 'N/A');
 
   const getClinicName = (member) => {
-    const isPrimary = member.isPrimary || member.details?.isPrimary || false;
-    if (isPrimary) {
+    const isEnhanced = member.isEnhanced || member.details?.isEnhanced || member.details?.accessLevel === 'Enhanced';
+    if (isEnhanced) {
       if (typeof member.clinic === 'string' && clinics.length > 0) {
-        return clinics.find(c => c._id === member.clinic)?.name || 'Primary';
+        return clinics.find(c => c._id === member.clinic)?.name || 'Enhanced Access';
       }
-      return member.clinic?.name || 'Primary Veterinarian';
+      return member.clinic?.name || 'Enhanced Veterinarian';
     }
     if (member.clinic?.name) return member.clinic.name;
     if (member.currentActiveClinicId && clinics.length > 0) {
@@ -270,7 +265,7 @@ const ClinicStaff = () => {
     specialization: '',
     accessLevel: '',
     role: '',
-    clinicId: '',
+    assignedClinics: [],
     status: 'Active'
   });
 
@@ -300,9 +295,10 @@ const ClinicStaff = () => {
         status: member.status || 'Active',
         veterinaryId: isVet ? (vetData.veterinaryId || '') : '',
         specialization: isVet ? (vetData.specialization || '') : '',
-        accessLevel: isVet ? (vetData.accessLevel || 'Normal Access') : (member.details?.accessLevel || 'Basic'),
+        accessLevel: isVet ? (vetData.accessLevel || 'Basic') : (member.details?.accessLevel || 'Basic'),
         role: isVet ? '' : (member.details?.role || 'Receptionist'),
-        clinicId: isVet ? (vetData.currentActiveClinicId?._id || vetData.currentActiveClinicId || '') : (member.currentActiveClinicId || member.clinicId || '')
+        clinicId: isVet ? (vetData.currentActiveClinicId?._id || vetData.currentActiveClinicId || '') : (member.clinicId || ''),
+        assignedClinics: isVet ? (vetData.ownedClinics || []) : (member.assignedClinics || (member.clinicId ? [member.clinicId] : []))
       });
 
     } catch (error) {
@@ -327,10 +323,10 @@ const ClinicStaff = () => {
       delete submitPayload._id;
 
       if (payload.staffType === 'veterinarian') {
-        submitPayload.isPrimary = payload.accessLevel === 'Primary';
+        submitPayload.isEnhanced = payload.accessLevel === 'Enhanced';
         await api.put(`/vets/${payload._id}`, submitPayload);
       } else {
-        await api.put(`/vets/clinic-staff/${payload._id}`, submitPayload);
+        await api.put(`/clinics/staff/${payload._id}`, submitPayload);
       }
 
       Swal.fire('Success', 'Staff member updated successfully', 'success');
@@ -353,7 +349,7 @@ const ClinicStaff = () => {
     if (result.isConfirmed) {
       try {
         const member = staff.find(s => s._id === id);
-        const endpoint = member.type === 'Veterinarian' ? `/vets/${id}` : `/vets/clinic-staff/${id}`;
+        const endpoint = member.type === 'Veterinarian' ? `/vets/${id}` : `/clinics/staff/${id}`;
         await api.delete(endpoint);
         setStaff(prev => prev.filter(s => s._id !== id));
         Swal.fire('Deleted!', `${name} has been deleted.`, 'success');
@@ -365,7 +361,16 @@ const ClinicStaff = () => {
 
   const toggleExpandRow = (id) => setExpandedRow(expandedRow === id ? null : id);
   const getStatusColor = (status) => (status === 'Active' ? 'success' : (['Inactive', 'Deactivated'].includes(status) ? 'error' : 'default'));
-  const canEditMember = (member) => !member.details?.isPrimary;
+  const canEditMember = (member) => {
+    const userData = JSON.parse(localStorage.getItem('vet_user') || '{}');
+    const isRequesterEnhanced = userData.accessLevel === 'Enhanced';
+
+    // Only Enhanced vets can manage staff.
+    if (!isRequesterEnhanced) return false;
+
+    // Allow everything if the requester is Enhanced.
+    return true;
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
@@ -376,7 +381,7 @@ const ClinicStaff = () => {
           <ContentContainer>
             <HeaderContainer>
               <Typography variant="h4" sx={{ fontWeight: 700, color: '#49149eff', fontFamily: 'Georgia, serif' }}>Clinic Staff</Typography>
-              <Box sx={{ display: 'flex', gap: 2, width: '100%', flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', ml: 'auto' }}>
                 <SearchField
                   variant="outlined"
                   placeholder="Search staff..."
@@ -385,7 +390,14 @@ const ClinicStaff = () => {
                   size="small"
                   InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon /></InputAdornment>) }}
                 />
-                <AddButton startIcon={<PersonAddIcon />} onClick={() => navigate('/vet/add-new-staff')} size="small">Add Staff</AddButton>
+                <AddButton
+                  startIcon={<PersonAddIcon />}
+                  onClick={() => navigate('/vet/add-new-staff')}
+                  size="small"
+                  sx={{ ml: 'auto' }}
+                >
+                  Add Staff
+                </AddButton>
               </Box>
             </HeaderContainer>
 
@@ -394,10 +406,10 @@ const ClinicStaff = () => {
                 <TableHead>
                   <TableHeadRow>
                     <TableHeadCell width="50px"></TableHeadCell>
-                    <TableHeadCell>Staff No.</TableHeadCell>
-                    <TableHeadCell>Member</TableHeadCell>
+                    <TableHeadCell>Staff ID</TableHeadCell>
+                    <TableHeadCell>Name</TableHeadCell>
                     <TableHeadCell>Role</TableHeadCell>
-                    <TableHeadCell>Access</TableHeadCell>
+                    <TableHeadCell>Access Level</TableHeadCell>
                     <TableHeadCell>Status</TableHeadCell>
                     <TableHeadCell align="center">Actions</TableHeadCell>
                   </TableHeadRow>
@@ -427,19 +439,73 @@ const ClinicStaff = () => {
                           <TableCell colSpan={7} sx={{ p: 0 }}>
                             <Collapse in={expandedRow === member._id} timeout="auto" unmountOnExit>
                               <DetailsCard>
-                                <Grid container spacing={3} sx={{ p: 2 }}>
-                                  <Grid item xs={12} md={6}>
-                                    <CardHeaderStyled bgcolor="#4caf50" title="Information" icon={<PersonIcon />} />
-                                    <CardContent>
-                                      <InfoRow><EmailIcon /><InfoLabel>Email:</InfoLabel><InfoValue>{member.email}</InfoValue></InfoRow>
-                                      <InfoRow><PhoneIcon /><InfoLabel>Phone:</InfoLabel><InfoValue>{member.phoneNumber}</InfoValue></InfoRow>
-                                    </CardContent>
+                                <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
+                                  <Grid item xs={6} sx={{ display: 'flex' }}>
+                                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                                      <Typography variant="h6" sx={{ color: '#49149eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <PersonIcon /> Personal Information
+                                      </Typography>
+                                      <Box sx={{ px: 1, flexGrow: 1 }}>
+                                        <InfoRow><EmailIcon /><InfoLabel>Email:</InfoLabel><InfoValue>{member.email}</InfoValue></InfoRow>
+                                        <InfoRow><PhoneIcon /><InfoLabel>Phone:</InfoLabel><InfoValue>{member.phoneNumber || 'Not provided'}</InfoValue></InfoRow>
+                                        <InfoRow><BadgeIcon /><InfoLabel>Staff ID:</InfoLabel><InfoValue sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#8e24aa' }}>#{getStaffNumber(member._id)}</InfoValue></InfoRow>
+                                      </Box>
+                                    </Box>
                                   </Grid>
-                                  <Grid item xs={12} md={6}>
-                                    <CardHeaderStyled bgcolor="#2196f3" title="Professional" icon={<BadgeIcon />} />
-                                    <CardContent>
-                                      <InfoRow><BusinessIcon /><InfoLabel>Clinic:</InfoLabel><InfoValue>{getClinicName(member)}</InfoValue></InfoRow>
-                                    </CardContent>
+                                  <Grid item xs={6} sx={{ display: 'flex' }}>
+                                    <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+                                      <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <AdminPanelSettingsIcon /> Professional Information
+                                      </Typography>
+                                      <Box sx={{ px: 1, flexGrow: 1 }}>
+                                        <InfoRow>
+                                          <BadgeIcon />
+                                          <InfoLabel>Role:</InfoLabel>
+                                          <InfoValue sx={{ fontWeight: 600 }}>{member.details?.role || member.type}</InfoValue>
+                                        </InfoRow>
+                                        <InfoRow>
+                                          <AdminPanelSettingsIcon />
+                                          <InfoLabel>Access Level:</InfoLabel>
+                                          <InfoValue>
+                                            <AccessChip
+                                              label={member.details?.accessLevel || 'Basic'}
+                                              level={member.details?.accessLevel}
+                                              size="small"
+                                            />
+                                          </InfoValue>
+                                        </InfoRow>
+
+                                        {member.veterinaryId && (
+                                          <InfoRow><BadgeIcon /><InfoLabel>License ID:</InfoLabel><InfoValue>{member.veterinaryId}</InfoValue></InfoRow>
+                                        )}
+                                        {member.specialization && (
+                                          <InfoRow><BadgeIcon /><InfoLabel>Specialization:</InfoLabel><InfoValue>{member.specialization}</InfoValue></InfoRow>
+                                        )}
+
+                                        {/* Clinic Assignment Information */}
+                                        {(member.details?.accessLevel === 'Enhanced' || member.accessLevel === 'Enhanced') ? (
+                                          <InfoRow>
+                                            <BusinessIcon />
+                                            <InfoLabel>Clinics:</InfoLabel>
+                                            <InfoValue sx={{ color: '#10b981', fontWeight: 700 }}>System-wide (All Clinics)</InfoValue>
+                                          </InfoRow>
+                                        ) : (
+                                          <InfoRow sx={{ alignItems: 'flex-start' }}>
+                                            <BusinessIcon sx={{ mt: 0.5 }} />
+                                            <InfoLabel sx={{ mt: 0.5 }}>Assigned Clinics:</InfoLabel>
+                                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                              {member.assignedClinics && member.assignedClinics.length > 0
+                                                ? member.assignedClinics.map((cid, idx) => {
+                                                  const clinicId = cid._id || cid;
+                                                  const name = clinics.find(c => c._id === clinicId)?.name;
+                                                  return name ? <InfoValue key={idx} sx={{ fontWeight: 600, mb: 0.5 }}>{name}</InfoValue> : null;
+                                                })
+                                                : <InfoValue color="textSecondary">Initially Unassigned</InfoValue>}
+                                            </Box>
+                                          </InfoRow>
+                                        )}
+                                      </Box>
+                                    </Box>
                                   </Grid>
                                 </Grid>
                               </DetailsCard>
@@ -483,15 +549,56 @@ const ClinicStaff = () => {
               </Grid>
 
               <Grid item xs={12} sm={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Assigned Clinic</InputLabel>
-                  <Select name="clinicId" value={editFormData.clinicId || ''} onChange={(e) => setEditFormData({ ...editFormData, clinicId: e.target.value })} label="Assigned Clinic">
-                    {clinics.map(clinic => (
-                      <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
-                    ))}
+                <FormControl fullWidth>
+                  <InputLabel>Access Level</InputLabel>
+                  <Select
+                    name="accessLevel"
+                    value={editFormData.accessLevel || 'Basic'}
+                    onChange={(e) => setEditFormData({ ...editFormData, accessLevel: e.target.value })}
+                    label="Access Level"
+                  >
+                    <MenuItem value="Basic">Basic</MenuItem>
+                    <MenuItem value="Enhanced">Enhanced</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
+
+              {editFormData.accessLevel === 'Basic' && (
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Assigned Clinics</InputLabel>
+                    <Select
+                      multiple
+                      name="assignedClinics"
+                      value={editFormData.assignedClinics || []}
+                      onChange={(e) => setEditFormData({ ...editFormData, assignedClinics: e.target.value })}
+                      label="Assigned Clinics"
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {selected.map((value) => (
+                            <Chip
+                              key={value}
+                              label={clinics.find(c => c._id === value)?.name || value}
+                              onDelete={(e) => {
+                                e.stopPropagation();
+                                const newValue = editFormData.assignedClinics.filter(id => id !== value);
+                                setEditFormData({ ...editFormData, assignedClinics: newValue });
+                              }}
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                    >
+                      {clinics.map(clinic => (
+                        <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
 
               {editFormData.staffType === 'veterinarian' ? (
                 <>
@@ -500,15 +607,6 @@ const ClinicStaff = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <TextField fullWidth label="Specialization" name="specialization" value={editFormData.specialization} onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })} />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Access Level</InputLabel>
-                      <Select name="accessLevel" value={editFormData.accessLevel} onChange={(e) => setEditFormData({ ...editFormData, accessLevel: e.target.value })} label="Access Level">
-                        <MenuItem value="Normal Access">Normal Access</MenuItem>
-                        <MenuItem value="Full Access">Full Access</MenuItem>
-                      </Select>
-                    </FormControl>
                   </Grid>
                 </>
               ) : (
@@ -519,19 +617,11 @@ const ClinicStaff = () => {
                       <Select name="role" value={editFormData.role} onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })} label="Role">
                         <MenuItem value="Receptionist">Receptionist</MenuItem>
                         <MenuItem value="Assistant">Assistant</MenuItem>
-                        <MenuItem value="Technician">Technician</MenuItem>
+                        <MenuItem value="Vet Tech">Vet Tech</MenuItem>
+                        <MenuItem value="Nurse">Nurse</MenuItem>
                         <MenuItem value="Manager">Manager</MenuItem>
+                        <MenuItem value="Kennel Staff">Kennel Staff</MenuItem>
                         <MenuItem value="Other">Other</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Access Level</InputLabel>
-                      <Select name="accessLevel" value={editFormData.accessLevel} onChange={(e) => setEditFormData({ ...editFormData, accessLevel: e.target.value })} label="Access Level">
-                        <MenuItem value="Basic">Basic (Appointments only)</MenuItem>
-                        <MenuItem value="Moderate">Moderate (Appts + Pets)</MenuItem>
-                        <MenuItem value="Full Access">Full Access (All features)</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>

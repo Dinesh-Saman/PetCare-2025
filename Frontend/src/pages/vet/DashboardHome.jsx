@@ -22,16 +22,16 @@ const PageContainer = styled(Box)({
 
 const MainContent = styled(Box)(({ theme }) => ({
   flexGrow: 1,
-  padding: '40px',
+  padding: '16px',
   minWidth: 0,
   width: '100%',
   [theme.breakpoints.down('md')]: {
-    padding: '20px',
+    padding: '8px',
   },
 }));
 
 const HeaderSection = styled(Box)({
-  marginBottom: '32px',
+  marginBottom: '12px',
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -44,24 +44,25 @@ const WelcomeTitle = styled(Typography)({
 });
 
 const GlassCard = styled(Paper)(({ theme }) => ({
-  background: 'rgba(255, 255, 255, 0.8)',
+  background: 'linear-gradient(135deg, #f0f4ff 0%, #fafbff 100%)',
   backdropFilter: 'blur(10px)',
-  borderRadius: '24px',
+  borderRadius: '12px',
   padding: '24px',
-  border: '1px solid rgba(255, 255, 255, 0.3)',
-  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.04)',
+  border: '1px solid #e0e7ff',
+  boxShadow: '0 4px 20px rgba(79, 70, 229, 0.06)',
   transition: 'all 0.3s ease',
   height: '100%',
-  minHeight: '200px',
+  minHeight: '160px',
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'center',
   alignItems: 'center',
   textAlign: 'center',
   '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08)',
+    transform: 'translateY(-6px)',
+    boxShadow: '0 16px 36px rgba(79, 70, 229, 0.12)',
     borderColor: '#4f46e5',
+    background: 'linear-gradient(135deg, #e8edff 0%, #f5f7ff 100%)',
   }
 }));
 
@@ -100,8 +101,8 @@ const ActionCard = styled(Paper)({
 
 const ContentCard = styled(Paper)(({ theme }) => ({
   background: 'white',
-  borderRadius: '32px',
-  padding: '40px',
+  borderRadius: '16px',
+  padding: '32px',
   border: '1px solid #e2e8f0',
   boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
   minHeight: '80vh',
@@ -260,8 +261,8 @@ const DashboardHome = () => {
   const statCards = [
     { label: "Today's Appointments", count: stats.todayAppointments, loading: loading.todayAppointments, icon: <FaCalendarCheck />, color: '#3b82f6' },
     { label: "Registered Pets", count: stats.totalPets, loading: loading.totalPets, icon: <FaPaw />, color: '#10b981' },
-    { label: "Clinical Staff", count: stats.clinicStaff, loading: loading.clinicStaff, icon: <FaUsers />, color: '#6366f1' },
-    { label: "Total Clinics", count: stats.totalClinics, loading: loading.totalClinics, icon: <FaHospital />, color: '#f59e0b' }
+    { label: "Total Staff Members", count: stats.clinicStaff, loading: loading.clinicStaff, icon: <FaUsers />, color: '#6366f1' },
+    { label: "Registered clinics", count: stats.totalClinics, loading: loading.totalClinics, icon: <FaHospital />, color: '#f59e0b' }
   ];
 
   return (
@@ -286,37 +287,28 @@ const DashboardHome = () => {
                 </Tooltip>
               </HeaderSection>
 
-              <Grid container spacing={4} sx={{ width: '100%', m: 0 }}>
-                {/* Left Column: Stats Cards (2 per row) */}
-                <Grid item xs={12} lg={7}>
-                  <Grid container spacing={4}>
-                    {statCards.map((stat, index) => (
-                      <Grid item xs={12} sm={6} key={index}>
-                        <GlassCard elevation={0}>
-                          <IconBox color={stat.color}>
-                            {stat.icon}
-                          </IconBox>
-                          {stat.loading ? (
-                            <CircularProgress size={28} sx={{ mb: 1 }} />
-                          ) : (
-                            <Typography variant="h3" fontWeight="800" sx={{ color: '#1e293b', mb: 0.5 }}>
-                              {stat.count}
-                            </Typography>
-                          )}
-                          <Typography variant="body2" fontWeight="700" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            {stat.label}
-                          </Typography>
-                        </GlassCard>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Grid>
+              {/* === TOP SECTION: Stats (left 2/3) + Calendar (right 1/3) === */}
+              <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', md: 'row' }, alignItems: 'stretch' }}>
+                {/* Left: 2x2 Stats Grid */}
+                <Box sx={{ flex: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  {statCards.map((stat, index) => (
+                    <GlassCard key={index} elevation={0} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '160px' }}>
+                      <IconBox color={stat.color} sx={{ width: '48px', height: '48px', fontSize: '22px', mb: 2 }}>
+                        {stat.icon}
+                      </IconBox>
+                      {stat.loading ? <CircularProgress size={24} sx={{ mb: 1 }} /> : (
+                        <Typography variant="h4" fontWeight="800" sx={{ color: '#1e293b', mb: 0.5 }}>{stat.count}</Typography>
+                      )}
+                      <Typography variant="caption" fontWeight="700" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}>{stat.label}</Typography>
+                    </GlassCard>
+                  ))}
+                </Box>
 
-                {/* Right Column: Calendar */}
-                <Grid item xs={12} lg={5}>
+                {/* Right: Calendar */}
+                <Box sx={{ flex: 1 }}>
                   <Paper sx={{
-                    p: 3,
-                    borderRadius: '32px',
+                    p: 4,
+                    borderRadius: '16px',
                     border: '1px solid #e2e8f0',
                     boxShadow: '0 10px 40px rgba(0,0,0,0.03)',
                     bgcolor: 'white',
@@ -325,7 +317,7 @@ const DashboardHome = () => {
                     flexDirection: 'column',
                     alignItems: 'center'
                   }}>
-                    <Typography variant="h6" fontWeight="800" sx={{ mb: 1, color: '#0f172a', width: '100%', textAlign: 'left', px: 2 }}>
+                    <Typography variant="h5" fontWeight="900" sx={{ mb: 2, color: '#0f172a', width: '100%', textAlign: 'left' }}>
                       Schedule Calendar
                     </Typography>
                     <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
@@ -336,7 +328,6 @@ const DashboardHome = () => {
                           day: (props) => {
                             const isToday = props.day.isSame(dayjs(), 'day');
                             const hasAppointment = appointmentDates.includes(props.day.format('YYYY-MM-DD'));
-
                             return (
                               <Badge
                                 key={props.day.toString()}
@@ -360,9 +351,7 @@ const DashboardHome = () => {
                                       color: '#059669 !important',
                                       fontWeight: '700'
                                     }),
-                                    '&:hover': {
-                                      bgcolor: alpha('#4f46e5', 0.05) + ' !important'
-                                    }
+                                    '&:hover': { bgcolor: alpha('#4f46e5', 0.05) + ' !important' }
                                   }}
                                 />
                               </Badge>
@@ -377,145 +366,170 @@ const DashboardHome = () => {
                             color: 'white !important',
                             boxShadow: '0 8px 16px rgba(79, 70, 229, 0.25)',
                           },
-                          '& .MuiPickersCalendarHeader-root': {
-                            px: 0, pt: 0
-                          },
-                          '& .MuiPickersArrowSwitcher-root': {
-                            mr: 0
-                          }
+                          '& .MuiPickersCalendarHeader-root': { px: 0, pt: 0 },
+                          '& .MuiPickersArrowSwitcher-root': { mr: 0 }
                         }}
                       />
                     </Box>
                   </Paper>
-                </Grid>
+                </Box>
+              </Box>
 
-                {/* Bottom Section: Appointments (Full Width) */}
-                <Grid item xs={12}>
-                  <Paper sx={{
-                    p: 4,
-                    borderRadius: '32px',
-                    border: '1px solid #e2e8f0',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.03)',
-                    bgcolor: 'white',
-                    minHeight: '400px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    mt: 4
-                  }}>
-                    <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Box>
-                        <Typography variant="h5" fontWeight="900" sx={{ color: '#0f172a' }}>
-                          Appointment Details
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary" fontWeight="600">
-                          {selectedDate.format('MMMM DD, YYYY')}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="h3" fontWeight="900" color="#4f46e5">
-                          {selectedDateAppointments.length}
-                        </Typography>
-                        <Typography variant="subtitle2" fontWeight="800" color="text.secondary" sx={{ textTransform: 'uppercase' }}>
-                          Confirmed Bookings
-                        </Typography>
-                      </Box>
+              {/* === BOTTOM SECTION: Appointment Details (full width) === */}
+              <Paper sx={{
+                p: 4,
+                borderRadius: '16px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.03)',
+                bgcolor: 'white',
+                display: 'flex',
+                flexDirection: 'column',
+              }}>
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box>
+                    <Typography variant="h5" fontWeight="900" sx={{ color: '#0f172a' }}>
+                      Appointment Details
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary" fontWeight="600">
+                      {selectedDate.format('MMMM DD, YYYY')}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="h3" fontWeight="900" color="#4f46e5">
+                      {selectedDateAppointments.length}
+                    </Typography>
+                    <Typography variant="subtitle2" fontWeight="800" color="text.secondary" sx={{ textTransform: 'uppercase' }}>
+                      Confirmed Bookings
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Divider sx={{ mb: 2 }} />
+
+                <Box sx={{
+                  overflowY: selectedDateAppointments.length > 2 ? 'auto' : 'visible',
+                  maxHeight: selectedDateAppointments.length > 2 ? '480px' : 'none',
+                  pr: selectedDateAppointments.length > 2 ? 1 : 0
+                }}>
+                  {fetchingAppointments ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                      <CircularProgress size={30} />
                     </Box>
-
-                    <Divider sx={{ mb: 4 }} />
-
-                    <Box sx={{ flexGrow: 1 }}>
-                      {fetchingAppointments ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                          <CircularProgress size={30} />
-                        </Box>
-                      ) : selectedDateAppointments.length > 0 ? (
-                        selectedDateAppointments.map((appt) => (
-                          <Paper key={appt._id} elevation={0} sx={{
-                            p: 3,
-                            borderRadius: '24px',
-                            border: '1px solid #f1f5f9',
-                            bgcolor: 'white',
-                            transition: 'all 0.2s ease',
-                            '&:hover': {
-                              transform: 'translateX(8px)',
-                              boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
-                              borderColor: alpha('#10b981', 0.2)
-                            }
-                          }}>
-                            <Grid container alignItems="center" spacing={2}>
-                              <Grid item>
-                                <Avatar
-                                  src={appt.petId?.photo}
-                                  sx={{ width: 64, height: 64, borderRadius: '18px', border: '3px solid #f8fafc' }}
-                                >
-                                  <FaPaw size={30} />
-                                </Avatar>
-                              </Grid>
-                              <Grid item xs>
-                                <Typography variant="h6" fontWeight="800" sx={{ color: '#1e293b' }}>
+                  ) : selectedDateAppointments.length > 0 ? (
+                    selectedDateAppointments.map((appt) => (
+                      <Paper key={appt._id} elevation={0} sx={{
+                        p: 3,
+                        borderRadius: '12px',
+                        border: '1px solid #e8f5e9',
+                        background: 'linear-gradient(135deg, #f0fdf4 0%, #fafffe 100%)',
+                        transition: 'all 0.2s ease',
+                        mb: 2,
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 8px 24px rgba(16, 185, 129, 0.12)',
+                          borderColor: '#10b981',
+                        }
+                      }}>
+                        <Grid container alignItems="center" spacing={3}>
+                          {/* Column 1: Pet Profile */}
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Stack direction="row" spacing={2} alignItems="center">
+                              <Avatar
+                                src={appt.petId?.photo}
+                                sx={{ width: 56, height: 56, borderRadius: '12px', border: '2px solid #fff', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}
+                              >
+                                <FaPaw size={24} />
+                              </Avatar>
+                              <Box>
+                                <Typography variant="subtitle1" fontWeight="800" sx={{ color: '#1e293b', lineHeight: 1.2 }}>
                                   {appt.petId?.name}
                                 </Typography>
-                                <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#64748b' }}>
-                                    <FaUserAlt size={12} color="#94a3b8" />
-                                    <Typography variant="caption" fontWeight="600">
-                                      {appt.petId?.ownerId?.firstName} {appt.petId?.ownerId?.lastName}
-                                    </Typography>
-                                  </Box>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#64748b' }}>
-                                    <FaPhone size={12} color="#94a3b8" />
-                                    <Typography variant="caption" fontWeight="600">
-                                      {appt.petId?.ownerId?.phoneNumber}
-                                    </Typography>
-                                  </Box>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#64748b' }}>
-                                    <FaUserAlt size={12} color="#4f46e5" />
-                                    <Typography variant="caption" fontWeight="700" sx={{ color: '#4f46e5' }}>
-                                      Vet: {appt.vetId?.firstName} {appt.vetId?.lastName}
-                                    </Typography>
-                                  </Box>
-                                </Stack>
-                              </Grid>
-                              <Grid item sx={{ textAlign: 'right' }}>
-                                <Typography variant="h5" fontWeight="900" color="#4f46e5">
-                                  {dayjs(appt.dateTime).format('hh:mm A')}
+                                <Typography variant="caption" fontWeight="700" sx={{ color: '#64748b', textTransform: 'uppercase' }}>
+                                  {appt.petId?.type || 'Pet'}
                                 </Typography>
-                                <Box sx={{
-                                  mt: 1, px: 1.5, py: 0.5, borderRadius: '8px',
-                                  bgcolor: '#ecfdf5', color: '#10b981',
-                                  display: 'inline-flex', alignItems: 'center', gap: 1
-                                }}>
-                                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10b981' }} />
-                                  <Typography variant="caption" fontWeight="800" sx={{ textTransform: 'uppercase' }}>
-                                    Confirmed
+                              </Box>
+                            </Stack>
+                          </Grid>
+
+                          {/* Column 2: Owner Info */}
+                          <Grid item xs={12} sm={6} md={3}>
+                            <Stack spacing={0.5}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#475569' }}>
+                                <FaUserAlt size={12} color="#94a3b8" />
+                                <Typography variant="body2" fontWeight="700">
+                                  {appt.petId?.ownerId?.firstName} {appt.petId?.ownerId?.lastName}
+                                </Typography>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
+                                <FaPhone size={12} color="#94a3b8" />
+                                <Typography variant="caption" fontWeight="600">
+                                  {appt.petId?.ownerId?.phoneNumber}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Grid>
+
+                          {/* Column 3: Appt Info & Reason */}
+                          <Grid item xs={12} md={4}>
+                            <Stack spacing={0.5}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#4f46e5' }}>
+                                  <FaClock size={14} />
+                                  <Typography variant="body2" fontWeight="900">
+                                    {dayjs(appt.dateTime).format('hh:mm A')}
                                   </Typography>
                                 </Box>
-                              </Grid>
-                            </Grid>
-                            <Divider sx={{ my: 2, borderColor: '#f8fafc' }} />
-                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, color: '#475569' }}>
-                              <FaNotesMedical size={16} style={{ marginTop: 2, color: '#94a3b8' }} />
-                              <Typography variant="body2" fontWeight="500">
-                                <Box component="span" sx={{ fontWeight: 700, color: '#1e293b' }}>Reason:</Box> {appt.reason || 'N/A'}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#1e293b', bgcolor: alpha('#4f46e5', 0.05), px: 1, py: 0.2, borderRadius: '6px' }}>
+                                  <FaHospital size={12} color="#4f46e5" />
+                                  <Typography variant="caption" fontWeight="800">
+                                    {appt.clinicId?.name || 'Main Clinic'}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#64748b' }}>
+                                <FaNotesMedical size={12} color="#94a3b8" />
+                                <Typography variant="caption" fontWeight="600" sx={{
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                  lineHeight: 1.3
+                                }}>
+                                  <Box component="span" sx={{ fontWeight: 800, color: '#475569' }}>Reason:</Box> {appt.reason || 'Regular Checkup'}
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Grid>
+
+                          {/* Column 4: Status & Actions */}
+                          <Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 3 }}>
+                            <Box sx={{
+                              px: 1.5, py: 0.5, borderRadius: '8px',
+                              bgcolor: '#ecfdf5', color: '#10b981',
+                              display: 'inline-flex', alignItems: 'center', gap: 1
+                            }}>
+                              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#10b981' }} />
+                              <Typography variant="caption" fontWeight="800" sx={{ textTransform: 'uppercase' }}>
+                                Confirmed
                               </Typography>
                             </Box>
-                          </Paper>
-                        ))
-                      ) : (
-                        <Paper sx={{
-                          p: 8, textAlign: 'center', borderRadius: '32px', border: '2px dashed #e2e8f0', bgcolor: '#f8fafc'
-                        }}>
-                          <Box sx={{ mb: 2, color: '#cbd5e1' }}>
-                            <FaCalendarCheck size={60} />
-                          </Box>
-                          <Typography variant="h6" fontWeight="700" color="#64748b">No confirmed appointments</Typography>
-                          <Typography variant="body2" color="#94a3b8">Your schedule is clear for this date.</Typography>
-                        </Paper>
-                      )}
-                    </Box>
-                  </Paper>
-                </Grid>
-              </Grid>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    ))
+                  ) : (
+                    <Paper sx={{
+                      p: 8, textAlign: 'center', borderRadius: '32px', border: '2px dashed #e2e8f0', bgcolor: '#f8fafc'
+                    }}>
+                      <Box sx={{ mb: 2, color: '#cbd5e1' }}>
+                        <FaCalendarCheck size={60} />
+                      </Box>
+                      <Typography variant="h6" fontWeight="700" color="#64748b">No confirmed appointments</Typography>
+                      <Typography variant="body2" color="#94a3b8">Your schedule is clear for this date.</Typography>
+                    </Paper>
+                  )}
+                </Box>
+              </Paper>
             </ContentCard>
           </MainContent>
         </PageContainer>

@@ -28,7 +28,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  TablePagination
 } from '@mui/material';
 import PetsIcon from '@mui/icons-material/Pets';
 import { styled } from '@mui/material/styles';
@@ -249,6 +250,8 @@ const MyAppointments = () => {
   const [viewDialog, setViewDialog] = useState({ open: false, appointment: null });
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortOption, setSortOption] = useState('dateAsc');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const fetchAppointments = async (showLoading = true) => {
     try {
@@ -300,6 +303,15 @@ const MyAppointments = () => {
     }
     return appointment.status === filterStatus;
   });
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   const sortedAppointments = [...filteredAppointments].sort((a, b) => {
     if (sortOption === 'dateAsc') return new Date(a.dateTime) - new Date(b.dateTime);
@@ -445,7 +457,7 @@ const MyAppointments = () => {
                 <Chip
                   key={status}
                   label={status === 'all' ? 'All Sessions' : status}
-                  onClick={() => setFilterStatus(status)}
+                  onClick={() => { setFilterStatus(status); setPage(0); }}
                   sx={{
                     borderRadius: '12px',
                     fontWeight: 700,
@@ -463,7 +475,7 @@ const MyAppointments = () => {
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <Select
                 value={sortOption}
-                onChange={(e) => setSortOption(e.target.value)}
+                onChange={(e) => { setSortOption(e.target.value); setPage(0); }}
                 sx={{ borderRadius: '12px', bgcolor: 'white' }}
               >
                 <MenuItem value="dateAsc">Date: Earliest</MenuItem>
@@ -503,74 +515,108 @@ const MyAppointments = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {sortedAppointments.map((app) => (
-                  <StyledTableRow key={app._id}>
-                    <StyledTableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar
-                          src={app.petId?.photo}
-                          sx={{ width: 48, height: 48, borderRadius: '14px', border: '1px solid #e2e8f0' }}
-                        >
-                          <PetsIcon />
-                        </Avatar>
-                        <Box>
-                          <Typography sx={{ fontWeight: 700, color: '#1e293b' }}>{app.petId?.name}</Typography>
-                          <Typography variant="caption" sx={{ color: '#64748b' }}>{app.petId?.species}</Typography>
-                        </Box>
-                      </Box>
-                    </StyledTableCell>
-                    <StyledTableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#4f46e5', 0.1), color: '#4f46e5' }}>
-                          <User size={16} />
-                        </Avatar>
-                        <Typography sx={{ fontWeight: 600 }}>Dr. {app.vetId?.firstName} {app.vetId?.lastName}</Typography>
-                      </Box>
-                    </StyledTableCell>
-                    <StyledTableCell>
-                      <Box>
-                        <Typography sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Calendar size={14} color="#4f46e5" /> {formatDate(app.dateTime)}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Clock size={12} /> {formatTime(app.dateTime)}
-                        </Typography>
-                      </Box>
-                    </StyledTableCell>
-                    <StyledTableCell>
-                      <Typography sx={{ color: '#64748b', fontSize: '0.9rem', maxWidth: 200, noWrap: true, textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                        {app.reason}
-                      </Typography>
-                    </StyledTableCell>
-                    <StyledTableCell>
-                      <StatusBadge status={app.status}>
-                        {app.status === 'Confirmed' ? <CheckCircle size={14} /> :
-                          app.status === 'Canceled' ? <XCircle size={14} /> : <Clock size={14} />}
-                        {app.status}
-                      </StatusBadge>
-                    </StyledTableCell>
-                    <StyledTableCell align="right">
-                      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                        <IconButton
-                          onClick={() => setViewDialog({ open: true, appointment: app })}
-                          sx={{ color: '#4f46e5', bgcolor: alpha('#4f46e5', 0.05), '&:hover': { bgcolor: alpha('#4f46e5', 0.1) } }}
-                        >
-                          <Info size={18} />
-                        </IconButton>
-                        {(app.status === 'Booked' || app.status === 'Confirmed') && new Date(app.dateTime) > new Date() && (
-                          <IconButton
-                            onClick={() => setCancelDialog({ open: true, appointment: app, reason: '' })}
-                            sx={{ color: '#ef4444', bgcolor: alpha('#ef4444', 0.05), '&:hover': { bgcolor: alpha('#ef4444', 0.1) } }}
+                {sortedAppointments
+                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                  .map((app) => (
+                    <StyledTableRow key={app._id}>
+                      <StyledTableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          <Avatar
+                            src={app.petId?.photo}
+                            sx={{ width: 48, height: 48, borderRadius: '14px', border: '1px solid #e2e8f0' }}
                           >
-                            <Trash2 size={18} />
+                            <PetsIcon />
+                          </Avatar>
+                          <Box>
+                            <Typography sx={{ fontWeight: 700, color: '#1e293b' }}>{app.petId?.name}</Typography>
+                            <Typography variant="caption" sx={{ color: '#64748b' }}>{app.petId?.species}</Typography>
+                          </Box>
+                        </Box>
+                      </StyledTableCell>
+                      <StyledTableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#4f46e5', 0.1), color: '#4f46e5' }}>
+                            <User size={16} />
+                          </Avatar>
+                          <Typography sx={{ fontWeight: 600 }}>Dr. {app.vetId?.firstName} {app.vetId?.lastName}</Typography>
+                        </Box>
+                      </StyledTableCell>
+                      <StyledTableCell>
+                        <Box>
+                          <Typography sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Calendar size={14} color="#4f46e5" /> {formatDate(app.dateTime)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Clock size={12} /> {formatTime(app.dateTime)}
+                          </Typography>
+                        </Box>
+                      </StyledTableCell>
+                      <StyledTableCell>
+                        <Typography sx={{ color: '#64748b', fontSize: '0.9rem', maxWidth: 200, noWrap: true, textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                          {app.reason}
+                        </Typography>
+                      </StyledTableCell>
+                      <StyledTableCell>
+                        <StatusBadge status={app.status}>
+                          {app.status === 'Confirmed' ? <CheckCircle size={14} /> :
+                            app.status === 'Canceled' ? <XCircle size={14} /> : <Clock size={14} />}
+                          {app.status}
+                        </StatusBadge>
+                      </StyledTableCell>
+                      <StyledTableCell align="right">
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <IconButton
+                            onClick={() => setViewDialog({ open: true, appointment: app })}
+                            sx={{ color: '#4f46e5', bgcolor: alpha('#4f46e5', 0.05), '&:hover': { bgcolor: alpha('#4f46e5', 0.1) } }}
+                          >
+                            <Info size={18} />
                           </IconButton>
-                        )}
-                      </Box>
-                    </StyledTableCell>
-                  </StyledTableRow>
-                ))}
+                          {(app.status === 'Booked' || app.status === 'Confirmed') && new Date(app.dateTime) > new Date() && (
+                            <IconButton
+                              onClick={() => setCancelDialog({ open: true, appointment: app, reason: '' })}
+                              sx={{ color: '#ef4444', bgcolor: alpha('#ef4444', 0.05), '&:hover': { bgcolor: alpha('#ef4444', 0.1) } }}
+                            >
+                              <Trash2 size={18} />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </StyledTableCell>
+                    </StyledTableRow>
+                  ))}
               </TableBody>
             </Table>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={sortedAppointments.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              sx={{
+                borderTop: '1px solid rgba(226, 232, 240, 0.6)',
+                '& .MuiTablePagination-toolbar': {
+                  padding: '12px 24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  minHeight: '64px'
+                },
+                '& .MuiTablePagination-spacer': {
+                  display: { xs: 'none', sm: 'block' },
+                  flex: '1 1 100%'
+                },
+                '& .MuiTablePagination-selectLabel': {
+                  fontWeight: 600,
+                  color: '#64748b',
+                  margin: 0
+                },
+                '& .MuiTablePagination-displayedRows': {
+                  fontWeight: 600,
+                  color: '#64748b',
+                  margin: 0
+                }
+              }}
+            />
           </StyledTableContainer>
         )}
 
@@ -623,70 +669,115 @@ const MyAppointments = () => {
         <GlassDialog
           open={viewDialog.open}
           onClose={() => setViewDialog({ open: false, appointment: null })}
-          fullWidth maxWidth="md"
+          fullWidth maxWidth="sm"
         >
           {viewDialog.appointment && (
-            <Box sx={{ p: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+            <Box sx={{ p: 0 }}>
+              {/* Compact Header with Status Bar */}
+              <Box sx={{
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                p: 3,
+                color: 'white',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <IconWrapper color="#10b981">
-                    <Activity size={24} />
-                  </IconWrapper>
-                  <Typography variant="h5" sx={{ fontWeight: 800 }}>Session Details</Typography>
+                  <Avatar
+                    src={viewDialog.appointment.petId?.photo}
+                    sx={{ width: 56, height: 56, borderRadius: '16px', border: '2px solid rgba(255,255,255,0.3)' }}
+                  />
+                  <Box>
+                    <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.2 }}>
+                      {viewDialog.appointment.petId?.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ opacity: 0.9, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Activity size={12} /> Session Details
+                    </Typography>
+                  </Box>
                 </Box>
-                <IconButton onClick={() => setViewDialog({ open: false, appointment: null })}>
-                  <XCircle size={24} />
-                </IconButton>
+                <StatusBadge status={viewDialog.appointment.status} sx={{
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: '1px solid rgba(255,255,255,0.3)'
+                }}>
+                  {viewDialog.appointment.status}
+                </StatusBadge>
               </Box>
 
-              <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ bgcolor: '#f8fafc', p: 3, borderRadius: '24px' }}>
-                    <Typography sx={{ fontWeight: 700, color: '#1e293b', mb: 2 }}>PET INFORMATION</Typography>
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 2 }}>
-                      <Avatar src={viewDialog.appointment.petId?.photo} sx={{ width: 64, height: 64, borderRadius: '16px' }} />
-                      <Box>
-                        <Typography sx={{ fontWeight: 800, color: '#0f172a' }}>{viewDialog.appointment.petId?.name}</Typography>
-                        <Typography variant="body2" sx={{ color: '#64748b' }}>{viewDialog.appointment.petId?.species} • {viewDialog.appointment.petId?.breed || 'Mixed Breed'}</Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ bgcolor: '#f8fafc', p: 3, borderRadius: '24px' }}>
-                    <Typography sx={{ fontWeight: 700, color: '#1e293b', mb: 2 }}>VET & CLINIC</Typography>
-                    <DetailRow icon={User} label="Veterinarian" value={`Dr. ${viewDialog.appointment.vetId?.firstName} ${viewDialog.appointment.vetId?.lastName}`} />
-                    <DetailRow icon={MapPin} label="Location" value={viewDialog.appointment.clinicId?.name} />
-                    <Typography variant="caption" sx={{ color: '#94a3b8', ml: 4, display: 'block' }}>{viewDialog.appointment.clinicId?.address}</Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={12}>
-                  <Box sx={{ p: 3, border: '1px solid #e2e8f0', borderRadius: '24px' }}>
-                    <Typography sx={{ fontWeight: 700, color: '#1e293b', mb: 2 }}>OBSERVATIONS & REASON</Typography>
-                    <Typography variant="body1" sx={{ color: '#334155', lineHeight: 1.6 }}>{viewDialog.appointment.reason}</Typography>
-                    {viewDialog.appointment.notes && (
-                      <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid #f1f5f9' }}>
-                        <Typography sx={{ variant: 'caption', fontWeight: 700, color: '#94a3b8', mb: 1 }}>NOTES</Typography>
-                        <Typography variant="body2" sx={{ color: '#64748b' }}>{viewDialog.appointment.notes}</Typography>
-                      </Box>
-                    )}
-                  </Box>
-                </Grid>
-              </Grid>
+              <Box sx={{ p: 3 }}>
+                <Grid container spacing={2}>
+                  {/* Time & Location Column */}
+                  <Grid item xs={12} sm={6}>
+                    <DetailRow
+                      icon={Calendar}
+                      label="Date"
+                      value={formatDate(viewDialog.appointment.dateTime)}
+                    />
+                    <DetailRow
+                      icon={Clock}
+                      label="Time"
+                      value={formatTime(viewDialog.appointment.dateTime)}
+                    />
+                  </Grid>
 
-              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
-                <ActionButton
-                  variant="contained"
-                  sx={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}
-                  onClick={() => setViewDialog({ open: false, appointment: null })}
-                >
-                  Close Details
-                </ActionButton>
+                  {/* Professional Info Column */}
+                  <Grid item xs={12} sm={6}>
+                    <DetailRow
+                      icon={User}
+                      label="Veterinarian"
+                      value={`Dr. ${viewDialog.appointment.vetId?.firstName} ${viewDialog.appointment.vetId?.lastName}`}
+                    />
+                    <DetailRow
+                      icon={MapPin}
+                      label="Clinic"
+                      value={viewDialog.appointment.clinicId?.name}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Divider sx={{ my: 1, borderStyle: 'dashed' }} />
+                  </Grid>
+
+                  {/* Reasons Section */}
+                  <Grid item xs={12}>
+                    <Box sx={{ bgcolor: '#f8fafc', p: 2, borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 800, color: '#94a3b8', mb: 1, display: 'block' }}>
+                        REASON FOR VISIT
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: '#334155', lineHeight: 1.5, fontWeight: 500 }}>
+                        {viewDialog.appointment.reason}
+                      </Typography>
+
+                      {viewDialog.appointment.notes && (
+                        <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #e2e8f0' }}>
+                          <Typography variant="caption" sx={{ fontWeight: 800, color: '#94a3b8', mb: 1, display: 'block' }}>
+                            DOCTOR'S NOTES
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: '#64748b', fontStyle: 'italic' }}>
+                            {viewDialog.appointment.notes}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
+                  <ActionButton
+                    fullWidth
+                    variant="contained"
+                    sx={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white' }}
+                    onClick={() => setViewDialog({ open: false, appointment: null })}
+                  >
+                    Close
+                  </ActionButton>
+                </Box>
               </Box>
             </Box>
           )}
         </GlassDialog>
-      </AppointmentsContainer>
+      </AppointmentsContainer >
     </>
   );
 };

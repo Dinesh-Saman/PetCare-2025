@@ -113,7 +113,7 @@ const AddNewStaff = () => {
     phoneNumber: '',
     veterinaryId: '',
     specialization: '',
-    accessLevel: 'Normal Access',
+    accessLevel: 'Basic',
     role: 'Receptionist',
     clinicId: ''
   });
@@ -161,11 +161,22 @@ const AddNewStaff = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'staffType') {
+      let role = '';
+      if (value === 'receptionist') role = 'Receptionist';
+      if (value === 'vetTech') role = 'Vet Tech';
+      if (value === 'assistant') role = 'Assistant';
+      if (value === 'manager') role = 'Manager';
+      if (value === 'nurse') role = 'Nurse';
+      if (value === 'kennelStaff') role = 'Kennel Staff';
+      setFormData(prev => ({ ...prev, staffType: value, role: role }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async () => {
-    const required = ['firstName', 'lastName', 'email', 'password'];
+    const required = ['firstName', 'lastName', 'email', 'password', 'phoneNumber'];
     if (formData.staffType === 'veterinarian') required.push('veterinaryId');
 
     const missing = required.filter(field => !formData[field]?.trim());
@@ -188,17 +199,6 @@ const AddNewStaff = () => {
       Swal.fire('Error!', error.response?.data?.message || 'Failed to add staff', 'error');
     }
   };
-
-  if (loading) {
-    return (
-      <PageContainer>
-        <VetAdminNavbar />
-        <Box display="flex" justifyContent="center" alignItems="center" flexGrow={1}>
-          <CircularProgress color="secondary" />
-        </Box>
-      </PageContainer>
-    );
-  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
@@ -225,24 +225,38 @@ const AddNewStaff = () => {
                       <MenuItem value="veterinarian">Veterinarian</MenuItem>
                       <MenuItem value="receptionist">Receptionist</MenuItem>
                       <MenuItem value="vetTech">Vet Technician</MenuItem>
+                      <MenuItem value="assistant">Assistant</MenuItem>
+                      <MenuItem value="manager">Manager</MenuItem>
+                      <MenuItem value="nurse">Nurse</MenuItem>
+                      <MenuItem value="kennelStaff">Kennel Staff</MenuItem>
                     </Select>
                   </FormControl>
                   <TextField fullWidth label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} size="small" sx={{ mb: 3 }} />
                   <TextField fullWidth label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} size="small" sx={{ mb: 3 }} />
+                  <TextField fullWidth label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} size="small" sx={{ mb: 3 }} />
                 </div>
                 <div className="col-12 col-md-6">
                   <FormControl fullWidth size="small" sx={{ mb: 3 }}>
                     <InputLabel>Select Clinic (Optional)</InputLabel>
                     <Select name="clinicId" value={formData.clinicId} onChange={handleChange} label="Select Clinic (Optional)">
-                      <MenuItem value=""><em>None / Unassigned</em></MenuItem>
+                      <MenuItem value=""><em>None selected</em></MenuItem>
                       {clinics.map(c => <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>)}
                     </Select>
                   </FormControl>
+                  <FormControl fullWidth size="small" sx={{ mb: 3 }}>
+                    <InputLabel>Access Level</InputLabel>
+                    <Select name="accessLevel" value={formData.accessLevel} onChange={handleChange} label="Access Level">
+                      <MenuItem value="Basic">Basic</MenuItem>
+                      <MenuItem value="Enhanced">Enhanced</MenuItem>
+                    </Select>
+                  </FormControl>
                   <TextField fullWidth label="Email" name="email" value={formData.email} onChange={handleChange} size="small" sx={{ mb: 3 }} />
+                </div>
+                <div className="col-12 col-md-6">
                   <TextField fullWidth label="Password" name="password" type="password" value={formData.password} onChange={handleChange} size="small" sx={{ mb: 3 }} />
                 </div>
                 {formData.staffType === 'veterinarian' && (
-                  <div className="col-12">
+                  <div className="col-12 col-md-6">
                     <TextField fullWidth label="Veterinary License ID" name="veterinaryId" value={formData.veterinaryId} onChange={handleChange} size="small" sx={{ mb: 3 }} />
                   </div>
                 )}
@@ -250,7 +264,7 @@ const AddNewStaff = () => {
 
               <Box sx={{ textAlign: 'center', mt: 4 }}>
                 <SubmitButton onClick={handleSubmit}>
-                  Add Teammate
+                  Add Staff Member
                 </SubmitButton>
               </Box>
             </CardBody>

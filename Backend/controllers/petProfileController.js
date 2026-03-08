@@ -304,9 +304,12 @@ exports.getPendingRegistrationsByClinic = async (req, res) => {
       return res.status(404).json({ message: 'Clinic not found' });
     }
 
+    const { status } = req.query;
+    const registrationStatus = status || 'Pending';
+
     const pets = await PetProfile.find({
       registeredClinicId: clinicId,
-      registrationStatus: 'Pending',
+      registrationStatus: registrationStatus,
       isDeleted: { $ne: true }
     })
       .populate('ownerId', 'firstName lastName email phoneNumber')
@@ -562,25 +565,16 @@ exports.approvePetRegistration = async (req, res) => {
       return res.status(404).json({ message: 'Veterinarian not found' });
     }
 
-    // Get vet's active clinic
-    const vetClinicId = veterinarian.currentActiveClinicId || veterinarian.clinicId;
-    if (!vetClinicId) {
-      return res.status(400).json({
-        message: 'Veterinarian is not associated with any clinic'
-      });
-    }
-
-    // Find pet that's pending registration at this clinic
+    // Find pet that's pending registration
     const pet = await PetProfile.findOne({
       _id: id,
-      registeredClinicId: vetClinicId,
       registrationStatus: 'Pending'
     });
 
     if (!pet) {
-      console.error('Pet not found or not pending in this clinic');
+      console.error('Pet not found or not pending registration');
       return res.status(404).json({
-        message: 'Pet not found or not pending registration in your clinic'
+        message: 'Pet not found or not pending registration'
       });
     }
 
@@ -614,7 +608,7 @@ exports.approvePetRegistration = async (req, res) => {
 exports.rejectPetRegistration = async (req, res) => {
   try {
     const { id } = req.params; // petId
-    const { reason } = req.body; // Optional rejection reason
+    const { reason } = req.body || {}; // Optional rejection reason
 
     // Get veterinarian
     const veterinarian = await Veterinarian.findOne({
@@ -625,24 +619,15 @@ exports.rejectPetRegistration = async (req, res) => {
       return res.status(404).json({ message: 'Veterinarian not found' });
     }
 
-    // Get vet's clinic
-    const vetClinicId = veterinarian.currentActiveClinicId || veterinarian.clinicId;
-    if (!vetClinicId) {
-      return res.status(400).json({
-        message: 'Veterinarian is not associated with any clinic'
-      });
-    }
-
     // Find the pet
     const pet = await PetProfile.findOne({
       _id: id,
-      registeredClinicId: vetClinicId,
       registrationStatus: 'Pending'
     });
 
     if (!pet) {
       return res.status(404).json({
-        message: 'Pet not found or not pending registration in your clinic'
+        message: 'Pet not found or not pending registration'
       });
     }
 
@@ -698,19 +683,7 @@ exports.getRegisteredPetsForVetClinic = async (req, res) => {
       isDeleted: { $ne: true }
     };
 
-    // 2. If NOT Primary, filter by clinic
-    if (veterinarian.accessLevel !== 'Primary') {
-      const vetClinicId = veterinarian.currentActiveClinicId || veterinarian.clinicId;
-      if (!vetClinicId) {
-        return res.status(400).json({
-          success: false,
-          message: 'Veterinarian is not associated with any clinic'
-        });
-      }
-      query.registeredClinicId = vetClinicId;
-    }
-
-    // 3. Get pets based on query
+    // 2. Fetch ALL approved pets regardless of clinic
     const registeredPets = await PetProfile.find(query)
       .populate('ownerId', 'firstName lastName email phoneNumber')
       .populate('registeredClinicId', 'name address phoneNumber')
@@ -720,7 +693,7 @@ exports.getRegisteredPetsForVetClinic = async (req, res) => {
       success: true,
       count: registeredPets.length,
       registeredPets: registeredPets,
-      isGlobalView: veterinarian.accessLevel === 'Primary'
+      isGlobalView: veterinarian.accessLevel === 'Enhanced'
     });
 
   } catch (error) {
@@ -733,7 +706,7 @@ exports.getRegisteredPetsForVetClinic = async (req, res) => {
   }
 };
 
-// Alternative: Get registered pets by clinic ID (for primary vets)
+// Alternative: Get registered pets by clinic ID (for Enhanced vets)
 exports.getRegisteredPetsByClinic = async (req, res) => {
   try {
     const { clinicId } = req.params;

@@ -13,8 +13,10 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const Footer = () => {
+  const { openAuthModal } = useAuth();
   // Get current year for copyright
   const currentYear = new Date().getFullYear();
 
@@ -695,6 +697,15 @@ const Footer = () => {
                 <li>
                   <Link to="/contact" className="pawpal-link-button">Contact Us</Link>
                 </li>
+                <li>
+                  <button
+                    onClick={() => openAuthModal('login', 'vet')}
+                    className="pawpal-link-button"
+                    style={{ background: 'none', border: 'none', padding: 0 }}
+                  >
+                    Veterinary Portal
+                  </button>
+                </li>
               </ul>
             </div>
 
@@ -717,19 +728,7 @@ const Footer = () => {
                     <Youtube size={20} />
                   </a>
                 </div>
-                <div className="pawpal-newsletter">
-                  <p className="pawpal-newsletter-title">Join Our Pet Community</p>
-                  <form className="pawpal-newsletter-form">
-                    <input
-                      type="email"
-                      placeholder="Your email address"
-                      className="pawpal-newsletter-input"
-                    />
-                    <button type="submit" className="pawpal-newsletter-button">
-                      Subscribe
-                    </button>
-                  </form>
-                </div>
+
               </div>
             </div>
           </div>

@@ -94,10 +94,11 @@ const OwnerRegister = () => {
       });
 
       const { token, user } = loginRes.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('owner', JSON.stringify(user));
+      localStorage.setItem('owner_token', token);
+      localStorage.setItem('owner_user', JSON.stringify(user));
 
       Swal.fire({
+
         title: 'Welcome to PawPal!',
         text: 'Your account has been created',
         icon: 'success',

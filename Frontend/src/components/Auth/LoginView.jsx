@@ -10,13 +10,17 @@ import {
     VisibilityOff,
 } from '@mui/icons-material';
 import { GoogleLogin } from '@react-oauth/google';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import authIllustration from '../../images/auth_illustration.png';
+import vetAuthIllustration from '../../images/vet_auth_illustration.png';
 
 const LoginView = () => {
+    const navigate = useNavigate();
     const {
         setAuthModalView,
+        authModalRole,
         login
     } = useAuth();
 
@@ -26,7 +30,12 @@ const LoginView = () => {
     const [error, setError] = useState('');
     const [submitted, setSubmitted] = useState(false);
 
-    const bgBlue = '#3B59FE';
+    // Dynamic configuration based on role
+    const isVet = authModalRole === 'vet';
+    const bgMain = isVet ? '#7c3aed' : '#3B59FE';
+    const illustration = isVet
+        ? vetAuthIllustration
+        : authIllustration;
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -48,12 +57,21 @@ const LoginView = () => {
 
         try {
             const { data } = await api.post('/auth/login', formData);
+
+            // Check if user role matches the intended modal role
+            if (data.user && data.user.role !== authModalRole) {
+                setError(`This account is not registered as a ${authModalRole}.`);
+                setLoading(false);
+                return;
+            }
+
             if (data.requires2FA) {
                 setAuthModalView('2fa');
                 sessionStorage.setItem('temp_2fa_userId', data.userId);
                 sessionStorage.setItem('temp_2fa_role', data.role);
             } else {
                 login(data.user, data.token);
+                if (data.user.role === 'vet') navigate('/vet/dashboard');
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid email or password');
@@ -65,13 +83,21 @@ const LoginView = () => {
     const handleGoogleSuccess = async (response) => {
         try {
             setLoading(true);
-            const { data } = await api.post('/auth/google-login', { token: response.credential, role: 'owner' });
+            const { data } = await api.post('/auth/google-login', { token: response.credential, role: authModalRole });
+
+            if (data.user && data.user.role !== authModalRole) {
+                setError(`This account is not registered as a ${authModalRole}.`);
+                setLoading(false);
+                return;
+            }
+
             if (data.requires2FA) {
                 setAuthModalView('2fa');
                 sessionStorage.setItem('temp_2fa_userId', data.userId);
                 sessionStorage.setItem('temp_2fa_role', data.role);
             } else {
                 login(data.user, data.token);
+                if (data.user.role === 'vet') navigate('/vet/dashboard');
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Google authentication failed');
@@ -83,26 +109,27 @@ const LoginView = () => {
     return (
         <Fade in timeout={400}>
             <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', md: 'nowrap' }, width: '100%', overflow: 'hidden' }}>
-                {/* Left Section - Formal Blue */}
+                {/* Left Section - Dynamic Color */}
                 <Box sx={{
-                    flex: { xs: '1 1 100%', md: 1 }, // Equal halves
-                    background: bgBlue,
+                    flex: { xs: '1 1 100%', md: 1 },
+                    background: bgMain,
                     color: 'white',
                     p: { xs: 2.5, md: 4 },
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    transition: 'background 0.4s ease'
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <PetsIcon sx={{ fontSize: 22 }} />
-                        <Typography variant="body1" fontWeight="bold">Pawpal</Typography>
+                        <Typography variant="body1" fontWeight="bold">Pawpal {isVet ? 'Vet' : ''}</Typography>
                     </Box>
 
                     <Typography variant="h5" fontWeight="900" sx={{ mb: 2, letterSpacing: '-0.5px' }}>
-                        Sign In
+                        {isVet ? 'Vet Portal Sign In' : 'Sign In'}
                     </Typography>
 
-                    {/* Google Login - Outline theme for visibility on blue */}
+                    {/* Google Login Section */}
                     <Box sx={{
                         mb: 2,
                         width: '100%',
@@ -145,7 +172,7 @@ const LoginView = () => {
                             size="small"
                             name="email"
                             type="email"
-                            placeholder="Type your email"
+                            placeholder={isVet ? "doctor@pawpal.com" : "Type your email"}
                             value={formData.email}
                             onChange={handleChange}
                             variant="outlined"
@@ -233,7 +260,7 @@ const LoginView = () => {
                             disabled={loading}
                             sx={{
                                 bgcolor: 'white',
-                                color: bgBlue,
+                                color: bgMain,
                                 py: 1.25,
                                 borderRadius: '50px',
                                 fontSize: '0.95rem',
@@ -245,20 +272,20 @@ const LoginView = () => {
                                 },
                                 boxShadow: '0 8px 16px rgba(0,0,0,0.1)'
                             }}>
-                            {loading ? <CircularProgress size={20} color="inherit" /> : 'Login'}
+                            {loading ? <CircularProgress size={20} color="inherit" /> : `Login as ${isVet ? 'Vet' : 'Owner'}`}
                         </Button>
                     </form>
 
                     <Box sx={{ textAlign: 'center', mt: 3 }}>
                         <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '0.85rem', fontWeight: 500 }}>
-                            Haven't sign up yet? {' '}
+                            {isVet ? 'Interested in joining?' : "Haven't sign up yet?"} {' '}
                             <Link
                                 component="button"
                                 type="button"
                                 onClick={() => setAuthModalView('register')}
                                 sx={{ color: 'white', fontWeight: 800, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                             >
-                                Sign up
+                                {isVet ? 'Register vet' : 'Sign up'}
                             </Link>
                         </Typography>
                     </Box>
@@ -275,13 +302,15 @@ const LoginView = () => {
                 }}>
                     <Box
                         component="img"
-                        src={authIllustration}
+                        src={illustration}
                         alt="Security Illustration"
                         sx={{
                             width: '100%',
-                            maxWidth: '340px',
+                            maxWidth: isVet ? '400px' : '340px',
                             height: 'auto',
-                            objectFit: 'contain'
+                            objectFit: 'contain',
+                            borderRadius: isVet ? '24px' : '0',
+                            boxShadow: isVet ? '0 20px 40px rgba(0,0,0,0.1)' : 'none'
                         }}
                     />
                 </Box>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import styled from 'styled-components';
 import {
   FaTachometerAlt,
@@ -12,19 +13,22 @@ import {
   FaCog,
   FaSignOutAlt,
   FaPlusCircle,  // New icon for "Create Clinic"
-  FaUser
+  FaUser,
+  FaChevronDown,
+  FaChevronUp,
+  FaTimes
 } from 'react-icons/fa';
 import Logo from '../../assets/logo.png';
 
 const SidebarContainer = styled.div`
-  width: 300px;
-  min-width: 300px;
-  max-width: 300px;
+  width: ${props => props.mobileView ? '100% !important' : '320px'};
+  min-width: ${props => props.mobileView ? '100% !important' : '320px'};
+  max-width: ${props => props.mobileView ? '100% !important' : '320px'};
   min-height: ${props => props.computedHeight || '100vh'};
   height: ${props => props.computedHeight || 'auto'};
   background: url('https://img.freepik.com/free-vector/decorative-background-with-purple-damask-pattern_1048-3458.jpg') repeat;
   background-size: auto; /* Use auto for repeating patterns */
-  padding: 30px 20px;
+  padding: ${props => props.mobileView ? '60px 20px' : '30px 20px'};
   display: flex;
   flex-direction: column;
   color: #ecf0f1;
@@ -129,8 +133,25 @@ const CategoryHeader = styled.div`
   z-index: 1;
 `;
 
-const Sidebar = ({ computedHeight }) => {
+const Sidebar = ({ computedHeight, mobileView, onClose }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+  const [expandedCats, setExpandedCats] = React.useState({});
+
+  const toggleCat = (title) => {
+    setExpandedCats(prev => ({
+      ...prev,
+      [title]: !prev[title]
+    }));
+  };
+
+  const handleLogout = (e) => {
+    e.preventDefault();
+    logout();
+    if (mobileView && onClose) onClose();
+    navigate('/');
+  };
 
   const categories = [
     {
@@ -150,14 +171,14 @@ const Sidebar = ({ computedHeight }) => {
       title: "Appointments",
       items: [
         { to: "/vet/appointments", icon: <FaCalendarAlt />, label: "All Appointments" },
-        { to: "/vet/appointments?tab=today", icon: <FaCalendarDay />, label: "Today's Appointments" },
+        { to: "/vet/appointments/today", icon: <FaCalendarDay />, label: "Today's Appointments" },
       ]
     },
     {
       title: "Pet Management",
       items: [
         { to: "/vet/pets", icon: <FaPaw />, label: "Registered Pets" },
-        { to: "/vet/pets?tab=pending", icon: <FaHourglassHalf />, label: "Pending Registrations" },
+        { to: "/vet/pets/pending", icon: <FaHourglassHalf />, label: "Pending Registrations" },
       ]
     },
     {
@@ -171,7 +192,23 @@ const Sidebar = ({ computedHeight }) => {
   ];
 
   return (
-    <SidebarContainer computedHeight={computedHeight}>
+    <SidebarContainer computedHeight={computedHeight} mobileView={mobileView}>
+      {mobileView && (
+        <div
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            zIndex: 10,
+            cursor: 'pointer',
+            fontSize: '24px',
+            color: 'white'
+          }}
+        >
+          <FaTimes />
+        </div>
+      )}
       <LogoContainer>
         <LogoImage src="https://i.imgur.com/RHsVvXq.jpeg" alt="PawPal" />
         <ClinicName>Pawpal Clinic</ClinicName>
@@ -180,12 +217,24 @@ const Sidebar = ({ computedHeight }) => {
       <Menu>
         {categories.map((cat, idx) => (
           <React.Fragment key={idx}>
-            <CategoryHeader>{cat.title}</CategoryHeader>
-            {cat.items.map((item) => (
+            <CategoryHeader
+              onClick={() => mobileView && toggleCat(cat.title)}
+              style={{
+                cursor: mobileView ? 'pointer' : 'default',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              {cat.title}
+              {mobileView && (expandedCats[cat.title] ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />)}
+            </CategoryHeader>
+            {(!mobileView || expandedCats[cat.title]) && cat.items.map((item) => (
               <MenuItem
                 key={item.to}
                 to={item.to}
                 className={location.pathname === item.to ? 'active' : ''}
+                onClick={() => mobileView && onClose && onClose()}
               >
                 <Icon>{item.icon}</Icon>
                 {item.label}
@@ -196,7 +245,7 @@ const Sidebar = ({ computedHeight }) => {
       </Menu>
 
       <SignOutContainer>
-        <MenuItem to="/vet/login">
+        <MenuItem to="/" onClick={handleLogout}>
           <Icon><FaSignOutAlt /></Icon>
           Sign Out
         </MenuItem>

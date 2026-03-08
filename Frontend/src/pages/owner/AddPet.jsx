@@ -118,65 +118,65 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
   return (
     <div className="add-pet-modal-overlay" onClick={onClose}>
       <GlassModal onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <PetsIcon sx={{ fontSize: 60, mb: 2, filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.1))' }} />
-          <Typography variant="h3" fontWeight="800" gutterBottom>
-            Register New Pawpal
-          </Typography>
-          <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
-            Start managing your pet's healthcare journey today
-          </Typography>
-          <button className="modal-close-btn" onClick={onClose}>
-            <CloseIcon />
-          </button>
-        </div>
-
         <div className="modal-body">
+          <div className="simple-header">
+            <Typography variant="h4" fontWeight="800" sx={{ color: '#1e293b' }}>
+              Register New Pawpal
+            </Typography>
+            <button className="modal-close-btn" onClick={onClose}>
+              <CloseIcon />
+            </button>
+          </div>
+
+          <Typography variant="body2" sx={{ color: '#64748b', mb: 3, mt: -1 }}>
+            Fill in your pet's details to start managing their healthcare journey.
+          </Typography>
+
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
               <div className="field-group">
-                <label><PetsIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Pet Name *</label>
+                <label><PetsIcon sx={{ fontSize: 16, mr: 1 }} /> Name *</label>
                 <input
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  placeholder="e.g. Buddy"
+                  placeholder="Buddy"
                 />
               </div>
 
               <div className="field-group">
-                <label><SpeciesIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Species *</label>
+                <label><SpeciesIcon sx={{ fontSize: 16, mr: 1 }} /> Species *</label>
                 <input
                   name="species"
                   value={formData.species}
                   onChange={handleChange}
                   required
-                  placeholder="Dog, Cat, Rabbit..."
+                  placeholder="Dog, Cat..."
                 />
               </div>
 
               <div className="field-group">
-                <label><BreedIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Breed</label>
+                <label><BreedIcon sx={{ fontSize: 16, mr: 1 }} /> Breed</label>
                 <input
                   name="breed"
                   value={formData.breed}
                   onChange={handleChange}
-                  placeholder="Golden Retriever..."
+                  placeholder="Golden Retriever"
                 />
               </div>
 
               <div className="field-group">
-                <label><GenderIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Gender</label>
+                <label><GenderIcon sx={{ fontSize: 16, mr: 1 }} /> Gender</label>
                 <select name="gender" value={formData.gender} onChange={handleChange}>
-                  <option value="">Select Gender</option>
+                  <option value="">Select</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                 </select>
               </div>
 
               <div className="field-group">
-                <label><CakeIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Date of Birth</label>
+                <label><CakeIcon sx={{ fontSize: 16, mr: 1 }} /> Date of Birth</label>
                 <input
                   name="dateOfBirth"
                   type="date"
@@ -186,7 +186,7 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
               </div>
 
               <div className="field-group">
-                <label><WeightIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Weight (kg)</label>
+                <label><WeightIcon sx={{ fontSize: 16, mr: 1 }} /> Weight (kg)</label>
                 <input
                   name="weight"
                   type="number"
@@ -198,17 +198,17 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
               </div>
 
               <div className="field-group">
-                <label><ColorIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Color / Markings</label>
+                <label><ColorIcon sx={{ fontSize: 16, mr: 1 }} /> Color/Markings</label>
                 <input
                   name="color"
                   value={formData.color}
                   onChange={handleChange}
-                  placeholder="Black & White..."
+                  placeholder="Black & White"
                 />
               </div>
 
               <div className="field-group">
-                <label><ClinicIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Preferred Vet Clinic *</label>
+                <label><ClinicIcon sx={{ fontSize: 16, mr: 1 }} /> Vet Clinic *</label>
                 <select
                   name="clinicId"
                   value={formData.clinicId}
@@ -216,7 +216,7 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
                   required
                   disabled={loadingClinics}
                 >
-                  <option value="">{loadingClinics ? 'Loading clinics...' : 'Select a Clinic'}</option>
+                  <option value="">{loadingClinics ? 'Loading...' : 'Select Clinic'}</option>
                   {clinics.map(c => (
                     <option key={c._id} value={c._id}>{c.name}</option>
                   ))}
@@ -224,7 +224,7 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
               </div>
 
               <div className="field-group">
-                <label><VaccineIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Last Vaccination</label>
+                <label><VaccineIcon sx={{ fontSize: 16, mr: 1 }} /> Last Vac.</label>
                 <input
                   name="lastVaccinationDate"
                   type="date"
@@ -234,7 +234,7 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
               </div>
 
               <div className="field-group">
-                <label><UploadIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Profile Photo</label>
+                <label><UploadIcon sx={{ fontSize: 16, mr: 1 }} /> Profile Photo</label>
                 <div className="custom-file-upload">
                   <input
                     type="file"
@@ -253,24 +253,24 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
                       } catch { Swal.fire('Error', 'Upload failed', 'error'); }
                     }}
                   />
-                  {formData.photo ? '✓ Photo Selected' : 'Choose Pet Photo'}
+                  {formData.photo ? '✓ Done' : 'Choose File'}
                 </div>
               </div>
 
               <div className="field-group full-width">
-                <label><NotesIcon sx={{ fontSize: 18, mr: 1, verticalAlign: 'text-bottom' }} /> Medical Observations & Notes</label>
+                <label><NotesIcon sx={{ fontSize: 16, mr: 1 }} /> Medical Notes</label>
                 <textarea
                   name="notes"
                   value={formData.notes}
                   onChange={handleChange}
-                  rows={4}
-                  placeholder="Any allergies, existing conditions, or special requirements..."
+                  rows={2}
+                  placeholder="Allergies, conditions, etc..."
                 />
               </div>
 
               <div className="submit-row">
                 <button type="submit" className={`submit-btn ${loading ? 'loading' : ''}`} disabled={loading}>
-                  {loading ? 'Processing...' : 'Complete Registration'}
+                  {loading ? 'Processing...' : 'Register Pawpal'}
                 </button>
               </div>
             </div>
@@ -285,14 +285,14 @@ const styles = `
   .add-pet-modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.75);
-    backdrop-filter: blur(8px);
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1400;
-    padding: 24px;
-    animation: fadeIn 0.3s ease-out;
+    padding: 20px;
+    animation: fadeIn 0.2s ease-out;
   }
 
   @keyframes fadeIn {
@@ -300,24 +300,20 @@ const styles = `
     to { opacity: 1; }
   }
 
-  .modal-header {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    color: white;
-    padding: 60px 48px;
-    text-align: center;
-    position: relative;
+  .simple-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
   }
 
   .modal-close-btn {
-    position: absolute;
-    top: 24px;
-    right: 24px;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
+    background: #f1f5f9;
+    border: none;
+    color: #64748b;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -326,27 +322,27 @@ const styles = `
   }
 
   .modal-close-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: rotate(90deg);
+    background: #e2e8f0;
+    color: #1e293b;
+    transform: scale(1.1);
   }
 
   .modal-body {
-    padding: 48px;
-    overflow-y: auto;
-    flex: 1;
+    padding: 32px;
     background: #ffffff;
+    overflow-y: auto;
   }
 
   .form-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 24px;
   }
 
   .field-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
   }
 
   .field-group.full-width {
@@ -354,19 +350,19 @@ const styles = `
   }
 
   .field-group label {
-    font-weight: 700;
+    font-weight: 600;
     color: #334155;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
   }
 
   input, select, textarea {
     width: 100%;
-    padding: 14px 18px;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 1rem;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
     transition: all 0.2s;
     color: #1e293b;
     background: #f8fafc;
@@ -374,29 +370,28 @@ const styles = `
 
   input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: #4f46e5;
+    border-color: #2563eb;
     background: white;
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 
   .custom-file-upload {
     position: relative;
-    border: 2px dashed #cbd5e1;
-    border-radius: 12px;
-    padding: 14px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    padding: 8px;
     text-align: center;
     color: #64748b;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
     background: #f8fafc;
     overflow: hidden;
   }
 
   .custom-file-upload:hover {
-    border-color: #4f46e5;
-    background: rgba(79, 70, 229, 0.05);
-    color: #4f46e5;
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.05);
   }
 
   .custom-file-upload input {
@@ -408,37 +403,36 @@ const styles = `
 
   .submit-row {
     grid-column: 1 / -1;
-    margin-top: 16px;
+    margin-top: 20px;
   }
 
   .submit-btn {
     width: 100%;
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    background: #1e293b;
     color: white;
     border: none;
-    padding: 18px;
-    border-radius: 16px;
-    font-size: 1.1rem;
-    font-weight: 800;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s;
-    box-shadow: 0 10px 25px rgba(79, 70, 229, 0.3);
+    transition: all 0.2s;
   }
 
   .submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 15px 35px rgba(79, 70, 229, 0.4);
+    background: #0f172a;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
   }
 
   .submit-btn.loading {
-    opacity: 0.8;
+    opacity: 0.7;
     cursor: not-allowed;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 600px) {
     .form-grid { grid-template-columns: 1fr; }
-    .modal-header { padding: 48px 24px; }
-    .modal-body { padding: 32px 24px; }
+    .modal-body { padding: 24px; }
   }
 `;
 

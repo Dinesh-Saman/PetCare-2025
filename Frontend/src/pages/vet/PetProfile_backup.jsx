@@ -1,6 +1,6 @@
 // src/pages/vet/PetProfile.jsx
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import Sidebar from '../../components/layout/sidebar';
@@ -33,12 +33,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Link,
-  Divider,
   useTheme,
   useMediaQuery
 } from '@mui/material';
@@ -69,7 +63,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import DownloadIcon from '@mui/icons-material/Download';
-import ChatIcon from '@mui/icons-material/Chat';
 
 const PageContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -143,7 +136,6 @@ const getStatusChip = (status) => {
 
 const PetProfile = () => {
   const { petId } = useParams();
-  const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -157,13 +149,9 @@ const PetProfile = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Modal visibilities
+  // Independent form visibility
   const [showMedForm, setShowMedForm] = useState(false);
   const [showPresForm, setShowPresForm] = useState(false);
-
-  // Appt View Modal
-  const [selectedAppt, setSelectedAppt] = useState(null);
-  const [showApptModal, setShowApptModal] = useState(false);
 
   const [isEditingMed, setIsEditingMed] = useState(false);
   const [currentMedRecordId, setCurrentMedRecordId] = useState(null);
@@ -234,18 +222,10 @@ const PetProfile = () => {
     if (!dob) return 'Unknown';
     const birth = new Date(dob);
     const today = new Date();
-    let years = today.getFullYear() - birth.getFullYear();
-    let months = today.getMonth() - birth.getMonth();
-
-    if (months < 0 || (months === 0 && today.getDate() < birth.getDate())) {
-      years--;
-      months += 12;
-    }
-
-    if (years === 0) {
-      return `${months} month${months !== 1 ? 's' : ''}`;
-    }
-    return `${years} year${years !== 1 ? 's' : ''}`;
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return `${age} year${age !== 1 ? 's' : ''}`;
   };
 
   const toggleMedExpand = (id) => {
@@ -559,36 +539,14 @@ const PetProfile = () => {
                 <Typography variant="body1" sx={{ mt: 1 }}>
                   Age: {calculateAge(pet.dateOfBirth)} • Gender: {pet.gender || 'Unknown'}
                 </Typography>
-
-                {pet.ownerId?._id && (
-                  <Button
-                    variant="contained"
-                    startIcon={<ChatIcon />}
-                    onClick={() => navigate(`/vet/chat/owner/${pet.ownerId._id}`)}
-                    sx={{
-                      mt: 2,
-                      bgcolor: 'white',
-                      color: '#2e7d32',
-                      fontWeight: 'bold',
-                      textTransform: 'none',
-                      borderRadius: '20px',
-                      '&:hover': {
-                        bgcolor: '#f1f8e9',
-                      }
-                    }}
-                  >
-                    Chat with Owner
-                  </Button>
-                )}
               </Box>
             </Box>
 
             <Tabs value={activeTab} onChange={handleTabChange} variant={isMobile ? "scrollable" : "standard"} scrollButtons="auto" centered={!isMobile} sx={{ bgcolor: '#f5f7fa', borderBottom: 1, borderColor: 'divider' }}>
               <Tab label="Info" />
-              <Tab label="Medical Notes" />
-              <Tab label="Medical Records" />
-              <Tab label="Appointments & Prescs" />
-              <Tab label="Vaccinations" />
+              <Tab label="Records" />
+              <Tab label="Appts" />
+              <Tab label="Prescs" />
             </Tabs>
 
             <Box sx={{ p: isMobile ? 2 : 4 }}>
@@ -620,26 +578,6 @@ const PetProfile = () => {
                           {pet.registeredClinicId && (
                             <InfoRow><LocationOnIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 130 }}>Clinic:</InfoLabel><InfoValue>{typeof pet.registeredClinicId === 'object' ? pet.registeredClinicId.name : pet.registeredClinicId}</InfoValue></InfoRow>
                           )}
-                          {pet.ownerId?._id && (
-                            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                              <Button
-                                variant="contained"
-                                color="primary"
-                                startIcon={<ChatIcon />}
-                                fullWidth={isMobile}
-                                onClick={() => navigate(`/vet/chat/owner/${pet.ownerId._id}`)}
-                                sx={{
-                                  borderRadius: 2,
-                                  bgcolor: '#1976d2',
-                                  textTransform: 'none',
-                                  fontWeight: 'bold',
-                                  '&:hover': { bgcolor: '#1565c0' }
-                                }}
-                              >
-                                Chat with Owner
-                              </Button>
-                            </Box>
-                          )}
                         </Box>
                       </Paper>
                     </Grid>
@@ -650,89 +588,57 @@ const PetProfile = () => {
               {activeTab === 1 && (
                 <AlignedContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h5" fontWeight="bold" color="#2e7d32">Medical Notes</Typography>
-                    <Button variant="contained" color="success" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }}>
-                      Add Medical Note
+                    <Typography variant="h5" fontWeight="bold" color="#2e7d32">Medical Records</Typography>
+                    <Button variant="contained" color="success" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(!showMedForm); }}>
+                      {showMedForm ? 'Cancel' : 'Add Record'}
                     </Button>
                   </Box>
+
+                  <Collapse in={showMedForm}>
+                    <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid #c8e6c9' }}>
+                      <Typography variant="h6" fontWeight="bold" mb={2}>{isEditingMed ? 'Edit Record' : 'New Medical Record'}</Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <TextField fullWidth multiline rows={2} label="Diagnosis *" value={medFormData.diagnosis} onChange={e => setMedFormData(p => ({ ...p, diagnosis: e.target.value }))} />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField fullWidth multiline rows={3} label="Treatment Notes" value={medFormData.treatmentNotes} onChange={e => setMedFormData(p => ({ ...p, treatmentNotes: e.target.value }))} />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField fullWidth type="date" label="Date" InputLabelProps={{ shrink: true }} value={medFormData.date} onChange={e => setMedFormData(p => ({ ...p, date: e.target.value }))} />
+                        </Grid>
+                        <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center' }}>
+                          <FormControlLabel
+                            control={<Switch checked={medFormData.visibleToOwner} onChange={e => setMedFormData(p => ({ ...p, visibleToOwner: e.target.checked }))} color="success" />}
+                            label="Visible to Owner"
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Button variant="outlined" component="label" startIcon={<AttachFileIcon />}>
+                            Attach Files
+                            <input type="file" hidden multiple accept="image/*,.pdf" onChange={handleFileSelect} />
+                          </Button>
+                          {selectedFiles.map((f, i) => (
+                            <Chip key={i} label={f.name} onDelete={() => removeSelectedFile(i)} sx={{ ml: 1, mt: 0.5 }} />
+                          ))}
+                        </Grid>
+                        <Grid item xs={12} sx={{ textAlign: 'right' }}>
+                          <Button onClick={cancelMedForm} sx={{ mr: 1 }}>Cancel</Button>
+                          <Button variant="contained" color="success" onClick={handleSaveMedRecord} disabled={saving || uploading}>
+                            {saving ? 'Saving...' : 'Save Record'}
+                          </Button>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  </Collapse>
 
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
                         <TableRow sx={{ bgcolor: '#2e7d32' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Appointment Date</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Diagnosis</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Veterinarian</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {medicalRecords.length === 0 ? (
-                          <TableRow><TableCell colSpan={5} align="center"><Typography color="textSecondary" py={4}>No medical notes found</Typography></TableCell></TableRow>
-                        ) : medicalRecords.map(record => (
-                          <React.Fragment key={record._id}>
-                            <TableRow sx={{ bgcolor: '#f9f9f9', '&:hover': { bgcolor: '#f1f1f1' } }}>
-                              <TableCell>
-                                <IconButton size="small" onClick={() => toggleMedExpand(record._id)}>
-                                  <ExpandMoreIcon sx={{ transform: expandedMedRows.has(record._id) ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} />
-                                </IconButton>
-                              </TableCell>
-                              <TableCell>
-                                <Link component="button" variant="body2" sx={{ fontWeight: 'bold', textDecoration: 'none', color: '#1976d2' }} onClick={() => setActiveTab(3)}>
-                                  {new Date(record.date).toLocaleDateString()}
-                                </Link>
-                              </TableCell>
-                              <TableCell><Typography fontWeight="bold">{record.diagnosis}</Typography></TableCell>
-                              <TableCell>{record.vetId ? `Dr. ${record.vetId.firstName} ${record.vetId.lastName}` : 'N/A'}</TableCell>
-                              <TableCell align="center">
-                                <Tooltip title="Edit"><IconButton size="small" color="primary" onClick={() => startEditMed(record)}><EditIcon /></IconButton></Tooltip>
-                                <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDeleteRecord(record._id)}><DeleteIcon /></IconButton></Tooltip>
-                              </TableCell>
-                            </TableRow>
-                            <TableRow>
-                              <TableCell colSpan={5} sx={{ p: 0 }}>
-                                <Collapse in={expandedMedRows.has(record._id)} timeout="auto" unmountOnExit>
-                                  <Box sx={{ p: 3, bgcolor: '#f5fdf5', borderLeft: '4px solid #2e7d32' }}>
-                                    <Typography fontWeight="bold" mb={1}>Full Diagnosis:</Typography>
-                                    <Typography mb={2}>{record.diagnosis || 'N/A'}</Typography>
-                                    <Typography fontWeight="bold" mb={1}>Treatment Notes:</Typography>
-                                    <Typography mb={2}>{record.treatmentNotes || 'No notes'}</Typography>
-                                    <Divider sx={{ my: 1 }} />
-                                    <Typography variant="body2" color="textSecondary">
-                                      Appointment: <Link component="button" variant="body2" sx={{ fontWeight: 'bold' }} onClick={() => setActiveTab(3)}>
-                                        {new Date(record.date).toLocaleDateString()} at {new Date(record.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                      </Link>
-                                    </Typography>
-                                  </Box>
-                                </Collapse>
-                              </TableCell>
-                            </TableRow>
-                          </React.Fragment>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </AlignedContent>
-              )}
-
-              {activeTab === 2 && (
-                <AlignedContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h5" fontWeight="bold" color="#1976d2">Medical Records</Typography>
-                    <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }}>
-                      Upload Record
-                    </Button>
-                  </Box>
-
-                  <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
-                    <Table>
-                      <TableHead>
-                        <TableRow sx={{ bgcolor: '#1976d2' }}>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Veterinarian</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Visibility</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Attachments</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
@@ -740,7 +646,7 @@ const PetProfile = () => {
                       </TableHead>
                       <TableBody>
                         {medicalRecords.length === 0 ? (
-                          <TableRow><TableCell colSpan={7} align="center"><Typography color="textSecondary" py={4}>No medical records found</Typography></TableCell></TableRow>
+                          <TableRow><TableCell colSpan={6} align="center"><Typography color="textSecondary" py={4}>No medical records</Typography></TableCell></TableRow>
                         ) : medicalRecords.map(record => (
                           <React.Fragment key={record._id}>
                             <TableRow sx={{ bgcolor: '#f9f9f9', '&:hover': { bgcolor: '#f1f1f1' } }}>
@@ -749,9 +655,8 @@ const PetProfile = () => {
                                   <ExpandMoreIcon sx={{ transform: expandedMedRows.has(record._id) ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} />
                                 </IconButton>
                               </TableCell>
+                              <TableCell><Typography fontWeight="bold">{record.diagnosis}</Typography></TableCell>
                               <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
-                              <TableCell><Typography fontWeight="bold">{record.diagnosis || 'N/A'}</Typography></TableCell>
-                              <TableCell>{record.vetId ? `Dr. ${record.vetId.firstName} ${record.vetId.lastName}` : 'N/A'}</TableCell>
                               <TableCell>
                                 <Tooltip title={record.visibleToOwner ? 'Visible to Owner' : 'Hidden from Owner'}>
                                   <IconButton size="small" onClick={() => handleToggleVisibility(record._id, record.visibleToOwner)}>
@@ -765,14 +670,16 @@ const PetProfile = () => {
                                 ) : <Typography variant="caption" color="textSecondary">None</Typography>}
                               </TableCell>
                               <TableCell align="center">
-                                <Tooltip title="Edit/View"><IconButton size="small" color="primary" onClick={() => startEditMed(record)}><EditIcon /></IconButton></Tooltip>
+                                <Tooltip title="Edit"><IconButton size="small" color="primary" onClick={() => startEditMed(record)}><EditIcon /></IconButton></Tooltip>
                                 <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDeleteRecord(record._id)}><DeleteIcon /></IconButton></Tooltip>
                               </TableCell>
                             </TableRow>
                             <TableRow>
-                              <TableCell colSpan={7} sx={{ p: 0 }}>
+                              <TableCell colSpan={6} sx={{ p: 0 }}>
                                 <Collapse in={expandedMedRows.has(record._id)} timeout="auto" unmountOnExit>
-                                  <Box sx={{ p: 3, bgcolor: '#f5fdf5', borderLeft: '4px solid #1976d2' }}>
+                                  <Box sx={{ p: 3, bgcolor: '#f5fdf5', borderLeft: '4px solid #2e7d32' }}>
+                                    <Typography fontWeight="bold" mb={1}>Treatment Notes:</Typography>
+                                    <Typography>{record.treatmentNotes || 'No notes'}</Typography>
                                     {record.attachments?.length > 0 && (
                                       <Box mt={2}>
                                         <Typography fontWeight="bold" mb={1}>Attachments:</Typography>
@@ -785,7 +692,6 @@ const PetProfile = () => {
                                               component="a"
                                               href={url}
                                               target="_blank"
-                                              download
                                               clickable
                                               size="small"
                                             />
@@ -805,55 +711,33 @@ const PetProfile = () => {
                 </AlignedContent>
               )}
 
-              {activeTab === 3 && (
+              {activeTab === 2 && (
                 <AlignedContent>
-                  <Typography variant="h5" fontWeight="bold" color="#ff7043" mb={3}>Appointments & Prescriptions</Typography>
+                  <Typography variant="h5" fontWeight="bold" color="#1976d2" mb={3}>Appointments</Typography>
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
-                        <TableRow sx={{ bgcolor: '#ff7043' }}>
+                        <TableRow sx={{ bgcolor: '#1976d2' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date & Time</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Clinic</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Veterinarian</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Reason</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Owner's Notes</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
+                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Notes</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {appointments.length === 0 ? (
-                          <TableRow><TableCell colSpan={7} align="center"><Typography color="textSecondary" py={4}>No appointments</Typography></TableCell></TableRow>
+                          <TableRow><TableCell colSpan={5} align="center"><Typography color="textSecondary" py={4}>No appointments</Typography></TableCell></TableRow>
                         ) : appointments.map(appt => (
-                          <TableRow key={appt._id} sx={{ '&:hover': { bgcolor: '#fff9f7' } }}>
+                          <TableRow key={appt._id} sx={{ '&:hover': { bgcolor: '#f5f5f5' } }}>
                             <TableCell>
                               <Typography fontWeight="bold">{new Date(appt.dateTime).toLocaleDateString()}</Typography>
                               <Typography variant="caption">{new Date(appt.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Typography>
                             </TableCell>
                             <TableCell>{appt.clinicId?.name || 'N/A'}</TableCell>
-                            <TableCell>{appt.vetId ? `Dr. ${appt.vetId.firstName} ${appt.vetId.lastName}` : 'N/A'}</TableCell>
                             <TableCell>{getStatusChip(appt.status)}</TableCell>
-                            <TableCell>{appt.reason || 'N/A'}</TableCell>
+                            <TableCell>{appt.reason || 'Routine Checkup'}</TableCell>
                             <TableCell>{appt.notes || '-'}</TableCell>
-                            <TableCell align="center">
-                              <Button
-                                variant="contained"
-                                size="small"
-                                onClick={async () => {
-                                  try {
-                                    const res = await api.get(`/appointments/${appt._id}`);
-                                    setSelectedAppt(res.data);
-                                    setShowApptModal(true);
-                                  } catch (err) {
-                                    setSelectedAppt(appt);
-                                    setShowApptModal(true);
-                                  }
-                                }}
-                                sx={{ bgcolor: '#ff7043', '&:hover': { bgcolor: '#e64a19' } }}
-                              >
-                                View
-                              </Button>
-                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -862,37 +746,85 @@ const PetProfile = () => {
                 </AlignedContent>
               )}
 
-              {activeTab === 4 && (
+              {activeTab === 3 && (
                 <AlignedContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h5" fontWeight="bold" color="#7b1fa2">Vaccinations</Typography>
-                    <Button variant="contained" color="secondary" startIcon={<AddIcon />} onClick={() => { cancelPresForm(); setPresFormData(p => ({ ...p, type: 'Vaccination' })); setShowPresForm(true); }}>
-                      Add Vaccination
+                    <Typography variant="h5" fontWeight="bold" color="#7b1fa2">Prescriptions</Typography>
+                    <Button variant="contained" color="secondary" startIcon={<AddIcon />} onClick={() => { cancelPresForm(); setShowPresForm(!showPresForm); }}>
+                      {showPresForm ? 'Cancel' : 'Add Prescription'}
                     </Button>
                   </Box>
+
+                  <Collapse in={showPresForm}>
+                    <Paper elevation={3} sx={{ p: 3, mb: 3, borderRadius: 3, border: '1px solid #e1bee7' }}>
+                      <Typography variant="h6" fontWeight="bold" mb={2}>{isEditingPres ? 'Edit' : 'New'} Prescription / Medication / Vaccination</Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                          <FormControl fullWidth>
+                            <InputLabel>Type</InputLabel>
+                            <Select value={presFormData.type} onChange={e => setPresFormData(p => ({ ...p, type: e.target.value }))} label="Type">
+                              <MenuItem value="Medication">Medication</MenuItem>
+                              <MenuItem value="Vaccination">Vaccination</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <FormControl fullWidth>
+                            <InputLabel>Linked Record</InputLabel>
+                            <Select value={presFormData.medicalRecordId || ''} onChange={e => setPresFormData(p => ({ ...p, medicalRecordId: e.target.value }))} label="Linked Record">
+                              <MenuItem value=""><em>None</em></MenuItem>
+                              {medicalRecords.map(r => <MenuItem key={r._id} value={r._id}>{r.diagnosis} ({new Date(r.date).toLocaleDateString()})</MenuItem>)}
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField fullWidth label="Medication / Vaccine Name *" value={presFormData.medicationName} onChange={e => setPresFormData(p => ({ ...p, medicationName: e.target.value }))} />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField fullWidth label="Dosage *" value={presFormData.dosage} onChange={e => setPresFormData(p => ({ ...p, dosage: e.target.value }))} />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField fullWidth label="Duration" value={presFormData.duration} onChange={e => setPresFormData(p => ({ ...p, duration: e.target.value }))} />
+                        </Grid>
+                        {presFormData.type === 'Vaccination' && (
+                          <Grid item xs={12} sm={6}>
+                            <TextField fullWidth type="date" label="Due Date *" InputLabelProps={{ shrink: true }} value={presFormData.dueDate} onChange={e => setPresFormData(p => ({ ...p, dueDate: e.target.value }))} />
+                          </Grid>
+                        )}
+                        <Grid item xs={12}>
+                          <TextField fullWidth multiline rows={2} label="Instructions" value={presFormData.instructions} onChange={e => setPresFormData(p => ({ ...p, instructions: e.target.value }))} />
+                        </Grid>
+                        <Grid item xs={12} sx={{ textAlign: 'right' }}>
+                          <Button onClick={cancelPresForm} sx={{ mr: 1 }}>Cancel</Button>
+                          <Button variant="contained" color="secondary" onClick={handleSavePres} disabled={saving}>
+                            {saving ? 'Saving...' : 'Save'}
+                          </Button>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  </Collapse>
+
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
                         <TableRow sx={{ bgcolor: '#7b1fa2' }}>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date of Vaccination</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Type</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Name</TableCell>
+                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Type</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Dosage</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Frequency</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Next Date</TableCell>
+                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Duration</TableCell>
+                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Due Date</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {prescriptions.filter(p => p.type === 'Vaccination').length === 0 ? (
-                          <TableRow><TableCell colSpan={7} align="center"><Typography color="textSecondary" py={4}>No vaccination records</Typography></TableCell></TableRow>
-                        ) : prescriptions.filter(p => p.type === 'Vaccination').map(pres => (
-                          <TableRow key={pres._id} sx={{ '&:hover': { bgcolor: '#f7f2f9' } }}>
-                            <TableCell>{new Date(pres.createdAt).toLocaleDateString()}</TableCell>
-                            <TableCell><Chip label={pres.type} size="small" color="secondary" /></TableCell>
+                        {prescriptions.length === 0 ? (
+                          <TableRow><TableCell colSpan={6} align="center"><Typography color="textSecondary" py={4}>No prescriptions or vaccinations</Typography></TableCell></TableRow>
+                        ) : prescriptions.map(pres => (
+                          <TableRow key={pres._id} sx={{ '&:hover': { bgcolor: '#fdf3ff' } }}>
                             <TableCell><Typography fontWeight="bold">{pres.medicationName}</Typography></TableCell>
+                            <TableCell><Chip label={pres.type} size="small" color={pres.type === 'Vaccination' ? 'success' : 'primary'} /></TableCell>
                             <TableCell>{pres.dosage}</TableCell>
-                            <TableCell>{pres.duration || 'N/A'}</TableCell>
+                            <TableCell>{pres.duration || '-'}</TableCell>
                             <TableCell>{pres.dueDate ? new Date(pres.dueDate).toLocaleDateString() : '-'}</TableCell>
                             <TableCell align="center">
                               <Tooltip title="Edit"><IconButton size="small" color="primary" onClick={() => startEditPres(pres)}><EditIcon /></IconButton></Tooltip>
@@ -906,123 +838,6 @@ const PetProfile = () => {
                   </TableContainer>
                 </AlignedContent>
               )}
-
-              {/* Modals */}
-              <Dialog open={showMedForm} onClose={cancelMedForm} maxWidth="md" fullWidth>
-                <DialogTitle sx={{ bgcolor: '#f5f7fa' }}>{isEditingMed ? 'Edit Medical Note/Record' : 'Add Medical Note/Record'}</DialogTitle>
-                <DialogContent dividers>
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={12}>
-                      <TextField fullWidth multiline rows={2} label="Diagnosis *" value={medFormData.diagnosis} onChange={e => setMedFormData(p => ({ ...p, diagnosis: e.target.value }))} />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField fullWidth multiline rows={4} label="Treatment Notes" value={medFormData.treatmentNotes} onChange={e => setMedFormData(p => ({ ...p, treatmentNotes: e.target.value }))} />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField fullWidth type="date" label="Date" InputLabelProps={{ shrink: true }} value={medFormData.date} onChange={e => setMedFormData(p => ({ ...p, date: e.target.value }))} />
-                    </Grid>
-                    <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <FormControlLabel
-                        control={<Switch checked={medFormData.visibleToOwner} onChange={e => setMedFormData(p => ({ ...p, visibleToOwner: e.target.checked }))} color="success" />}
-                        label="Visible to Owner"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Button variant="outlined" component="label" startIcon={<AttachFileIcon />}>
-                        Attach Files
-                        <input type="file" hidden multiple accept="image/*,.pdf" onChange={handleFileSelect} />
-                      </Button>
-                      {selectedFiles.map((f, i) => (
-                        <Chip key={i} label={f.name} onDelete={() => removeSelectedFile(i)} sx={{ ml: 1, mt: 0.5 }} />
-                      ))}
-                    </Grid>
-                  </Grid>
-                </DialogContent>
-                <DialogActions sx={{ p: 2, bgcolor: '#f5f7fa' }}>
-                  <Button onClick={cancelMedForm}>Cancel</Button>
-                  <Button variant="contained" color="success" onClick={handleSaveMedRecord} disabled={saving || uploading}>{saving ? 'Saving...' : 'Save'}</Button>
-                </DialogActions>
-              </Dialog>
-
-              <Dialog open={showPresForm} onClose={cancelPresForm} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{ bgcolor: '#f5f7fa' }}>{isEditingPres ? 'Edit' : 'Add'} Prescription/Vaccination</DialogTitle>
-                <DialogContent dividers>
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
-                        <InputLabel>Type</InputLabel>
-                        <Select value={presFormData.type} onChange={e => setPresFormData(p => ({ ...p, type: e.target.value }))} label="Type">
-                          <MenuItem value="Medication">Medication</MenuItem>
-                          <MenuItem value="Vaccination">Vaccination</MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
-                        <InputLabel>Linked Record</InputLabel>
-                        <Select value={presFormData.medicalRecordId || ''} onChange={e => setPresFormData(p => ({ ...p, medicalRecordId: e.target.value }))} label="Linked Record">
-                          <MenuItem value=""><em>None</em></MenuItem>
-                          {medicalRecords.map(r => <MenuItem key={r._id} value={r._id}>{r.diagnosis} ({new Date(r.date).toLocaleDateString()})</MenuItem>)}
-                        </Select>
-                      </FormControl>
-                    </Grid>
-                    <Grid item xs={12} sm={12}>
-                      <TextField fullWidth label="Name *" value={presFormData.medicationName} onChange={e => setPresFormData(p => ({ ...p, medicationName: e.target.value }))} />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField fullWidth label="Dosage" value={presFormData.dosage} onChange={e => setPresFormData(p => ({ ...p, dosage: e.target.value }))} />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField fullWidth label="Frequency/Duration" value={presFormData.duration} onChange={e => setPresFormData(p => ({ ...p, duration: e.target.value }))} />
-                    </Grid>
-                    {presFormData.type === 'Vaccination' && (
-                      <Grid item xs={12}>
-                        <TextField fullWidth type="date" label="Next Due Date" InputLabelProps={{ shrink: true }} value={presFormData.dueDate} onChange={e => setPresFormData(p => ({ ...p, dueDate: e.target.value }))} />
-                      </Grid>
-                    )}
-                    <Grid item xs={12}>
-                      <TextField fullWidth multiline rows={3} label="Instructions" value={presFormData.instructions} onChange={e => setPresFormData(p => ({ ...p, instructions: e.target.value }))} />
-                    </Grid>
-                  </Grid>
-                </DialogContent>
-                <DialogActions sx={{ p: 2, bgcolor: '#f5f7fa' }}>
-                  <Button onClick={cancelPresForm}>Cancel</Button>
-                  <Button variant="contained" color="secondary" onClick={handleSavePres} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
-                </DialogActions>
-              </Dialog>
-
-              <Dialog open={showApptModal} onClose={() => setShowApptModal(false)} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{ bgcolor: '#f5f7fa' }}>Appointment Details & Documents</DialogTitle>
-                <DialogContent dividers>
-                  {selectedAppt && (
-                    <Box sx={{ py: 1 }}>
-                      <Typography variant="h6" color="primary" gutterBottom>Documents</Typography>
-                      {selectedAppt.medicalRecordUrl ? (
-                        <Box sx={{ mb: 2, p: 2, bgcolor: '#f0f4f8', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <AttachFileIcon color="primary" />
-                            <Typography fontWeight="bold">Medical Notes</Typography>
-                          </Box>
-                          <Button size="small" variant="contained" component="a" href={selectedAppt.medicalRecordUrl} target="_blank">View</Button>
-                        </Box>
-                      ) : <Typography color="textSecondary" mb={2}>No medical notes document attached.</Typography>}
-
-                      {selectedAppt.prescriptionUrl ? (
-                        <Box sx={{ mb: 2, p: 2, bgcolor: '#f0f4f8', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <AttachFileIcon color="secondary" />
-                            <Typography fontWeight="bold">Prescription</Typography>
-                          </Box>
-                          <Button size="small" variant="contained" color="secondary" component="a" href={selectedAppt.prescriptionUrl} target="_blank">View</Button>
-                        </Box>
-                      ) : <Typography color="textSecondary" mb={2}>No prescription document attached.</Typography>}
-                    </Box>
-                  )}
-                </DialogContent>
-                <DialogActions sx={{ p: 2 }}>
-                  <Button onClick={() => setShowApptModal(false)} variant="outlined">Close</Button>
-                </DialogActions>
-              </Dialog>
             </Box>
           </Paper>
         </Box>

@@ -8,7 +8,8 @@ import {
   Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, TextField, MenuItem, Select, InputLabel, TablePagination,
   IconButton, Collapse, Grid, Card, CardContent, CardHeader,
-  Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack
+  Dialog, DialogTitle, DialogContent, DialogActions, Button, Stack,
+  ToggleButton, ToggleButtonGroup, Divider
 } from '@mui/material';
 import VetAdminNavbar from '../../components/layout/VetAdminNavbar';
 import { useTheme, useMediaQuery } from '@mui/material';
@@ -25,7 +26,14 @@ import {
   CalendarMonth as CalendarIcon,
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as UncheckedIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  ViewList as ViewListIcon,
+  ViewModule as ViewModuleIcon,
+  LocationOnOutlined as LocationOnOutlinedIcon,
+  PhoneOutlined as PhoneOutlinedIcon,
+  AccessTimeOutlined as AccessTimeOutlinedIcon,
+  EditOutlined as EditOutlinedIcon,
+  ChevronRight as ChevronRightIcon
 } from '@mui/icons-material';
 import { FaPaw } from 'react-icons/fa';
 
@@ -47,8 +55,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   borderRadius: 12,
   boxShadow: '0px 0px 15px rgba(0,0,0,0.1)',
   flex: 1,
-  margin: '20px',
-  padding: '30px',
+  padding: '32px',
   display: 'flex',
   flexDirection: 'column',
 }));
@@ -133,6 +140,7 @@ const ClinicList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(10);
+  const [viewMode, setViewMode] = useState('list');
   const [expandedRow, setExpandedRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
@@ -260,11 +268,15 @@ const ClinicList = () => {
     setIsSubmitting(true);
     try {
       const operatingHours = `${formData.daysFrom} - ${formData.daysTo} | ${formData.timeFrom} - ${formData.timeTo}`;
+      const startIndex = days.indexOf(formData.daysFrom);
+      const endIndex = days.indexOf(formData.daysTo);
+      const computedOperatingDays = days.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
+
       const payload = {
         name: formData.name.trim(),
         address: formData.address.trim(),
         phoneNumber: formData.phoneNumber.trim(),
-        operatingDays: formData.operatingDays,
+        operatingDays: computedOperatingDays,
         operatingHours: operatingHours,
         description: formData.description.trim(),
         location: formData.location ? { type: 'Point', coordinates: [formData.location.lng, formData.location.lat] } : undefined
@@ -290,16 +302,20 @@ const ClinicList = () => {
     setIsSubmitting(true);
     try {
       const operatingHours = `${formData.daysFrom} - ${formData.daysTo} | ${formData.timeFrom} - ${formData.timeTo}`;
+      const startIndex = days.indexOf(formData.daysFrom);
+      const endIndex = days.indexOf(formData.daysTo);
+      const computedOperatingDays = days.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
+
       const payload = {
         name: formData.name.trim(),
         address: formData.address.trim(),
         phoneNumber: formData.phoneNumber.trim(),
-        operatingDays: formData.operatingDays,
+        operatingDays: computedOperatingDays,
         operatingHours: operatingHours,
         description: formData.description.trim()
       };
 
-      await api.put(`/vets/clinics/${currentEditId}`, payload);
+      await api.put(`/clinics/${currentEditId}`, payload);
       Swal.fire({ title: 'Success!', text: 'Clinic updated successfully', icon: 'success', timer: 2000, showConfirmButton: false });
       handleEditClose();
       fetchClinics();
@@ -310,27 +326,7 @@ const ClinicList = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: "You won't be able to revert this!",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#64748b',
-      confirmButtonText: 'Yes, delete it!'
-    });
 
-    if (result.isConfirmed) {
-      try {
-        await api.delete(`/vets/clinics/${id}`);
-        Swal.fire('Deleted!', 'Clinic has been deleted.', 'success');
-        fetchClinics();
-      } catch (error) {
-        Swal.fire('Error!', error.response?.data?.message || 'Could not delete clinic.', 'error');
-      }
-    }
-  };
 
   const handleViewPets = (clinicName) => {
     navigate(`/vet/pets?clinic=${encodeURIComponent(clinicName)}`);
@@ -351,96 +347,232 @@ const ClinicList = () => {
           <ContentContainer>
             <SearchSection>
               <Typography variant="h4" sx={{ fontWeight: 700, color: '#49149e' }}>My Clinics</Typography>
-              <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                <ToggleButtonGroup
+                  value={viewMode}
+                  exclusive
+                  onChange={(e, newMode) => {
+                    if (newMode !== null) setViewMode(newMode);
+                  }}
+                  size="small"
+                  sx={{
+                    bgcolor: 'white',
+                    height: 40,
+                    '& .MuiToggleButton-root': {
+                      color: '#64748b',
+                      border: '1px solid #e2e8f0',
+                      '&.Mui-selected': {
+                        bgcolor: alpha('#49149e', 0.1),
+                        color: '#49149e',
+                        '&:hover': { bgcolor: alpha('#49149e', 0.15) }
+                      }
+                    }
+                  }}
+                >
+                  <ToggleButton value="list"><ViewListIcon /></ToggleButton>
+                  <ToggleButton value="card"><ViewModuleIcon /></ToggleButton>
+                </ToggleButtonGroup>
                 <TextField
                   size="small"
                   placeholder="Search clinics..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  sx={{ width: 300 }}
+                  sx={{ width: { xs: '100%', sm: 300 } }}
                 />
                 <Button
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={handleOpenPopup}
-                  sx={{ bgcolor: '#8e24aa', '&:hover': { bgcolor: '#7b1fa2' } }}
+                  sx={{ bgcolor: '#8e24aa', '&:hover': { bgcolor: '#7b1fa2' }, height: 40 }}
                 >
-                  Add Clinic
+                  Create New Clinic
                 </Button>
               </Box>
             </SearchSection>
 
-            <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3 }}>
-              <Table>
-                <TableHead>
-                  <TableHeadRow>
-                    <TableCell />
-                    <TableHeadCell>Name</TableHeadCell>
-                    <TableHeadCell>Address</TableHeadCell>
-                    <TableHeadCell>Phone</TableHeadCell>
-                    <TableHeadCell>Actions</TableHeadCell>
-                  </TableHeadRow>
-                </TableHead>
-                <TableBody>
-                  {paginatedClinics.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center" sx={{ py: 8 }}>No clinics found</TableCell>
-                    </TableRow>
-                  ) : (
-                    paginatedClinics.map((clinic) => (
-                      <React.Fragment key={clinic._id}>
-                        <TableRowStyled>
-                          <TableCell>
-                            <IconButton onClick={() => handleExpandRow(clinic._id)}>
-                              <ExpandMoreIcon sx={{ transform: expandedRow === clinic._id ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} />
-                            </IconButton>
-                          </TableCell>
-                          <TableCell><Typography fontWeight="bold">{clinic.name}</Typography></TableCell>
-                          <TableCell>{clinic.address}</TableCell>
-                          <TableCell>{clinic.phoneNumber}</TableCell>
-                          <TableCell>
-                            <Box display="flex" gap={1}>
-                              <Button size="small" variant="outlined" startIcon={<FaPaw />} onClick={() => handleViewPets(clinic.name)} sx={{ borderRadius: '8px', textTransform: 'none', color: '#8e24aa', borderColor: '#8e24aa' }}>
-                                View Pets
-                              </Button>
-                              <IconButton color="primary" onClick={() => handleEditOpen(clinic)}><EditIcon /></IconButton>
-                              <IconButton color="error" onClick={() => handleDelete(clinic._id)}><DeleteIcon /></IconButton>
-                            </Box>
-                          </TableCell>
-                        </TableRowStyled>
-                        <TableRow>
-                          <TableCell colSpan={5} sx={{ p: 0 }}>
-                            <Collapse in={expandedRow === clinic._id}>
-                              <Box sx={{ p: 3 }}>
-                                <Grid container spacing={2}>
-                                  <Grid item xs={12} md={6}>
-                                    <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#49149e', mb: 1 }}>Clinic Info</Typography>
-                                    <Typography variant="body2" sx={{ color: '#64748b', lineHeight: 1.6 }}>{clinic.description || 'No description'}</Typography>
-                                  </Grid>
-                                  <Grid item xs={12} md={6}>
-                                    <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#49149e', mb: 1 }}>Schedules</Typography>
-                                    <Stack spacing={1}>
-                                      <Box display="flex" alignItems="center" gap={1}>
-                                        <CalendarIcon sx={{ fontSize: 18, color: '#8e24aa' }} />
-                                        <Typography variant="body2" fontWeight="600">{clinic.operatingDays?.join(', ') || 'N/A'}</Typography>
-                                      </Box>
-                                      <Box display="flex" alignItems="center" gap={1}>
-                                        <AccessTimeIcon sx={{ fontSize: 18, color: '#8e24aa' }} />
-                                        <Typography variant="body2">{clinic.operatingHours}</Typography>
-                                      </Box>
-                                    </Stack>
-                                  </Grid>
-                                </Grid>
+            {viewMode === 'list' ? (
+              <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3 }}>
+                <Table>
+                  <TableHead>
+                    <TableHeadRow>
+                      <TableCell />
+                      <TableHeadCell>Name</TableHeadCell>
+                      <TableHeadCell>Address</TableHeadCell>
+                      <TableHeadCell>Phone</TableHeadCell>
+                      <TableHeadCell>Actions</TableHeadCell>
+                    </TableHeadRow>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedClinics.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center" sx={{ py: 8 }}>No clinics found</TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedClinics.map((clinic) => (
+                        <React.Fragment key={clinic._id}>
+                          <TableRowStyled>
+                            <TableCell>
+                              <IconButton onClick={() => handleExpandRow(clinic._id)}>
+                                <ExpandMoreIcon sx={{ transform: expandedRow === clinic._id ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} />
+                              </IconButton>
+                            </TableCell>
+                            <TableCell><Typography fontWeight="bold">{clinic.name}</Typography></TableCell>
+                            <TableCell>{clinic.address}</TableCell>
+                            <TableCell>{clinic.phoneNumber}</TableCell>
+                            <TableCell>
+                              <Box display="flex" gap={1}>
+                                <Button size="small" variant="outlined" startIcon={<FaPaw />} onClick={() => handleViewPets(clinic.name)} sx={{ borderRadius: '8px', textTransform: 'none', color: '#8e24aa', borderColor: '#8e24aa' }}>
+                                  View Pets
+                                </Button>
+                                <IconButton color="primary" onClick={() => handleEditOpen(clinic)}><EditIcon /></IconButton>
                               </Box>
-                            </Collapse>
-                          </TableCell>
-                        </TableRow>
-                      </React.Fragment>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                            </TableCell>
+                          </TableRowStyled>
+                          <TableRow>
+                            <TableCell colSpan={5} sx={{ p: 0 }}>
+                              <Collapse in={expandedRow === clinic._id}>
+                                <Box sx={{ p: 3 }}>
+                                  <Grid container spacing={2}>
+                                    <Grid item xs={12} md={6}>
+                                      <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#49149e', mb: 1 }}>Clinic Info</Typography>
+                                      <Typography variant="body2" sx={{ color: '#64748b', lineHeight: 1.6 }}>{clinic.description || 'No description'}</Typography>
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                      <Typography variant="subtitle1" fontWeight="bold" sx={{ color: '#49149e', mb: 1 }}>Schedules</Typography>
+                                      <Stack spacing={1}>
+                                        <Box display="flex" alignItems="center" gap={1}>
+                                          <CalendarIcon sx={{ fontSize: 18, color: '#8e24aa' }} />
+                                          <Typography variant="body2" fontWeight="600">{clinic.operatingDays?.join(', ') || 'N/A'}</Typography>
+                                        </Box>
+                                        <Box display="flex" alignItems="center" gap={1}>
+                                          <AccessTimeIcon sx={{ fontSize: 18, color: '#8e24aa' }} />
+                                          <Typography variant="body2">{clinic.operatingHours}</Typography>
+                                        </Box>
+                                      </Stack>
+                                    </Grid>
+                                  </Grid>
+                                </Box>
+                              </Collapse>
+                            </TableCell>
+                          </TableRow>
+                        </React.Fragment>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Box sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+                gap: 3,
+                mb: 3
+              }}>
+                {paginatedClinics.length === 0 ? (
+                  <Box sx={{ gridColumn: '1 / -1' }}>
+                    <Typography variant="body1" align="center" sx={{ py: 8, color: '#64748b' }}>No clinics found</Typography>
+                  </Box>
+                ) : (
+                  paginatedClinics.map((clinic) => (
+                    <Box key={clinic._id} sx={{ height: '100%' }}>
+                      <Card sx={{
+                        borderRadius: '16px',
+                        boxShadow: 'none',
+                        border: '1px solid #e2e8f0',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        transition: 'transform 0.2s',
+                        '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }
+                      }}>
+                        <CardContent sx={{ flexGrow: 1, p: 3, pb: 2 }}>
+                          <Typography variant="h6" fontWeight="800" sx={{ color: '#1e293b', mb: 0.5 }}>{clinic.name}</Typography>
+
+                          <Box display="flex" alignItems="flex-start" gap={1} mb={2.5}>
+                            <LocationOnOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18, mt: 0.2 }} />
+                            <Typography variant="body2" color="#64748b">{clinic.address}</Typography>
+                          </Box>
+
+                          <Divider sx={{ mb: 2.5, borderColor: '#f1f5f9' }} />
+
+                          <Stack spacing={1.5} mb={3}>
+                            <Box display="flex" alignItems="center" gap={1.5}>
+                              <PhoneOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18 }} />
+                              <Typography variant="body2" color="#475569" fontWeight="500">{clinic.phoneNumber}</Typography>
+                            </Box>
+                            <Box display="flex" alignItems="flex-start" gap={1.5}>
+                              <AccessTimeOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18, mt: 0.2 }} />
+                              <Box>
+                                <Typography variant="body2" color="#475569" fontWeight="500">
+                                  {clinic.operatingDays?.length > 1 ? `${clinic.operatingDays[0]} - ${clinic.operatingDays[clinic.operatingDays.length - 1]}` : clinic.operatingDays?.[0]}
+                                </Typography>
+                                <Typography variant="body2" color="#64748b" sx={{ mt: 0.5 }}>
+                                  {clinic.operatingHours}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Stack>
+
+                          <Box sx={{ p: 2, bgcolor: alpha('#49149e', 0.05), borderRadius: '12px', mb: 1 }}>
+                            <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                              <FaPaw size={14} style={{ color: '#49149e' }} />
+                              <Typography variant="body2" fontWeight="700" sx={{ color: '#49149e' }}>Pets</Typography>
+                            </Box>
+                            <Typography variant="h4" fontWeight="800" sx={{ color: '#49149e' }}>
+                              {clinic.petsCount || 0}
+                            </Typography>
+                          </Box>
+                        </CardContent>
+
+                        <Box sx={{ p: 3, pt: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                          <Button
+                            variant="contained"
+                            onClick={() => handleViewPets(clinic.name)}
+                            fullWidth
+                            sx={{
+                              borderRadius: '8px',
+                              textTransform: 'none',
+                              bgcolor: '#49149e',
+                              color: 'white',
+                              fontWeight: 700,
+                              py: 1.2,
+                              justifyContent: 'space-between',
+                              px: 2,
+                              boxShadow: 'none',
+                              '&:hover': { bgcolor: '#3a1080', boxShadow: '0 4px 12px rgba(73, 20, 158, 0.2)' }
+                            }}
+                          >
+                            <Box display="flex" alignItems="center" gap={1.5}>
+                              <FaPaw size={16} />
+                              <Typography fontWeight="700">View Pets</Typography>
+                            </Box>
+                            <ChevronRightIcon fontSize="small" />
+                          </Button>
+
+                          <Button
+                            variant="outlined"
+                            onClick={() => handleEditOpen(clinic)}
+                            startIcon={<EditOutlinedIcon />}
+                            fullWidth
+                            sx={{
+                              borderRadius: '8px',
+                              textTransform: 'none',
+                              color: '#64748b',
+                              borderColor: '#e2e8f0',
+                              fontWeight: 600,
+                              py: 0.8,
+                              '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1' }
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        </Box>
+                      </Card>
+                    </Box>
+                  ))
+                )}
+              </Box>
+            )}
             <CustomPagination count={filteredClinics.length} page={page} rowsPerPage={rowsPerPage} onPageChange={(_, p) => setPage(p)} />
           </ContentContainer>
         </Box>
@@ -456,22 +588,22 @@ const ClinicList = () => {
           }}
         >
           <DialogTitle sx={{
-            background: 'linear-gradient(135deg, #49149e 0%, #8e24aa 100%)',
-            color: 'white',
+            color: '#1e293b',
             fontWeight: 800,
-            py: 3,
-            px: 4
+            pb: 1,
+            px: 4,
+            pt: 4
           }}>
             Register New Clinic
           </DialogTitle>
-          <DialogContent sx={{ p: 4, bgcolor: '#fbfcfd' }}>
+          <DialogContent sx={{ p: 4, pt: 1, bgcolor: '#fbfcfd' }}>
             <Grid container spacing={4}>
-              {/* Fundamentals Column */}
-              <Grid item xs={12} md={5}>
-                <Typography variant="subtitle1" fontWeight="800" sx={{ mb: 2.5, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BusinessIcon sx={{ color: '#49149e' }} /> Fundamental Info
+              {/* Left Column: All Fundamental Info Fields */}
+              <Grid item xs={12} md={8}>
+                <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 2, color: '#49149e', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <BusinessIcon sx={{ fontSize: 18 }} /> Fundamental Info
                 </Typography>
-                <Stack spacing={2.5}>
+                <Stack spacing={3}>
                   <TextField
                     fullWidth
                     label="Clinic Name"
@@ -495,8 +627,8 @@ const ClinicList = () => {
                   <TextField
                     fullWidth
                     multiline
-                    rows={4}
-                    label="Precise Address"
+                    rows={3}
+                    label="Clinic Address"
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
@@ -504,75 +636,60 @@ const ClinicList = () => {
                     variant="outlined"
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                   />
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label="Clinic Description (Optional)"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    variant="outlined"
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                  />
                 </Stack>
               </Grid>
 
-              {/* Operations Column */}
-              <Grid item xs={12} md={7}>
-                <Typography variant="subtitle1" fontWeight="800" sx={{ mb: 2.5, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CalendarIcon sx={{ color: '#49149e' }} /> Operational Schedules
+              {/* Right Column: Operations */}
+              <Grid item xs={12} md={4}>
+                <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 2, color: '#49149e', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CalendarIcon sx={{ fontSize: 18 }} /> Operational Schedules
                 </Typography>
-
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="body2" fontWeight="700" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '1px' }}>
-                    Select Working Days
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {days.map(day => (
-                      <DayChip
-                        key={day}
-                        active={formData.operatingDays.includes(day)}
-                        onClick={() => toggleOperatingDay(day)}
-                      >
-                        {formData.operatingDays.includes(day) ? <CheckCircleIcon sx={{ fontSize: 16 }} /> : <UncheckedIcon sx={{ fontSize: 16 }} />}
-                        {day}
-                      </DayChip>
-                    ))}
+                <Stack spacing={3}>
+                  <Box>
+                    <Typography variant="body2" fontWeight="700" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '1px' }}>
+                      Operating Days
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Select size="small" fullWidth name="daysFrom" value={formData.daysFrom} onChange={handleChange} sx={{ borderRadius: '10px' }}>
+                        {days.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
+                      </Select>
+                      <Typography variant="body2" fontWeight="bold">to</Typography>
+                      <Select size="small" fullWidth name="daysTo" value={formData.daysTo} onChange={handleChange} sx={{ borderRadius: '10px' }}>
+                        {days.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
+                      </Select>
+                    </Stack>
                   </Box>
-                </Box>
-
-                <Box>
-                  <Typography variant="body2" fontWeight="700" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '1px' }}>
-                    Define Hours Range
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Select size="small" fullWidth name="daysFrom" value={formData.daysFrom} onChange={handleChange} sx={{ borderRadius: '10px' }}>
-                          {days.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
-                        </Select>
-                        <Typography variant="body2" fontWeight="bold">to</Typography>
-                        <Select size="small" fullWidth name="daysTo" value={formData.daysTo} onChange={handleChange} sx={{ borderRadius: '10px' }}>
-                          {days.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
-                        </Select>
-                      </Stack>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <TextField size="small" fullWidth type="time" name="timeFrom" value={formData.timeFrom} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-                        <Typography variant="body2" fontWeight="bold">to</Typography>
-                        <TextField size="small" fullWidth type="time" name="timeTo" value={formData.timeTo} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </Box>
-
+                  <Box>
+                    <Typography variant="body2" fontWeight="700" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '1px' }}>
+                      Operating Hours
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <TextField size="small" fullWidth type="time" name="timeFrom" value={formData.timeFrom} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                      <Typography variant="body2" fontWeight="bold">to</Typography>
+                      <TextField size="small" fullWidth type="time" name="timeTo" value={formData.timeTo} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                    </Stack>
+                  </Box>
+                </Stack>
                 <Box sx={{ mt: 4, p: 2, bgcolor: alpha('#49149e', 0.03), borderRadius: '16px', border: '1px dashed', borderColor: alpha('#49149e', 0.2) }}>
                   <Typography variant="caption" color="#49149e" fontWeight="600">
                     ⚠️ Note: These hours will be displayed on your clinic profile for pet owners.
                   </Typography>
                 </Box>
+              </Grid>
+
+              {/* Full Width: Description */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Clinic Description (Optional)"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  variant="outlined"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                />
               </Grid>
             </Grid>
           </DialogContent>
@@ -620,21 +737,22 @@ const ClinicList = () => {
           }}
         >
           <DialogTitle sx={{
-            background: 'linear-gradient(135deg, #49149e 0%, #8e24aa 100%)',
-            color: 'white',
+            color: '#1e293b',
             fontWeight: 800,
-            py: 3,
-            px: 4
+            pb: 1,
+            px: 4,
+            pt: 4
           }}>
             Edit Clinic Data
           </DialogTitle>
-          <DialogContent sx={{ p: 4, bgcolor: '#fbfcfd' }}>
+          <DialogContent sx={{ p: 4, pt: 1, bgcolor: '#fbfcfd' }}>
             <Grid container spacing={4}>
-              <Grid item xs={12} md={5}>
-                <Typography variant="subtitle1" fontWeight="800" sx={{ mb: 2.5, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BusinessIcon sx={{ color: '#49149e' }} /> Fundamental Info
+              {/* Left Column: All Fundamental Info Fields */}
+              <Grid item xs={12} md={8}>
+                <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 2, color: '#49149e', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <BusinessIcon sx={{ fontSize: 18 }} /> Fundamental Info
                 </Typography>
-                <Stack spacing={2.5}>
+                <Stack spacing={3}>
                   <TextField
                     fullWidth
                     label="Clinic Name"
@@ -658,8 +776,8 @@ const ClinicList = () => {
                   <TextField
                     fullWidth
                     multiline
-                    rows={4}
-                    label="Precise Address"
+                    rows={3}
+                    label="Clinic Address"
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
@@ -667,73 +785,60 @@ const ClinicList = () => {
                     variant="outlined"
                     sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                   />
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={3}
-                    label="Clinic Description (Optional)"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    variant="outlined"
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                  />
                 </Stack>
               </Grid>
 
-              <Grid item xs={12} md={7}>
-                <Typography variant="subtitle1" fontWeight="800" sx={{ mb: 2.5, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CalendarIcon sx={{ color: '#49149e' }} /> Operational Schedules
+              {/* Right Column: Operations */}
+              <Grid item xs={12} md={4}>
+                <Typography variant="subtitle2" fontWeight="800" sx={{ mb: 2, color: '#49149e', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CalendarIcon sx={{ fontSize: 18 }} /> Operational Schedules
                 </Typography>
-
-                <Box sx={{ mb: 4 }}>
-                  <Typography variant="body2" fontWeight="700" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '1px' }}>
-                    Select Working Days
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {days.map(day => (
-                      <DayChip
-                        key={day}
-                        active={formData.operatingDays.includes(day)}
-                        onClick={() => toggleOperatingDay(day)}
-                      >
-                        {formData.operatingDays.includes(day) ? <CheckCircleIcon sx={{ fontSize: 16 }} /> : <UncheckedIcon sx={{ fontSize: 16 }} />}
-                        {day}
-                      </DayChip>
-                    ))}
+                <Stack spacing={3}>
+                  <Box>
+                    <Typography variant="body2" fontWeight="700" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '1px' }}>
+                      Operating Days
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Select size="small" fullWidth name="daysFrom" value={formData.daysFrom} onChange={handleChange} sx={{ borderRadius: '10px' }}>
+                        {days.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
+                      </Select>
+                      <Typography variant="body2" fontWeight="bold">to</Typography>
+                      <Select size="small" fullWidth name="daysTo" value={formData.daysTo} onChange={handleChange} sx={{ borderRadius: '10px' }}>
+                        {days.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
+                      </Select>
+                    </Stack>
                   </Box>
-                </Box>
-
-                <Box>
-                  <Typography variant="body2" fontWeight="700" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '1px' }}>
-                    Define Hours Range
-                  </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Select size="small" fullWidth name="daysFrom" value={formData.daysFrom} onChange={handleChange} sx={{ borderRadius: '10px' }}>
-                          {days.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
-                        </Select>
-                        <Typography variant="body2" fontWeight="bold">to</Typography>
-                        <Select size="small" fullWidth name="daysTo" value={formData.daysTo} onChange={handleChange} sx={{ borderRadius: '10px' }}>
-                          {days.map(d => <MenuItem key={d} value={d}>{d}</MenuItem>)}
-                        </Select>
-                      </Stack>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <TextField size="small" fullWidth type="time" name="timeFrom" value={formData.timeFrom} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-                        <Typography variant="body2" fontWeight="bold">to</Typography>
-                        <TextField size="small" fullWidth type="time" name="timeTo" value={formData.timeTo} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </Box>
+                  <Box>
+                    <Typography variant="body2" fontWeight="700" color="text.secondary" sx={{ mb: 1.5, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '1px' }}>
+                      Operating Hours
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <TextField size="small" fullWidth type="time" name="timeFrom" value={formData.timeFrom} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                      <Typography variant="body2" fontWeight="bold">to</Typography>
+                      <TextField size="small" fullWidth type="time" name="timeTo" value={formData.timeTo} onChange={handleChange} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                    </Stack>
+                  </Box>
+                </Stack>
                 <Box sx={{ mt: 4, p: 2, bgcolor: alpha('#49149e', 0.03), borderRadius: '16px', border: '1px dashed', borderColor: alpha('#49149e', 0.2) }}>
                   <Typography variant="caption" color="#49149e" fontWeight="600">
                     ⚠️ Note: These hours will be displayed on your clinic profile for pet owners.
                   </Typography>
                 </Box>
+              </Grid>
+
+              {/* Full Width: Description */}
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Clinic Description (Optional)"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  variant="outlined"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                />
               </Grid>
             </Grid>
           </DialogContent>

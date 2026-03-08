@@ -32,8 +32,10 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './sidebar';
+import { useAuth } from '../../context/AuthContext';
 
 const VetAdminNavbar = () => {
+    const { logout } = useAuth();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
     const theme = useTheme();
@@ -49,9 +51,8 @@ const VetAdminNavbar = () => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('vet_token');
-        localStorage.removeItem('vet_user');
-        navigate('/vet/login');
+        logout();
+        navigate('/');
     };
 
     const toggleDrawer = (open) => (event) => {
@@ -68,7 +69,6 @@ const VetAdminNavbar = () => {
                 sx={{
                     background: 'linear-gradient(135deg, #49149e 0%, #8e24aa 100%)',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                    zIndex: theme.zIndex.drawer + 1
                 }}
             >
                 <Toolbar sx={{ justifyContent: 'space-between' }}>
@@ -215,14 +215,14 @@ const VetAdminNavbar = () => {
                 onClose={toggleDrawer(false)}
                 PaperProps={{
                     sx: {
-                        width: 300,
+                        width: '100%',
                         border: 'none',
                         background: 'transparent'
                     }
                 }}
             >
-                <Box onClick={toggleDrawer(false)} onKeyDown={toggleDrawer(false)}>
-                    <Sidebar />
+                <Box onKeyDown={toggleDrawer(false)}>
+                    <Sidebar mobileView={true} onClose={() => setDrawerOpen(false)} />
                 </Box>
             </Drawer>
         </>

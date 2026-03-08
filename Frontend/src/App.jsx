@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import DashboardHome from './pages/vet/DashboardHome';
-// import AppointmentsToday from './pages/vet/AppointmentsToday';
 import AppointmentsList from './pages/vet/AppointmentsList';
+import TodayAppointments from './pages/vet/TodayAppointments';
 // import PetList from './pages/vet/PetList';
 // import PendingRegistrations from './pages/vet/PendingRegistrations';
 // import PetDetail from './pages/vet/PetDetail';
@@ -12,6 +12,7 @@ import AppointmentsList from './pages/vet/AppointmentsList';
 // import StaffManagement from './pages/vet/StaffManagement';
 import ClinicSettings from './pages/vet/ClinicSettings';
 import RegisteredPets from './pages/vet/RegisteredPets';
+import PendingRegistrations from './pages/vet/PendingRegistrations';
 import ChatWithOwners from './pages/vet/VetChat';
 import VetChatWindow from './pages/vet/VetChatWindow';
 import VetStaff from './pages/vet/ClinicStaff';
@@ -73,7 +74,9 @@ function App() {
 
         <Route path="vet/dashboard" element={<DashboardHome />} />
         <Route path="vet/appointments" element={<AppointmentsList />} />
+        <Route path="vet/appointments/today" element={<TodayAppointments />} />
         <Route path="vet/pets" element={<RegisteredPets />} />
+        <Route path="vet/pets/pending" element={<PendingRegistrations />} />
         <Route path="vet/chat" element={<ChatWithOwners />} />
         <Route path="vet/chat/owner/:ownerId" element={<VetChatWindow />} />
         <Route path="/vet/chat" element={<ChatWithOwners />} />

@@ -30,7 +30,7 @@ const VetRegister = () => {
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', password: '',
     phoneNumber: '', veterinaryId: '', specialization: '',
-    clinicId: '', isPrimaryVet: false
+    isPrimaryVet: false
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -241,25 +241,8 @@ const VetRegister = () => {
                 }}>
                   <FormControlLabel
                     control={<Checkbox name="isPrimaryVet" checked={formData.isPrimaryVet} onChange={handleChange} color="secondary" />}
-                    label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>I am the Primary Veterinarian of my clinic</Typography>}
+                    label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>I am a Private Veterinarian</Typography>}
                   />
-                  {formData.isPrimaryVet && (
-                    <Box sx={{ mt: 2 }}>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Clinic ID (Optional)"
-                        name="clinicId"
-                        value={formData.clinicId}
-                        onChange={handleChange}
-                        placeholder="Leave blank to create a new clinic"
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start"><LocalHospitalOutlined sx={{ color: mainColor, fontSize: 18 }} /></InputAdornment>,
-                          sx: { borderRadius: '12px', bgcolor: 'white' }
-                        }}
-                      />
-                    </Box>
-                  )}
                 </Box>
               </Grid>
             </Grid>
@@ -290,12 +273,12 @@ const VetRegister = () => {
             </Button>
           </form>
 
-          <Box sx={{ textAlign: 'center', mt: 4, pt: 3, borderTop: '1px solid #f1f5f9' }}>
+          <Box sx={{ textAlign: 'center', mt: 4, pt: 3, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: 0.5 }}>
             <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 500 }}>
-              Already registered?{' '}
+              Already registered?
               <Link
                 href="/vet/login"
-                sx={{ color: mainColor, fontWeight: 800, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                sx={{ color: mainColor, fontWeight: 800, textDecoration: 'none', '&:hover': { textDecoration: 'underline' }, verticalAlign: 'baseline' }}
               >
                 Sign in to Portal
               </Link>

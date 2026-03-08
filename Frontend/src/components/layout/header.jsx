@@ -398,7 +398,7 @@ const PetManagerHeader = () => {
   const handleLogout = () => {
     localStorage.clear();
     handleClose();
-    navigate('/login');
+    navigate('/');
   };
 
   const navigateTo = (path) => {

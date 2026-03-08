@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, TextField, MenuItem, FormControl, Select, InputLabel, TablePagination,
   Avatar, Chip, IconButton, Collapse, Grid, Card, CardContent, CardHeader, Tabs, Tab, Button,
-  Dialog, DialogTitle, DialogContent, DialogActions
+  Dialog, DialogTitle, DialogContent, DialogActions, alpha
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Swal from 'sweetalert2';
@@ -20,7 +21,10 @@ import {
   Description as DescriptionIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
-  Event as EventIcon
+  Event as EventIcon,
+  CheckCircleOutline as CheckCircleOutlineIcon,
+  Medication as MedicationIcon,
+  Chat as ChatIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 import socket, { connectSocket, disconnectSocket } from '../../services/socket';
@@ -45,8 +49,7 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   borderRadius: 12,
   boxShadow: '0px 0px 15px rgba(0,0,0,0.1)',
   flex: 1,
-  margin: '20px',
-  padding: '30px',
+  padding: '32px',
   display: 'flex',
   flexDirection: 'column',
 }));
@@ -150,16 +153,16 @@ const StyledTab = styled(Tab)({
 const VetAppointmentsList = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState(0);
+  /* const [pageToday, setPageToday] = useState(0);
+  const [rowsPerPageToday] = useState(8); */
 
   const [appointments, setAppointments] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchCriteria, setSearchCriteria] = useState("petName");
   const [statusFilter, setStatusFilter] = useState("all");
-
-  const [pageToday, setPageToday] = useState(0);
-  const [rowsPerPageToday] = useState(8);
+  const [clinicFilter, setClinicFilter] = useState("all");
 
   const [pageAll, setPageAll] = useState(0);
   const [rowsPerPageAll] = useState(8);
@@ -264,50 +267,59 @@ const VetAppointmentsList = () => {
   }, [vetId]);
 
   const handleConfirm = async (id) => {
-    const result = await Swal.fire({
-      title: 'Confirm Appointment?',
-      text: 'This will mark the appointment as confirmed.',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#4caf50',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, confirm it!',
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await api.patch(`/appointments/${id}/confirm`);
-        setAppointments(appointments.map(app =>
-          app._id === id ? { ...app, status: 'Confirmed' } : app
-        ));
-        Swal.fire('Confirmed!', 'Appointment has been confirmed.', 'success');
-      } catch (error) {
-        Swal.fire('Error!', error.response?.data?.message || 'Could not confirm appointment', 'error');
-      }
+    try {
+      await api.patch(`/appointments/${id}/confirm`);
+      setAppointments(appointments.map(app =>
+        app._id === id ? { ...app, status: 'Confirmed' } : app
+      ));
+      Swal.fire({
+        title: 'Confirmed!',
+        text: 'Appointment has been confirmed.',
+        icon: 'success',
+        timer: 3000,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      Swal.fire('Error!', error.response?.data?.message || 'Could not confirm appointment', 'error');
     }
   };
 
   const handleCancel = async (id) => {
+    try {
+      await api.patch(`/appointments/${id}/cancel`);
+      setAppointments(appointments.map(app =>
+        app._id === id ? { ...app, status: 'Canceled' } : app
+      ));
+      Swal.fire({
+        title: 'Canceled!',
+        text: 'Appointment has been canceled.',
+        icon: 'success',
+        timer: 3000,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      Swal.fire('Error!', error.response?.data?.message || 'Could not cancel appointment', 'error');
+    }
+  };
+
+  const handlePendingManage = async (app) => {
     const result = await Swal.fire({
-      title: 'Cancel Appointment?',
-      text: 'This action cannot be undone.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, cancel it!',
+      title: 'Manage Pending Appointment',
+      text: `Manage appointment for ${app.petId?.name || 'this pet'}`,
+      showCloseButton: true,
+      showConfirmButton: true,
+      showDenyButton: true,
+      showCancelButton: false,
+      confirmButtonText: 'Confirm Appointment',
+      denyButtonText: 'Reject Appointment',
+      confirmButtonColor: '#4caf50',
+      denyButtonColor: '#f44336',
     });
 
     if (result.isConfirmed) {
-      try {
-        await api.patch(`/appointments/${id}/cancel`);
-        setAppointments(appointments.map(app =>
-          app._id === id ? { ...app, status: 'Canceled' } : app
-        ));
-        Swal.fire('Canceled!', 'Appointment has been canceled.', 'success');
-      } catch (error) {
-        Swal.fire('Error!', error.response?.data?.message || 'Could not cancel appointment', 'error');
-      }
+      handleConfirm(app._id);
+    } else if (result.isDenied) {
+      handleCancel(app._id);
     }
   };
 
@@ -327,22 +339,9 @@ const VetAppointmentsList = () => {
     });
   };
 
-  const todayAppointments = appointments.filter(app => isToday(app.dateTime));
-
-  const filteredTodayAppointments = todayAppointments.filter((app) => {
-    if (statusFilter !== 'all' && app.status !== statusFilter) return false;
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    switch (searchCriteria) {
-      case 'petName': return app.petId?.name?.toLowerCase().includes(query);
-      case 'ownerName': return `${app.petId?.ownerId?.firstName || ''} ${app.petId?.ownerId?.lastName || ''}`.toLowerCase().includes(query);
-      case 'reason': return app.reason?.toLowerCase().includes(query);
-      default: return true;
-    }
-  });
-
   const filteredAllAppointments = appointments.filter((app) => {
     if (statusFilter !== 'all' && app.status !== statusFilter) return false;
+    if (clinicFilter !== 'all' && app.clinicId?._id !== clinicFilter) return false;
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     switch (searchCriteria) {
@@ -353,8 +352,15 @@ const VetAppointmentsList = () => {
     }
   });
 
-  const paginatedTodayAppointments = filteredTodayAppointments.slice(pageToday * rowsPerPageToday, pageToday * rowsPerPageToday + rowsPerPageToday);
   const paginatedAllAppointments = filteredAllAppointments.slice(pageAll * rowsPerPageAll, pageAll * rowsPerPageAll + rowsPerPageAll);
+
+  // Get unique clinics from appointments to populate filter
+  const uniqueClinics = appointments.reduce((acc, app) => {
+    if (app.clinicId && !acc.find(c => c._id === app.clinicId._id)) {
+      acc.push(app.clinicId);
+    }
+    return acc;
+  }, []);
 
   const [openManageModal, setOpenManageModal] = useState(false);
   const [selectedApp, setSelectedApp] = useState(null);
@@ -414,16 +420,14 @@ const VetAppointmentsList = () => {
               <TableHeadCell></TableHeadCell>
               <TableHeadCell>Pet</TableHeadCell>
               <TableHeadCell>Owner</TableHeadCell>
-              <TableHeadCell>Date & Time</TableHeadCell>
               <TableHeadCell>Status</TableHeadCell>
-              <TableHeadCell>Reason</TableHeadCell>
               <TableHeadCell>Actions</TableHeadCell>
             </TableHeadRow>
           </TableHead>
           <TableBody>
             {appointmentsList.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
+                <TableCell colSpan={5} align="center">
                   <Typography variant="h6" color="textSecondary">No appointments found.</Typography>
                 </TableCell>
               </TableRow>
@@ -452,84 +456,78 @@ const VetAppointmentsList = () => {
                         {app.petId?.ownerId ? `${app.petId.ownerId.firstName} ${app.petId.ownerId.lastName}` : 'N/A'}
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <CalendarTodayIcon fontSize="small" color="primary" />
-                        <Typography>{formatDateTime(app.dateTime)}</Typography>
-                      </Box>
-                    </TableCell>
                     <TableCell><StatusChip label={app.status === 'Booked' ? 'Pending' : app.status} status={app.status} /></TableCell>
-                    <TableCell>{app.reason || 'Routine Checkup'}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         {app.status === 'Booked' && (
-                          <IconButton color="success" onClick={() => handleConfirm(app._id)} title="Confirm">
-                            <CheckCircleIcon />
-                          </IconButton>
-                        )}
-                        {app.status === 'Confirmed' && (
-                          <Button variant="contained" size="small" color="primary" onClick={() => handleOpenManage(app)}>
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color="info"
+                            onClick={() => handlePendingManage(app)}
+                            sx={{ borderRadius: '20px', px: 3 }}
+                          >
                             Manage
                           </Button>
                         )}
-                        {app.status !== 'Canceled' && app.status !== 'Completed' && (
-                          <IconButton color="error" onClick={() => handleCancel(app._id)} title="Cancel">
-                            <CancelIcon />
-                          </IconButton>
+                        {app.status === 'Confirmed' && (
+                          <Button
+                            variant="contained"
+                            size="small"
+                            color="primary"
+                            onClick={() => handleOpenManage(app)}
+                            sx={{ borderRadius: '20px', px: 3 }}
+                          >
+                            Manage
+                          </Button>
                         )}
                       </Box>
                     </TableCell>
                   </TableRowStyled>
 
                   <TableRow>
-                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+                    <TableCell style={{ padding: 0 }} colSpan={5}>
                       <Collapse in={expandedRow === app._id} timeout="auto" unmountOnExit>
-                        <DetailsCard>
-                          <Grid container spacing={4}>
-                            <Grid item xs={12} md={6}>
-                              <CardHeaderStyled bgcolor="#4caf50" title="Pet & Owner Information" avatar={<PetsIcon />} />
-                              <CardContent>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                                  <PetAvatar src={app.petId?.photo || ''} alt={app.petId?.name} sx={{ width: 100, height: 100, mr: 3 }} />
-                                  <Box>
-                                    <Typography variant="h6">{app.petId?.name}</Typography>
-                                    <Typography>{app.petId?.species} • {app.petId?.breed}</Typography>
-                                    <Typography color="textSecondary">
-                                      Owner: {app.petId?.ownerId ? `${app.petId.ownerId.firstName} ${app.petId.ownerId.lastName}` : 'N/A'}
-                                    </Typography>
-                                  </Box>
-                                </Box>
-                              </CardContent>
-                            </Grid>
+                        <Box sx={{ p: 2, backgroundColor: '#f9f9f9', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, borderBottomLeftRadius: 12, borderBottomRightRadius: 12 }}>
+                          <Box sx={{ flex: 1, backgroundColor: 'white', p: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#49149eff' }}>Clinic Information</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><LocationOnIcon sx={{ mr: 1, color: '#8e24aa', fontSize: 20 }} /><Typography variant="body2">{app.clinicId?.name || 'N/A'}</Typography></Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><LocationOnIcon sx={{ mr: 1, color: '#8e24aa', fontSize: 20 }} /><Typography variant="body2">{app.clinicId?.address || 'N/A'}</Typography></Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}><PhoneIcon sx={{ mr: 1, color: '#8e24aa', fontSize: 20 }} /><Typography variant="body2">{app.clinicId?.phoneNumber || 'N/A'}</Typography></Box>
+                          </Box>
 
-                            <Grid item xs={12} md={6}>
-                              <CardHeaderStyled bgcolor="#2196f3" title="Clinic Information" avatar={<LocationOnIcon />} />
-                              <CardContent>
-                                <InfoRow><LocationOnIcon /><InfoLabel>Clinic:</InfoLabel><InfoValue>{app.clinicId?.name || 'N/A'}</InfoValue></InfoRow>
-                                <InfoRow><LocationOnIcon /><InfoLabel>Address:</InfoLabel><InfoValue>{app.clinicId?.address || 'N/A'}</InfoValue></InfoRow>
-                                <InfoRow><PhoneIcon /><InfoLabel>Phone:</InfoLabel><InfoValue>{app.clinicId?.phoneNumber || 'N/A'}</InfoValue></InfoRow>
-                              </CardContent>
-                            </Grid>
+                          <Box sx={{ flex: 1, backgroundColor: 'white', p: 2, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: '#49149eff' }}>Appointment Details</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><CalendarTodayIcon sx={{ mr: 1, color: '#8e24aa', fontSize: 20 }} /><Typography variant="body2"><strong>Date:</strong> {new Date(app.dateTime).toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</Typography></Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><AccessTimeIcon sx={{ mr: 1, color: '#8e24aa', fontSize: 20 }} /><Typography variant="body2"><strong>Time:</strong> {new Date(app.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Typography></Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><DescriptionIcon sx={{ mr: 1, color: '#8e24aa', fontSize: 20 }} /><Typography variant="body2"><strong>Reason:</strong> {app.reason || 'Not specified'}</Typography></Box>
+                            {app.notes && <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}><DescriptionIcon sx={{ mr: 1, color: '#8e24aa', fontSize: 20 }} /><Typography variant="body2"><strong>Notes:</strong> {app.notes}</Typography></Box>}
 
-                            <Grid item xs={12}>
-                              <CardHeaderStyled bgcolor="#9c27b0" title="Appointment Details" avatar={<EventIcon />} />
-                              <CardContent>
-                                <Grid container spacing={3}>
-                                  <Grid item xs={12} md={6}>
-                                    <InfoRow><AccessTimeIcon /><InfoLabel>Date & Time:</InfoLabel><InfoValue>{formatDateTime(app.dateTime)}</InfoValue></InfoRow>
-                                    <InfoRow><DescriptionIcon /><InfoLabel>Reason:</InfoLabel><InfoValue>{app.reason || 'Not specified'}</InfoValue></InfoRow>
-                                  </Grid>
-                                  <Grid item xs={12} md={6}>
-                                    <InfoRow>
-                                      <Typography><strong>Status:</strong> <StatusChip label={app.status === 'Booked' ? 'Pending' : app.status} status={app.status} /></Typography>
-                                    </InfoRow>
-                                    {app.notes && <InfoRow><DescriptionIcon /><InfoLabel>Notes:</InfoLabel><InfoValue>{app.notes}</InfoValue></InfoRow>}
-                                  </Grid>
-                                </Grid>
-                              </CardContent>
-                            </Grid>
-                          </Grid>
-                        </DetailsCard>
+                            {app.petId?.ownerId?._id && (
+                              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                                <Button
+                                  variant="outlined"
+                                  size="small"
+                                  startIcon={<ChatIcon />}
+                                  onClick={() => navigate(`/vet/chat/owner/${app.petId.ownerId._id}`)}
+                                  sx={{
+                                    borderRadius: '20px',
+                                    textTransform: 'none',
+                                    fontWeight: 'bold',
+                                    color: '#49149eff',
+                                    borderColor: '#49149eff',
+                                    '&:hover': {
+                                      borderColor: '#49149eff',
+                                      backgroundColor: alpha('#49149eff', 0.04)
+                                    }
+                                  }}
+                                >
+                                  Chat with Owner
+                                </Button>
+                              </Box>
+                            )}
+                          </Box>
+                        </Box>
                       </Collapse>
                     </TableCell>
                   </TableRow>
@@ -550,14 +548,9 @@ const VetAppointmentsList = () => {
         {!isMobile && <Sidebar />}
         <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
           <ContentContainer>
-            <Typography variant="h4" sx={{ fontFamily: 'Georgia, serif', fontWeight: 700, color: '#49149eff', mb: 3 }}>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 3 }}>
               Appointments Management
             </Typography>
-
-            <StyledTabs value={activeTab} onChange={(e, v) => setActiveTab(v)}>
-              <StyledTab label="Today's Appointments" />
-              <StyledTab label="All Appointments" />
-            </StyledTabs>
 
             <SearchSection>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 2 }}>
@@ -583,21 +576,36 @@ const VetAppointmentsList = () => {
                   />
                 </Box>
 
-                <FormControl sx={{ minWidth: 150 }}>
-                  <InputLabel>Status</InputLabel>
-                  <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status">
-                    <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="Booked">Pending</MenuItem>
-                    <MenuItem value="Confirmed">Confirmed</MenuItem>
-                    <MenuItem value="Canceled">Canceled</MenuItem>
-                    <MenuItem value="Completed">Completed</MenuItem>
-                  </Select>
-                </FormControl>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                  <FormControl sx={{ minWidth: 200 }}>
+                    <InputLabel>Clinic</InputLabel>
+                    <Select
+                      value={clinicFilter}
+                      onChange={(e) => setClinicFilter(e.target.value)}
+                      label="Clinic"
+                    >
+                      <MenuItem value="all">All Clinics</MenuItem>
+                      {uniqueClinics.map(clinic => (
+                        <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl sx={{ minWidth: 150 }}>
+                    <InputLabel>Status</InputLabel>
+                    <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status">
+                      <MenuItem value="all">All</MenuItem>
+                      <MenuItem value="Booked">Pending</MenuItem>
+                      <MenuItem value="Confirmed">Confirmed</MenuItem>
+                      <MenuItem value="Canceled">Canceled</MenuItem>
+                      <MenuItem value="Completed">Completed</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
               </Box>
             </SearchSection>
 
-            {activeTab === 0 && renderTable(paginatedTodayAppointments, pageToday, rowsPerPageToday, (e, newPage) => setPageToday(newPage), filteredTodayAppointments.length)}
-            {activeTab === 1 && renderTable(paginatedAllAppointments, pageAll, rowsPerPageAll, (e, newPage) => setPageAll(newPage), filteredAllAppointments.length)}
+            {renderTable(paginatedAllAppointments, pageAll, rowsPerPageAll, (e, newPage) => setPageAll(newPage), filteredAllAppointments.length)}
 
           </ContentContainer>
         </Box>
@@ -605,54 +613,103 @@ const VetAppointmentsList = () => {
 
       {/* Manage Appointment Modal */}
       <Dialog open={openManageModal} onClose={handleCloseManage} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold', color: '#49149eff' }}>
+        <DialogTitle sx={{ display: 'none' }}>
           Manage Appointment
         </DialogTitle>
-        <DialogContent dividers>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                Upload Medical Record
+        <DialogContent sx={{ p: 0, backgroundColor: '#fdfdfd' }}>
+          <Box sx={{ p: 4, pb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <CheckCircleOutlineIcon sx={{ color: '#2196f3', fontSize: 24, mr: 1 }} />
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
+                Medical Documents
               </Typography>
-              <Button variant="outlined" component="label" fullWidth>
-                Choose File
-                <input type="file" hidden onChange={(e) => setRecordFile(e.target.files[0])} />
-              </Button>
-              {recordFile && <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>{recordFile.name}</Typography>}
             </Box>
 
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                Upload Prescription
-              </Typography>
-              <Button variant="outlined" component="label" fullWidth>
-                Choose File
-                <input type="file" hidden onChange={(e) => setRxFile(e.target.files[0])} />
-              </Button>
-              {rxFile && <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>{rxFile.name}</Typography>}
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 4 }}>
+              <Box sx={{ flex: 1 }}>
+                <Box
+                  component="label"
+                  sx={{
+                    border: '2px dashed #e0e0e0',
+                    borderRadius: 3,
+                    p: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    '&:hover': { borderColor: '#2196f3', backgroundColor: '#f0f8ff' },
+                    transition: 'all 0.2s',
+                    height: '100%'
+                  }}
+                >
+                  <Box sx={{ width: 45, height: 45, borderRadius: '50%', backgroundColor: '#e3f2fd', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                    <DescriptionIcon sx={{ color: '#2196f3', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5, color: '#333' }}>Medical Records</Typography>
+                  <Typography variant="caption" color="textSecondary" sx={{ mb: 1 }}>Upload visit summary (PDF/JPG)</Typography>
+                  <input type="file" hidden onChange={(e) => setRecordFile(e.target.files[0])} />
+                  {recordFile && <Typography variant="caption" sx={{ mt: 1, color: '#2196f3', fontWeight: 'bold', wordBreak: 'break-all' }}>{recordFile.name}</Typography>}
+                </Box>
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
+                <Box
+                  component="label"
+                  sx={{
+                    border: '2px dashed #e0e0e0',
+                    borderRadius: 3,
+                    p: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    '&:hover': { borderColor: '#4caf50', backgroundColor: '#f1f8e9' },
+                    transition: 'all 0.2s',
+                    height: '100%'
+                  }}
+                >
+                  <Box sx={{ width: 45, height: 45, borderRadius: '50%', backgroundColor: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                    <MedicationIcon sx={{ color: '#4caf50', fontSize: 24 }} />
+                  </Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5, color: '#333' }}>Prescriptions</Typography>
+                  <Typography variant="caption" color="textSecondary" sx={{ mb: 1 }}>Upload medication list</Typography>
+                  <input type="file" hidden onChange={(e) => setRxFile(e.target.files[0])} />
+                  {rxFile && <Typography variant="caption" sx={{ mt: 1, color: '#4caf50', fontWeight: 'bold', wordBreak: 'break-all' }}>{rxFile.name}</Typography>}
+                </Box>
+              </Box>
             </Box>
 
+            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#666', mb: 1.5, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+              Special Notes & Observations
+            </Typography>
             <TextField
-              label="Visit Notes"
               multiline
               rows={4}
               variant="outlined"
               fullWidth
               value={manageNotes}
               onChange={(e) => setManageNotes(e.target.value)}
-              placeholder="Add diagnosis, treatment details, or general notes..."
+              placeholder="Luna has been a bit sluggish lately, owner wants to check energy levels."
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: 2,
+                  '& fieldset': { borderColor: '#e0e0e0' }
+                }
+              }}
             />
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleCloseManage} color="inherit">
+        <DialogActions sx={{ p: 4, pt: 2, backgroundColor: '#fdfdfd' }}>
+          <Button onClick={handleCloseManage} color="inherit" sx={{ borderRadius: 2, px: 3, textTransform: 'none', fontWeight: 'bold' }}>
             Cancel
           </Button>
-          <Button onClick={() => handleUpdateConfirmedApp(false)} variant="contained" color="primary">
+          <Button onClick={() => handleUpdateConfirmedApp(false)} variant="contained" color="primary" sx={{ borderRadius: 2, px: 3, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}>
             Save Updates
           </Button>
-          <Button onClick={() => handleUpdateConfirmedApp(true)} variant="contained" color="success">
+          <Button onClick={() => handleUpdateConfirmedApp(true)} variant="contained" color="success" sx={{ borderRadius: 2, px: 3, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}>
             Mark Completed
           </Button>
         </DialogActions>

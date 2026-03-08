@@ -15,6 +15,7 @@ const {
 } = require('../controllers/appointmentController');
 
 const { protect, authorize } = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
 // Custom middleware: Allow owner or vet to cancel
 const allowCancel = (req, res, next) => {
@@ -58,7 +59,16 @@ router.get(
 router.patch('/:id/confirm', protect, authorize('vet'), confirmAppointment);
 
 // Manage appointment (vet only)
-router.patch('/:id/manage', protect, authorize('vet'), manageAppointment);
+router.patch(
+  '/:id/manage',
+  protect,
+  authorize('vet'),
+  upload.fields([
+    { name: 'medicalRecord', maxCount: 1 },
+    { name: 'prescription', maxCount: 1 }
+  ]),
+  manageAppointment
+);
 
 // Cancel appointment (owner or vet)
 router.patch('/:id/cancel', protect, allowCancel, cancelAppointment);

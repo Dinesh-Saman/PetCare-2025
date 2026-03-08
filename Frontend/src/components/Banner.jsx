@@ -13,9 +13,9 @@ const Banner = () => {
 
   const handleClick = () => {
     if (user) {
-      navigate('/owner/pets/new');
+      navigate('/owner/pets/new', { state: { fromHome: true } });
     } else {
-      openAuthModal('register', 'owner');
+      openAuthModal('login', 'owner');
     }
   };
 
@@ -163,12 +163,14 @@ const Banner = () => {
           position: absolute;
           inset: 0;
           z-index: 0;
+          pointer-events: none;
         }
 
         .circle {
           position: absolute;
           border-radius: 50%;
           background: radial-gradient(circle, rgba(16, 185, 129, 0.15), transparent);
+          pointer-events: none;
         }
 
         .circle-1 {
@@ -307,11 +309,8 @@ const Banner = () => {
 
             <div className="banner-actions">
               <button onClick={handleClick} className="banner-button">
-                {user ? "Register your pets" : "Get Started — Add Your Pet"}
+                {user ? "Register your pets" : "Login Your Account"}
               </button>
-              <a href="#features" className="banner-link">
-                Discover Features →
-              </a>
             </div>
 
             <div className="feature-points">

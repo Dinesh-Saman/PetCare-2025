@@ -5,13 +5,16 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
 const TwoFactorVerifyView = () => {
-    const { setAuthModalView, login } = useAuth();
+    const { setAuthModalView, authModalRole, login } = useAuth();
     const [token, setToken] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const mainColor = '#2563eb';
-    const bgGradient = 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)';
+    const isVet = authModalRole === 'vet';
+    const mainColor = isVet ? '#7c3aed' : '#2563eb';
+    const bgGradient = isVet
+        ? 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%)'
+        : 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)';
 
     const handleSubmit = async (e) => {
         e.preventDefault();

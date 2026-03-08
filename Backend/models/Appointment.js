@@ -6,13 +6,15 @@ const appointmentSchema = new mongoose.Schema({
   clinicId: { type: mongoose.Schema.Types.ObjectId, ref: 'Clinic', required: true },
   vetId: { type: mongoose.Schema.Types.ObjectId, ref: 'Veterinarian', required: true },
   dateTime: { type: Date, required: true },
-  status: { 
-    type: String, 
-    enum: ['Booked', 'Confirmed', 'Rescheduled', 'Canceled', 'Completed'], 
-    default: 'Booked' 
+  status: {
+    type: String,
+    enum: ['Booked', 'Confirmed', 'Rescheduled', 'Canceled', 'Completed'],
+    default: 'Booked'
   },
   reason: { type: String },
-  notes: { type: String }
+  notes: { type: String },
+  medicalRecordUrl: { type: String },
+  prescriptionUrl: { type: String }
 });
 
 // Compound index for faster queries
