@@ -40,7 +40,9 @@ import {
   Link,
   Divider,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Stack,
+  Autocomplete
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PetsIcon from '@mui/icons-material/Pets';
@@ -110,6 +112,30 @@ const PetAvatarLarge = styled(Avatar)(({ theme }) => ({
   boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
 }));
 
+const VACCINATION_TYPES = [
+  "Bordetella (Kennel Cough)",
+  "Calicivirus (Feline)",
+  "Canine Influenza (H3N2)",
+  "Canine Influenza (H3N8)",
+  "Chlamydia (Feline)",
+  "Coronavirus (Canine)",
+  "DHPP (Distemper, Hepatitis, Parainfluenza, Parvovirus)",
+  "DHLPP (Distemper, Hepatitis, Leptospirosis, Parainfluenza, Parvovirus)",
+  "Distemper (Canine)",
+  "Feline Leukemia (FeLV)",
+  "FVRCP (Feline Viral Rhinotracheitis, Calicivirus, Panleukopenia)",
+  "Giardia",
+  "Hepatitis (Canine)",
+  "Lyme Disease",
+  "Leptospirosis",
+  "Parainfluenza (Canine)",
+  "Panleukopenia (Feline Distemper)",
+  "Parvovirus (Canine)",
+  "Rabies (1-year)",
+  "Rabies (3-year)",
+  "Rattlesnake Vaccine",
+].sort();
+
 const AlignedContent = styled(Box)(({ theme }) => ({
   width: '100%',
 }));
@@ -175,7 +201,6 @@ const PetProfile = () => {
 
   const [medFormData, setMedFormData] = useState({
     diagnosis: '',
-    treatmentNotes: '',
     date: new Date().toISOString().split('T')[0],
     visibleToOwner: false,
     attachments: []
@@ -272,7 +297,6 @@ const PetProfile = () => {
     setCurrentMedRecordId(record._id);
     setMedFormData({
       diagnosis: record.diagnosis || '',
-      treatmentNotes: record.treatmentNotes || '',
       date: new Date(record.date).toISOString().split('T')[0],
       visibleToOwner: record.visibleToOwner || false,
       attachments: record.attachments || []
@@ -288,7 +312,6 @@ const PetProfile = () => {
     setSelectedFiles([]);
     setMedFormData({
       diagnosis: '',
-      treatmentNotes: '',
       date: new Date().toISOString().split('T')[0],
       visibleToOwner: false,
       attachments: []
@@ -362,7 +385,7 @@ const PetProfile = () => {
 
   const handleSaveMedRecord = async () => {
     if (!medFormData.diagnosis.trim()) {
-      return Swal.fire('Validation', 'Diagnosis is required', 'warning');
+      return Swal.fire('Validation', 'Description is required', 'warning');
     }
 
     setSaving(true);
@@ -385,7 +408,6 @@ const PetProfile = () => {
 
       const payload = {
         diagnosis: medFormData.diagnosis.trim(),
-        treatmentNotes: medFormData.treatmentNotes.trim(),
         visibleToOwner: medFormData.visibleToOwner,
         date: medFormData.date,
         attachments: attachmentUrls,
@@ -520,17 +542,6 @@ const PetProfile = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <PageContainer>
-        <Sidebar />
-        <ContentArea sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <CircularProgress size={60} thickness={4} />
-        </ContentArea>
-      </PageContainer>
-    );
-  }
-
   if (!pet) {
     return (
       <PageContainer>
@@ -564,7 +575,7 @@ const PetProfile = () => {
                   <Button
                     variant="contained"
                     startIcon={<ChatIcon />}
-                    onClick={() => navigate(`/vet/chat/owner/${pet.ownerId._id}`)}
+                    onClick={() => navigate(`/vet/chat/owner/${pet.ownerId._id}`, { state: { selectedPetId: pet._id } })}
                     sx={{
                       mt: 2,
                       bgcolor: 'white',
@@ -584,7 +595,7 @@ const PetProfile = () => {
             </Box>
 
             <Tabs value={activeTab} onChange={handleTabChange} variant={isMobile ? "scrollable" : "standard"} scrollButtons="auto" centered={!isMobile} sx={{ bgcolor: '#f5f7fa', borderBottom: 1, borderColor: 'divider' }}>
-              <Tab label="Info" />
+              <Tab label="Vet Info" />
               <Tab label="Medical Notes" />
               <Tab label="Medical Records" />
               <Tab label="Appointments & Prescs" />
@@ -595,51 +606,32 @@ const PetProfile = () => {
               {activeTab === 0 && (
                 <AlignedContent>
                   <Grid container spacing={4}>
-                    <Grid item xs={12} md={5} sx={{ display: 'flex' }}>
+                    <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                       <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden', width: '100%', height: '100%' }}>
                         <Box sx={{ bgcolor: '#2e7d32', color: 'white', p: 2 }}>
                           <Typography variant="h6" fontWeight="bold">Pet Details</Typography>
                         </Box>
                         <Box sx={{ p: 3 }}>
-                          <InfoRow><ScaleIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 100 }}>Weight:</InfoLabel><InfoValue>{pet.weight || 'N/A'} kg</InfoValue></InfoRow>
-                          <InfoRow><ColorLensIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 100 }}>Color:</InfoLabel><InfoValue>{pet.color || 'N/A'}</InfoValue></InfoRow>
-                          <InfoRow><PetsIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 100 }}>Species:</InfoLabel><InfoValue>{pet.species || 'N/A'}</InfoValue></InfoRow>
-                          <InfoRow><PetsIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 100 }}>Breed:</InfoLabel><InfoValue>{pet.breed || 'Mixed'}</InfoValue></InfoRow>
-                          <InfoRow><CalendarTodayIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 100 }}>DOB:</InfoLabel><InfoValue>{pet.dateOfBirth ? new Date(pet.dateOfBirth).toLocaleDateString() : 'N/A'}</InfoValue></InfoRow>
+                          <InfoRow><ScaleIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 80 }}>Weight:</InfoLabel><InfoValue>{pet.weight || 'N/A'} kg</InfoValue></InfoRow>
+                          <InfoRow><ColorLensIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 80 }}>Color:</InfoLabel><InfoValue>{pet.color || 'N/A'}</InfoValue></InfoRow>
+                          <InfoRow><PetsIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 80 }}>Species:</InfoLabel><InfoValue>{pet.species || 'N/A'}</InfoValue></InfoRow>
+                          <InfoRow><PetsIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 80 }}>Breed:</InfoLabel><InfoValue>{pet.breed || 'Mixed'}</InfoValue></InfoRow>
+                          <InfoRow><CalendarTodayIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 80 }}>DOB:</InfoLabel><InfoValue>{pet.dateOfBirth ? new Date(pet.dateOfBirth).toLocaleDateString() : 'N/A'}</InfoValue></InfoRow>
                         </Box>
                       </Paper>
                     </Grid>
-                    <Grid item xs={12} md={7} sx={{ display: 'flex' }}>
+                    <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                       <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden', width: '100%', height: '100%' }}>
                         <Box sx={{ bgcolor: '#1976d2', color: 'white', p: 2 }}>
                           <Typography variant="h6" fontWeight="bold">Owner Details</Typography>
                         </Box>
                         <Box sx={{ p: 3 }}>
-                          <InfoRow><PersonIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 130 }}>Name:</InfoLabel><InfoValue>{pet.ownerId ? `${pet.ownerId.firstName} ${pet.ownerId.lastName}` : 'N/A'}</InfoValue></InfoRow>
-                          <InfoRow><PhoneIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 130 }}>Phone:</InfoLabel><InfoValue>{pet.ownerId?.phoneNumber || 'N/A'}</InfoValue></InfoRow>
+                          <InfoRow><PersonIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 80 }}>Name:</InfoLabel><InfoValue>{pet.ownerId ? `${pet.ownerId.firstName} ${pet.ownerId.lastName}` : 'N/A'}</InfoValue></InfoRow>
+                          <InfoRow><PhoneIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 80 }}>Phone:</InfoLabel><InfoValue>{pet.ownerId?.phoneNumber || 'N/A'}</InfoValue></InfoRow>
                           {pet.registeredClinicId && (
-                            <InfoRow><LocationOnIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 130 }}>Clinic:</InfoLabel><InfoValue>{typeof pet.registeredClinicId === 'object' ? pet.registeredClinicId.name : pet.registeredClinicId}</InfoValue></InfoRow>
+                            <InfoRow><LocationOnIcon sx={{ fontSize: 24 }} /><InfoLabel sx={{ minWidth: 80 }}>Clinic:</InfoLabel><InfoValue>{typeof pet.registeredClinicId === 'object' ? pet.registeredClinicId.name : pet.registeredClinicId}</InfoValue></InfoRow>
                           )}
-                          {pet.ownerId?._id && (
-                            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                              <Button
-                                variant="contained"
-                                color="primary"
-                                startIcon={<ChatIcon />}
-                                fullWidth={isMobile}
-                                onClick={() => navigate(`/vet/chat/owner/${pet.ownerId._id}`)}
-                                sx={{
-                                  borderRadius: 2,
-                                  bgcolor: '#1976d2',
-                                  textTransform: 'none',
-                                  fontWeight: 'bold',
-                                  '&:hover': { bgcolor: '#1565c0' }
-                                }}
-                              >
-                                Chat with Owner
-                              </Button>
-                            </Box>
-                          )}
+
                         </Box>
                       </Paper>
                     </Grid>
@@ -650,7 +642,7 @@ const PetProfile = () => {
               {activeTab === 1 && (
                 <AlignedContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h5" fontWeight="bold" color="#2e7d32">Medical Notes</Typography>
+                    <Typography variant="h5" fontWeight="bold" color="#e08c0eff">Medical Notes</Typography>
                     <Button variant="contained" color="success" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }}>
                       Add Medical Note
                     </Button>
@@ -659,10 +651,10 @@ const PetProfile = () => {
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
-                        <TableRow sx={{ bgcolor: '#2e7d32' }}>
+                        <TableRow sx={{ bgcolor: '#e08c0eff' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Appointment Date</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Diagnosis</TableCell>
+                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Veterinarian</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
                         </TableRow>
@@ -694,10 +686,8 @@ const PetProfile = () => {
                               <TableCell colSpan={5} sx={{ p: 0 }}>
                                 <Collapse in={expandedMedRows.has(record._id)} timeout="auto" unmountOnExit>
                                   <Box sx={{ p: 3, bgcolor: '#f5fdf5', borderLeft: '4px solid #2e7d32' }}>
-                                    <Typography fontWeight="bold" mb={1}>Full Diagnosis:</Typography>
+                                    <Typography fontWeight="bold" mb={1}>Description:</Typography>
                                     <Typography mb={2}>{record.diagnosis || 'N/A'}</Typography>
-                                    <Typography fontWeight="bold" mb={1}>Treatment Notes:</Typography>
-                                    <Typography mb={2}>{record.treatmentNotes || 'No notes'}</Typography>
                                     <Divider sx={{ my: 1 }} />
                                     <Typography variant="body2" color="textSecondary">
                                       Appointment: <Link component="button" variant="body2" sx={{ fontWeight: 'bold' }} onClick={() => setActiveTab(3)}>
@@ -719,7 +709,7 @@ const PetProfile = () => {
               {activeTab === 2 && (
                 <AlignedContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h5" fontWeight="bold" color="#1976d2">Medical Records</Typography>
+                    <Typography variant="h5" fontWeight="bold" color="#e08c0eff">Medical Records</Typography>
                     <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }}>
                       Upload Record
                     </Button>
@@ -728,7 +718,7 @@ const PetProfile = () => {
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
-                        <TableRow sx={{ bgcolor: '#1976d2' }}>
+                        <TableRow sx={{ bgcolor: '#e08c0eff' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
@@ -807,11 +797,11 @@ const PetProfile = () => {
 
               {activeTab === 3 && (
                 <AlignedContent>
-                  <Typography variant="h5" fontWeight="bold" color="#ff7043" mb={3}>Appointments & Prescriptions</Typography>
+                  <Typography variant="h5" fontWeight="bold" color="#e08c0eff" mb={3}>Appointments & Prescriptions</Typography>
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
-                        <TableRow sx={{ bgcolor: '#ff7043' }}>
+                        <TableRow sx={{ bgcolor: '#e08c0eff' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date & Time</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Clinic</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Veterinarian</TableCell>
@@ -849,7 +839,17 @@ const PetProfile = () => {
                                     setShowApptModal(true);
                                   }
                                 }}
-                                sx={{ bgcolor: '#ff7043', '&:hover': { bgcolor: '#e64a19' } }}
+                                sx={{
+                                  textTransform: 'none',
+                                  borderRadius: '12px',
+                                  background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
+                                  fontWeight: 700,
+                                  px: 3,
+                                  '&:hover': {
+                                    background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                                    transform: 'translateY(-1px)',
+                                  },
+                                }}
                               >
                                 View
                               </Button>
@@ -865,7 +865,7 @@ const PetProfile = () => {
               {activeTab === 4 && (
                 <AlignedContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h5" fontWeight="bold" color="#7b1fa2">Vaccinations</Typography>
+                    <Typography variant="h5" fontWeight="bold" color="#e08c0eff">Vaccinations</Typography>
                     <Button variant="contained" color="secondary" startIcon={<AddIcon />} onClick={() => { cancelPresForm(); setPresFormData(p => ({ ...p, type: 'Vaccination' })); setShowPresForm(true); }}>
                       Add Vaccination
                     </Button>
@@ -873,7 +873,7 @@ const PetProfile = () => {
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
-                        <TableRow sx={{ bgcolor: '#7b1fa2' }}>
+                        <TableRow sx={{ bgcolor: '#e08c0eff' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date of Vaccination</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Type</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Name</TableCell>
@@ -884,9 +884,9 @@ const PetProfile = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {prescriptions.filter(p => p.type === 'Vaccination').length === 0 ? (
+                        {prescriptions.filter(p => p.type !== 'Medication').length === 0 ? (
                           <TableRow><TableCell colSpan={7} align="center"><Typography color="textSecondary" py={4}>No vaccination records</Typography></TableCell></TableRow>
-                        ) : prescriptions.filter(p => p.type === 'Vaccination').map(pres => (
+                        ) : prescriptions.filter(p => p.type !== 'Medication').map(pres => (
                           <TableRow key={pres._id} sx={{ '&:hover': { bgcolor: '#f7f2f9' } }}>
                             <TableCell>{new Date(pres.createdAt).toLocaleDateString()}</TableCell>
                             <TableCell><Chip label={pres.type} size="small" color="secondary" /></TableCell>
@@ -909,32 +909,92 @@ const PetProfile = () => {
 
               {/* Modals */}
               <Dialog open={showMedForm} onClose={cancelMedForm} maxWidth="md" fullWidth>
-                <DialogTitle sx={{ bgcolor: '#f5f7fa' }}>{isEditingMed ? 'Edit Medical Note/Record' : 'Add Medical Note/Record'}</DialogTitle>
+                <DialogTitle sx={{ bgcolor: '#f5f7fa', fontWeight: 'bold' }}>
+                  {isEditingMed ? 'Edit Medical Record' : 'Add Medical Record'}
+                </DialogTitle>
                 <DialogContent dividers>
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
+                  <Grid container direction="column" spacing={4} sx={{ mt: 0 }}>
+                    {/* Record Info Section */}
                     <Grid item xs={12}>
-                      <TextField fullWidth multiline rows={2} label="Diagnosis *" value={medFormData.diagnosis} onChange={e => setMedFormData(p => ({ ...p, diagnosis: e.target.value }))} />
+                      <Grid container spacing={3}>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            type="date"
+                            label="Examination Date"
+                            InputLabelProps={{ shrink: true }}
+                            value={medFormData.date}
+                            onChange={e => setMedFormData(p => ({ ...p, date: e.target.value }))}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <Box sx={{
+                            height: '56px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            px: 2,
+                            borderRadius: 1
+                          }}>
+                            <FormControlLabel
+                              control={<Switch checked={medFormData.visibleToOwner} onChange={e => setMedFormData(p => ({ ...p, visibleToOwner: e.target.checked }))} color="success" />}
+                              label="Make Visible to Owner"
+                              sx={{ width: '100%', m: 0 }}
+                            />
+                          </Box>
+                        </Grid>
+                      </Grid>
                     </Grid>
+
+                    {/* Description Section */}
                     <Grid item xs={12}>
-                      <TextField fullWidth multiline rows={4} label="Treatment Notes" value={medFormData.treatmentNotes} onChange={e => setMedFormData(p => ({ ...p, treatmentNotes: e.target.value }))} />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField fullWidth type="date" label="Date" InputLabelProps={{ shrink: true }} value={medFormData.date} onChange={e => setMedFormData(p => ({ ...p, date: e.target.value }))} />
-                    </Grid>
-                    <Grid item xs={12} sm={6} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <FormControlLabel
-                        control={<Switch checked={medFormData.visibleToOwner} onChange={e => setMedFormData(p => ({ ...p, visibleToOwner: e.target.checked }))} color="success" />}
-                        label="Visible to Owner"
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={6}
+                        label="Description *"
+                        placeholder="Detailed description of findings, observations, and clinical assessment..."
+                        value={medFormData.diagnosis}
+                        onChange={e => setMedFormData(p => ({ ...p, diagnosis: e.target.value }))}
                       />
                     </Grid>
+
+                    {/* Attachments Section */}
                     <Grid item xs={12}>
-                      <Button variant="outlined" component="label" startIcon={<AttachFileIcon />}>
-                        Attach Files
-                        <input type="file" hidden multiple accept="image/*,.pdf" onChange={handleFileSelect} />
-                      </Button>
-                      {selectedFiles.map((f, i) => (
-                        <Chip key={i} label={f.name} onDelete={() => removeSelectedFile(i)} sx={{ ml: 1, mt: 0.5 }} />
-                      ))}
+                      <Box sx={{ p: 2, border: '1px dashed #cbd5e1', borderRadius: 2 }}>
+                        <Button
+                          variant="contained"
+                          component="label"
+                          startIcon={<AttachFileIcon />}
+                          sx={{ borderRadius: 2, textTransform: 'none', bgcolor: '#1e293b', '&:hover': { bgcolor: '#334155' } }}
+                        >
+                          Choose Files
+                          <input type="file" hidden multiple accept="image/*,.pdf" onChange={handleFileSelect} />
+                        </Button>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 2 }}>
+                          {selectedFiles.map((f, i) => (
+                            <Chip
+                              key={i}
+                              label={f.name}
+                              onDelete={() => removeSelectedFile(i)}
+                              size="small"
+                              sx={{ bgcolor: 'white', border: '1px solid #e2e8f0' }}
+                            />
+                          ))}
+                          {isEditingMed && medFormData.attachments?.map((url, i) => (
+                            <Chip
+                              key={`ext-${i}`}
+                              label={`Existing File ${i + 1}`}
+                              onDelete={() => removeExistingAttachment(i)}
+                              variant="outlined"
+                              size="small"
+                              color="primary"
+                            />
+                          ))}
+                        </Stack>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+                          Supported formats: JPG, PNG, GIF, PDF. Max 10MB per file.
+                        </Typography>
+                      </Box>
                     </Grid>
                   </Grid>
                 </DialogContent>
@@ -944,45 +1004,73 @@ const PetProfile = () => {
                 </DialogActions>
               </Dialog>
 
-              <Dialog open={showPresForm} onClose={cancelPresForm} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{ bgcolor: '#f5f7fa' }}>{isEditingPres ? 'Edit' : 'Add'} Prescription/Vaccination</DialogTitle>
-                <DialogContent dividers>
-                  <Grid container spacing={2} sx={{ mt: 1 }}>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
-                        <InputLabel>Type</InputLabel>
-                        <Select value={presFormData.type} onChange={e => setPresFormData(p => ({ ...p, type: e.target.value }))} label="Type">
-                          <MenuItem value="Medication">Medication</MenuItem>
-                          <MenuItem value="Vaccination">Vaccination</MenuItem>
-                        </Select>
-                      </FormControl>
+              <Dialog open={showPresForm} onClose={cancelPresForm} maxWidth="md" fullWidth>
+                <DialogTitle sx={{ bgcolor: '#f5f7fa', fontWeight: 'bold' }}>
+                  {isEditingPres ? 'Edit' : 'Add'} Vaccination
+                </DialogTitle>
+                <DialogContent dividers sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
+                  <Grid container spacing={3} sx={{ maxWidth: '800px' }}>
+                    {/* Line 1: Type and Name */}
+                    {/* Line 1: Type - Full width to accommodate long placeholder/padding */}
+                    <Grid item xs={12}>
+                      <Autocomplete
+                        fullWidth
+                        options={["Medication", ...VACCINATION_TYPES]}
+                        value={presFormData.type || "Medication"}
+                        onChange={(e, val) => setPresFormData(p => ({ ...p, type: val }))}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            pr: '175px !important'
+                          }
+                        }}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Category" placeholder="Select or type vaccination category..." />
+                        )}
+                      />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth>
-                        <InputLabel>Linked Record</InputLabel>
-                        <Select value={presFormData.medicalRecordId || ''} onChange={e => setPresFormData(p => ({ ...p, medicalRecordId: e.target.value }))} label="Linked Record">
-                          <MenuItem value=""><em>None</em></MenuItem>
-                          {medicalRecords.map(r => <MenuItem key={r._id} value={r._id}>{r.diagnosis} ({new Date(r.date).toLocaleDateString()})</MenuItem>)}
-                        </Select>
-                      </FormControl>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Name *"
+                        placeholder="e.g. DHPP, Brand Name..."
+                        value={presFormData.medicationName}
+                        onChange={e => setPresFormData(p => ({ ...p, medicationName: e.target.value }))}
+                      />
                     </Grid>
-                    <Grid item xs={12} sm={12}>
-                      <TextField fullWidth label="Name *" value={presFormData.medicationName} onChange={e => setPresFormData(p => ({ ...p, medicationName: e.target.value }))} />
+
+                    {/* Line 2: Dosage and Frequency */}
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Dosage"
+                        placeholder="e.g. 5ml, 1 Tablet..."
+                        value={presFormData.dosage}
+                        onChange={e => setPresFormData(p => ({ ...p, dosage: e.target.value }))}
+                      />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField fullWidth label="Dosage" value={presFormData.dosage} onChange={e => setPresFormData(p => ({ ...p, dosage: e.target.value }))} />
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Frequency/Duration"
+                        placeholder="e.g. Twice a day, 1 week..."
+                        value={presFormData.duration}
+                        onChange={e => setPresFormData(p => ({ ...p, duration: e.target.value }))}
+                      />
                     </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField fullWidth label="Frequency/Duration" value={presFormData.duration} onChange={e => setPresFormData(p => ({ ...p, duration: e.target.value }))} />
-                    </Grid>
-                    {presFormData.type === 'Vaccination' && (
-                      <Grid item xs={12}>
-                        <TextField fullWidth type="date" label="Next Due Date" InputLabelProps={{ shrink: true }} value={presFormData.dueDate} onChange={e => setPresFormData(p => ({ ...p, dueDate: e.target.value }))} />
+
+                    {/* Line 3: Next Due Date */}
+                    {presFormData.type !== 'Medication' && (
+                      <Grid item xs={6}>
+                        <TextField
+                          fullWidth
+                          type="date"
+                          label="Next Due Date"
+                          InputLabelProps={{ shrink: true }}
+                          value={presFormData.dueDate || ''}
+                          onChange={e => setPresFormData(p => ({ ...p, dueDate: e.target.value }))}
+                        />
                       </Grid>
                     )}
-                    <Grid item xs={12}>
-                      <TextField fullWidth multiline rows={3} label="Instructions" value={presFormData.instructions} onChange={e => setPresFormData(p => ({ ...p, instructions: e.target.value }))} />
-                    </Grid>
                   </Grid>
                 </DialogContent>
                 <DialogActions sx={{ p: 2, bgcolor: '#f5f7fa' }}>

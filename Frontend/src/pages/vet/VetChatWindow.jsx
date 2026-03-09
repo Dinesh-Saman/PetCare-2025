@@ -10,13 +10,18 @@ import {
     Box, Typography, Paper, TextField, IconButton, Avatar,
     List, ListItem, ListItemAvatar, ListItemText, Divider,
     CircularProgress, Chip, Tooltip, useTheme, useMediaQuery,
-    alpha
+    alpha, LinearProgress
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PetsIcon from '@mui/icons-material/Pets';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import CloseIcon from '@mui/icons-material/Close';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import ImageIcon from '@mui/icons-material/Image';
+import DownloadIcon from '@mui/icons-material/Download';
 
 const SOCKET_URL = 'http://localhost:5000';
 
@@ -44,7 +49,7 @@ const MainContent = styled(Box)(({ theme }) => ({
 
 const ContentCard = styled(Paper)(({ theme }) => ({
     background: 'white',
-    borderRadius: '32px',
+    borderRadius: '10px',
     border: '1px solid #e2e8f0',
     boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
     flex: '1 1 0',       // fill MainContent height
@@ -69,9 +74,12 @@ const VetChatWindow = () => {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [fileAttachments, setFileAttachments] = useState([]); // URLs from Cloudinary
     const messagesEndRef = useRef(null);
     const socketRef = useRef(null);
     const inputRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const currentVet = JSON.parse(localStorage.getItem('vet_user') || '{}');
 
@@ -206,18 +214,146 @@ const VetChatWindow = () => {
 
     // ── Send ──
     const handleSend = async () => {
-        if (!newMessage.trim() || !selectedPet || sending) return;
+        if ((!newMessage.trim() && fileAttachments.length === 0) || !selectedPet || sending || uploading) return;
         const text = newMessage.trim();
+        const attachments = [...fileAttachments];
+
         setNewMessage('');
+        setFileAttachments([]);
         setSending(true);
         try {
-            await api.post('/chat/send', { petId: selectedPet._id, content: text });
+            await api.post('/chat/send', {
+                petId: selectedPet._id,
+                content: text || (attachments.length > 0 ? "[Attachment]" : ""),
+                attachments
+            });
             inputRef.current?.focus();
         } catch {
             Swal.fire('Error', 'Could not send message', 'error');
         } finally {
             setSending(false);
         }
+    };
+
+    const handleFileClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+
+        const formData = new FormData();
+        files.forEach(file => formData.append('files', file));
+
+        setUploading(true);
+        try {
+            const res = await api.post('/upload/attachments', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setFileAttachments(prev => [...prev, ...res.data.attachments]);
+        } catch (err) {
+            Swal.fire('Upload Failed', err.response?.data?.message || 'Could not upload files', 'error');
+        } finally {
+            setUploading(false);
+            e.target.value = ''; // Reset input
+        }
+    };
+
+    const removeAttachment = (index) => {
+        setFileAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleDownload = (url) => {
+        if (!url) return;
+
+        // Cloudinary force download: Using 'fl_attachment' transformation
+        // ensures the file is downloaded in its original format with proper headers.
+        if (url.includes('cloudinary.com') && url.includes('/upload/')) {
+            const downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
+            window.open(downloadUrl, '_blank');
+            return;
+        }
+
+        // Fallback or non-Cloudinary
+        window.open(url, '_blank');
+    };
+
+    const renderAttachment = (url, isVet) => {
+        const isImage = url.match(/\.(jpeg|jpg|gif|png)$/i);
+        const isPdf = url.match(/\.pdf$/i);
+        const isDoc = url.match(/\.(doc|docx)$/i);
+        const isExcel = url.match(/\.(xls|xlsx)$/i);
+
+        if (isImage) {
+            return (
+                <Box sx={{ position: 'relative', mt: 1 }}>
+                    <Box
+                        component="img"
+                        src={url}
+                        alt="Attachment"
+                        sx={{
+                            maxWidth: '100%',
+                            maxHeight: 200,
+                            borderRadius: 2,
+                            cursor: 'pointer',
+                            display: 'block'
+                        }}
+                        onClick={() => window.open(url, '_blank')}
+                    />
+                    <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); handleDownload(url); }}
+                        sx={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            bgcolor: 'rgba(255,255,255,0.85)',
+                            color: '#1e293b',
+                            '&:hover': { bgcolor: 'white' }
+                        }}
+                    >
+                        <DownloadIcon fontSize="small" />
+                    </IconButton>
+                </Box>
+            );
+        }
+
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 1,
+                    mt: 1,
+                    p: 1.5,
+                    borderRadius: 2,
+                    bgcolor: isVet ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    border: isVet ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.1)',
+                    cursor: 'pointer',
+                    '&:hover': { bgcolor: isVet ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)' }
+                }}
+                onClick={() => window.open(url, '_blank')}
+            >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {isPdf ? <PictureAsPdfIcon fontSize="small" sx={{ color: '#ff5252' }} /> :
+                        isDoc ? <AttachFileIcon fontSize="small" sx={{ color: '#448aff' }} /> :
+                            isExcel ? <AttachFileIcon fontSize="small" sx={{ color: '#4caf50' }} /> :
+                                <AttachFileIcon fontSize="small" />}
+                    <Typography variant="caption" sx={{ fontWeight: 600, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: isVet ? 'white' : 'inherit' }}>
+                        {url.split('/').pop()}
+                    </Typography>
+                </Box>
+                <IconButton
+                    size="small"
+                    onClick={(e) => { e.stopPropagation(); handleDownload(url); }}
+                    sx={{ color: isVet ? 'white' : 'inherit', p: 0.5 }}
+                >
+                    <DownloadIcon fontSize="small" />
+                </IconButton>
+            </Box>
+        );
     };
 
     const handleKeyDown = (e) => {
@@ -261,10 +397,11 @@ const VetChatWindow = () => {
                                 {/* Header */}
                                 <Box sx={{
                                     px: 3, py: 3,
-                                    background: 'linear-gradient(135deg, #49149e 0%, #8e24aa 100%)',
-                                    color: 'white',
+                                    minHeight: '120px',
                                     display: 'flex',
                                     alignItems: 'center',
+                                    background: 'linear-gradient(135deg, #49149e 0%, #8e24aa 100%)',
+                                    color: 'white',
                                     gap: 1.5,
                                     flexShrink: 0
                                 }}>
@@ -325,8 +462,21 @@ const VetChatWindow = () => {
                                                         <ListItemText
                                                             primary={<Typography fontWeight="700" variant="body2" color={isSelected ? '#49149e' : '#1e293b'}>{pet.name}</Typography>}
                                                             secondary={
-                                                                <Typography variant="caption" color="textSecondary" fontWeight="500">
-                                                                    {pet.species}
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    color="textSecondary"
+                                                                    fontWeight="500"
+                                                                    sx={{
+                                                                        display: 'block',
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        whiteSpace: 'nowrap',
+                                                                        maxWidth: '180px'
+                                                                    }}
+                                                                >
+                                                                    {pet.lastMessage
+                                                                        ? (pet.lastMessage.length > 30 ? pet.lastMessage.substring(0, 30) + '...' : pet.lastMessage)
+                                                                        : pet.species}
                                                                 </Typography>
                                                             }
                                                         />
@@ -349,11 +499,12 @@ const VetChatWindow = () => {
                                 <>
                                     {/* Chat header */}
                                     <Box sx={{
-                                        px: 4, py: 2.5,
-                                        background: 'white',
-                                        borderBottom: '1px solid #e2e8f0',
+                                        px: 4, py: 3,
+                                        minHeight: '120px',
                                         display: 'flex',
                                         alignItems: 'center',
+                                        background: 'white',
+                                        borderBottom: '1px solid #e2e8f0',
                                         gap: 2,
                                         flexShrink: 0,
                                         zIndex: 2
@@ -369,8 +520,7 @@ const VetChatWindow = () => {
                                         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                                             <Typography variant="h6" fontWeight="800" color="#0f172a">{selectedPet.name}</Typography>
                                             <Typography variant="body2" color="textSecondary" fontWeight="600">
-                                                {selectedPet.species} {selectedPet.breed && `• ${selectedPet.breed}`}
-                                                {owner && ` • Owned by ${owner.firstName}`}
+                                                {selectedPet.species}
                                             </Typography>
                                         </Box>
                                     </Box>
@@ -421,6 +571,16 @@ const VetChatWindow = () => {
                                                                     <Typography variant="body2" sx={{ lineHeight: 1.6, fontWeight: 500, wordBreak: 'break-word' }}>
                                                                         {msg.content}
                                                                     </Typography>
+
+                                                                    {msg.attachments && msg.attachments.length > 0 && (
+                                                                        <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                                                            {msg.attachments.map((url, i) => (
+                                                                                <React.Fragment key={i}>
+                                                                                    {renderAttachment(url, isVet)}
+                                                                                </React.Fragment>
+                                                                            ))}
+                                                                        </Box>
+                                                                    )}
                                                                     <Typography sx={{
                                                                         fontSize: '0.65rem',
                                                                         mt: 1,
@@ -446,46 +606,113 @@ const VetChatWindow = () => {
                                         bgcolor: 'white',
                                         borderTop: '1px solid #e2e8f0',
                                         display: 'flex',
-                                        alignItems: 'center',
+                                        flexDirection: 'column',
                                         gap: 2,
                                         flexShrink: 0
                                     }}>
-                                        <TextField
-                                            inputRef={inputRef}
-                                            fullWidth
-                                            multiline
-                                            maxRows={4}
-                                            variant="outlined"
-                                            placeholder={`Type a message...`}
-                                            value={newMessage}
-                                            onChange={(e) => setNewMessage(e.target.value)}
-                                            onKeyDown={handleKeyDown}
-                                            sx={{
-                                                '& .MuiOutlinedInput-root': {
-                                                    borderRadius: '16px',
-                                                    bgcolor: '#f8fafc',
-                                                    padding: '12px 16px',
-                                                    '& fieldset': { borderColor: '#e2e8f0' },
-                                                    '&.Mui-focused fieldset': { borderColor: '#8e24aa' },
-                                                }
-                                            }}
-                                        />
-                                        <IconButton
-                                            onClick={handleSend}
-                                            disabled={!newMessage.trim() || sending}
-                                            sx={{
-                                                bgcolor: '#49149e',
-                                                color: 'white',
-                                                width: 52,
-                                                height: 52,
-                                                '&:hover': { bgcolor: '#3a1080', transform: 'scale(1.05)' },
-                                                '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
-                                                boxShadow: '0 8px 20px rgba(73, 20, 158, 0.2)',
-                                                transition: 'all 0.2s'
-                                            }}
-                                        >
-                                            <SendIcon />
-                                        </IconButton>
+                                        {/* Attachment Preview Area */}
+                                        {(fileAttachments.length > 0 || uploading) && (
+                                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+                                                {fileAttachments.map((url, i) => (
+                                                    <Box key={i} sx={{ position: 'relative', width: 60, height: 60 }}>
+                                                        <Box
+                                                            component={url.match(/\.(jpeg|jpg|gif|png)$/i) ? "img" : "div"}
+                                                            src={url}
+                                                            sx={{
+                                                                width: '100%',
+                                                                height: '100%',
+                                                                borderRadius: 1,
+                                                                objectFit: 'cover',
+                                                                bgcolor: '#f1f5f9',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center'
+                                                            }}
+                                                        >
+                                                            {!url.match(/\.(jpeg|jpg|gif|png)$/i) && <AttachFileIcon />}
+                                                        </Box>
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() => removeAttachment(i)}
+                                                            sx={{
+                                                                position: 'absolute',
+                                                                top: -8,
+                                                                right: -8,
+                                                                bgcolor: '#ef4444',
+                                                                color: 'white',
+                                                                p: 0.2,
+                                                                '&:hover': { bgcolor: '#dc2626' }
+                                                            }}
+                                                        >
+                                                            <CloseIcon sx={{ fontSize: 14 }} />
+                                                        </IconButton>
+                                                    </Box>
+                                                ))}
+                                                {uploading && (
+                                                    <Box sx={{ width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#f1f5f9', borderRadius: 1 }}>
+                                                        <CircularProgress size={24} />
+                                                    </Box>
+                                                )}
+                                            </Box>
+                                        )}
+
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                            <input
+                                                type="file"
+                                                multiple
+                                                hidden
+                                                ref={fileInputRef}
+                                                onChange={handleFileChange}
+                                                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                                            />
+                                            <Tooltip title="Attach Files (Images, PDFs, or Office Docs)">
+                                                <IconButton
+                                                    onClick={handleFileClick}
+                                                    disabled={uploading || sending}
+                                                    sx={{ color: '#64748b', '&:hover': { bgcolor: '#f1f5f9' } }}
+                                                >
+                                                    <AttachFileIcon />
+                                                </IconButton>
+                                            </Tooltip>
+
+                                            <TextField
+                                                inputRef={inputRef}
+                                                fullWidth
+                                                multiline
+                                                maxRows={4}
+                                                variant="outlined"
+                                                placeholder={`Type a message...`}
+                                                value={newMessage}
+                                                onChange={(e) => setNewMessage(e.target.value)}
+                                                onKeyDown={handleKeyDown}
+                                                disabled={uploading || sending}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '16px',
+                                                        bgcolor: '#f8fafc',
+                                                        padding: '12px 16px',
+                                                        '& fieldset': { borderColor: '#e2e8f0' },
+                                                        '&.Mui-focused fieldset': { borderColor: '#8e24aa' },
+                                                    }
+                                                }}
+                                            />
+                                            <IconButton
+                                                onClick={handleSend}
+                                                disabled={(!newMessage.trim() && fileAttachments.length === 0) || sending || uploading}
+                                                sx={{
+                                                    bgcolor: '#49149e',
+                                                    color: 'white',
+                                                    width: 52,
+                                                    height: 52,
+                                                    '&:hover': { bgcolor: '#3a1080', transform: 'scale(1.05)' },
+                                                    '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
+                                                    boxShadow: '0 8px 20px rgba(73, 20, 158, 0.2)',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                            >
+                                                <SendIcon />
+                                            </IconButton>
+                                        </Box>
                                     </Box>
                                 </>
                             ) : (

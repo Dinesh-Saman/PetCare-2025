@@ -349,8 +349,6 @@ const ClinicList = () => {
     }
   };
 
-
-
   const handleViewPets = (clinicId) => {
     navigate(`/vet/pets?clinicId=${encodeURIComponent(clinicId)}`);
   };
@@ -590,7 +588,7 @@ const ClinicList = () => {
                         <Box sx={{ p: 3, pt: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                           <Button
                             variant="contained"
-                            onClick={() => handleViewPets(clinic.name)}
+                            onClick={() => handleViewPets(clinic._id)}
                             fullWidth
                             sx={{
                               borderRadius: '12px',
@@ -943,3 +941,4 @@ const ClinicList = () => {
 };
 
 export default ClinicList;
+

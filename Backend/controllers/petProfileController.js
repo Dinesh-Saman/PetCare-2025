@@ -2,6 +2,7 @@ const PetProfile = require('../models/PetProfile');
 const PetOwner = require('../models/PetOwner');
 const Clinic = require('../models/Clinic');
 const Veterinarian = require('../models/Veterinarian');
+const ChatMessage = require('../models/ChatMessage');
 
 // Create a new pet profile (Pet Owner only)
 exports.createPet = async (req, res) => {
@@ -118,9 +119,22 @@ exports.getPetsByOwner = async (req, res) => {
       .populate('registeredClinicId', 'name address phoneNumber')
       .sort({ name: 1 });
 
+    // Fetch the last message for each pet
+    const petsWithLastMessage = await Promise.all(pets.map(async (pet) => {
+      const lastMsg = await ChatMessage.findOne({ petId: pet._id })
+        .sort({ timestamp: -1 })
+        .limit(1);
+
+      return {
+        ...pet.toObject(),
+        lastMessage: lastMsg ? lastMsg.content : null,
+        lastMessageTime: lastMsg ? lastMsg.timestamp : null
+      };
+    }));
+
     res.status(200).json({
       count: pets.length,
-      pets
+      pets: petsWithLastMessage
     });
   } catch (error) {
     console.error('Error in getPetsByOwner:', error);

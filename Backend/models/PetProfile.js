@@ -10,7 +10,12 @@ const petProfileSchema = new mongoose.Schema({
   color: { type: String },
   weight: { type: Number },
   lastVaccinationDate: { type: Date },
-  medicalRecords: { type: String }, // URL to document
+  medicalRecords: { type: String }, // Initial registration document
+  personalRecords: [{
+    name: { type: String },
+    url: { type: String },
+    date: { type: Date, default: Date.now }
+  }],
   photo: { type: String }, // URL to image
   notes: { type: String },
   registrationStatus: {

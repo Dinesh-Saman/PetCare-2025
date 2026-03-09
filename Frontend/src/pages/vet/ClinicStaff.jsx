@@ -531,9 +531,9 @@ const ClinicStaff = () => {
                                         <PersonIcon /> Personal Information
                                       </Typography>
                                       <Box sx={{ px: 1, flexGrow: 1 }}>
-                                        <InfoRow><EmailIcon /><InfoLabel>Email:</InfoLabel><InfoValue>{member.email}</InfoValue></InfoRow>
-                                        <InfoRow><PhoneIcon /><InfoLabel>Phone:</InfoLabel><InfoValue>{member.phoneNumber || 'Not provided'}</InfoValue></InfoRow>
-                                        <InfoRow><BadgeIcon /><InfoLabel>Staff ID:</InfoLabel><InfoValue sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#8e24aa' }}>#{getStaffNumber(member._id)}</InfoValue></InfoRow>
+                                        <InfoRow><EmailIcon /><InfoLabel sx={{ minWidth: 'auto', mr: 1 }}>Email:</InfoLabel><InfoValue>{member.email}</InfoValue></InfoRow>
+                                        <InfoRow><PhoneIcon /><InfoLabel sx={{ minWidth: 'auto', mr: 1 }}>Phone:</InfoLabel><InfoValue>{member.phoneNumber || 'Not provided'}</InfoValue></InfoRow>
+                                        <InfoRow><BadgeIcon /><InfoLabel sx={{ minWidth: 'auto', mr: 1 }}>Staff ID:</InfoLabel><InfoValue sx={{ fontFamily: 'monospace', fontWeight: 700, color: '#8e24aa' }}>#{getStaffNumber(member._id)}</InfoValue></InfoRow>
                                       </Box>
                                     </Box>
                                   </Grid>
@@ -612,7 +612,7 @@ const ClinicStaff = () => {
       <Dialog
         open={isAddPopupOpen}
         onClose={handleCloseAddPopup}
-        maxWidth="md"
+        maxWidth="sm"
         fullWidth
         PaperProps={{
           sx: { borderRadius: '24px', overflow: 'hidden' }
@@ -628,63 +628,56 @@ const ClinicStaff = () => {
           Add Staff Member
         </DialogTitle>
         <DialogContent sx={{ p: 4, pt: 1, bgcolor: '#fbfcfd' }}>
-          <Typography variant="body2" sx={{ color: '#64748b', mb: 4 }}>
+          <Typography variant="body2" sx={{ color: '#64748b', mb: 3 }}>
             Expand your clinic team with skilled professionals
           </Typography>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Staff Type</InputLabel>
-                <Select name="staffType" value={formData.staffType} onChange={handleFormChange} label="Staff Type">
-                  <MenuItem value="veterinarian">Veterinarian</MenuItem>
-                  <MenuItem value="receptionist">Receptionist</MenuItem>
-                  <MenuItem value="vetTech">Vet Technician</MenuItem>
-                  <MenuItem value="assistant">Assistant</MenuItem>
-                  <MenuItem value="manager">Manager</MenuItem>
-                  <MenuItem value="nurse">Nurse</MenuItem>
-                  <MenuItem value="kennelStaff">Kennel Staff</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Select Clinic (Optional)</InputLabel>
-                <Select name="clinicId" value={formData.clinicId} onChange={handleFormChange} label="Select Clinic (Optional)">
-                  <MenuItem value=""><em>None selected</em></MenuItem>
-                  {clinics.map(c => <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="First Name" name="firstName" value={formData.firstName} onChange={handleFormChange} size="small" />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Last Name" name="lastName" value={formData.lastName} onChange={handleFormChange} size="small" />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleFormChange} size="small" />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Access Level</InputLabel>
-                <Select name="accessLevel" value={formData.accessLevel} onChange={handleFormChange} label="Access Level">
-                  <MenuItem value="Basic">Basic</MenuItem>
-                  <MenuItem value="Enhanced">Enhanced</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Email" name="email" value={formData.email} onChange={handleFormChange} size="small" />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Password" name="password" type="password" value={formData.password} onChange={handleFormChange} size="small" />
-            </Grid>
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            {/* Row 1: Staff Type + Select Clinic */}
+            <FormControl fullWidth>
+              <InputLabel>Staff Type</InputLabel>
+              <Select name="staffType" value={formData.staffType} onChange={handleFormChange} label="Staff Type">
+                <MenuItem value="veterinarian">Veterinarian</MenuItem>
+                <MenuItem value="receptionist">Receptionist</MenuItem>
+                <MenuItem value="vetTech">Vet Technician</MenuItem>
+                <MenuItem value="assistant">Assistant</MenuItem>
+                <MenuItem value="manager">Manager</MenuItem>
+                <MenuItem value="nurse">Nurse</MenuItem>
+                <MenuItem value="kennelStaff">Kennel Staff</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Select Clinic (Optional)</InputLabel>
+              <Select name="clinicId" value={formData.clinicId} onChange={handleFormChange} label="Select Clinic (Optional)">
+                <MenuItem value=""><em>None selected</em></MenuItem>
+                {clinics.map(c => <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>)}
+              </Select>
+            </FormControl>
+
+            {/* Row 2: First Name + Last Name */}
+            <TextField fullWidth label="First Name" name="firstName" value={formData.firstName} onChange={handleFormChange} />
+            <TextField fullWidth label="Last Name" name="lastName" value={formData.lastName} onChange={handleFormChange} />
+
+            {/* Row 3: Phone Number + Access Level */}
+            <TextField fullWidth label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleFormChange} />
+            <FormControl fullWidth>
+              <InputLabel>Access Level</InputLabel>
+              <Select name="accessLevel" value={formData.accessLevel} onChange={handleFormChange} label="Access Level">
+                <MenuItem value="Basic">Basic</MenuItem>
+                <MenuItem value="Enhanced">Enhanced</MenuItem>
+              </Select>
+            </FormControl>
+
+            {/* Row 4: Email + Password */}
+            <TextField fullWidth label="Email" name="email" value={formData.email} onChange={handleFormChange} />
+            <TextField fullWidth label="Password" name="password" type="password" value={formData.password} onChange={handleFormChange} />
+
+            {/* Row 5: Veterinary License ID (vet only, full width) */}
             {formData.staffType === 'veterinarian' && (
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth label="Veterinary License ID" name="veterinaryId" value={formData.veterinaryId} onChange={handleFormChange} size="small" />
-              </Grid>
+              <Box sx={{ gridColumn: '1 / -1' }}>
+                <TextField fullWidth label="Veterinary License ID" name="veterinaryId" value={formData.veterinaryId} onChange={handleFormChange} />
+              </Box>
             )}
-          </Grid>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 4, pb: 4, pt: 0, bgcolor: '#fbfcfd' }}>
           <Button onClick={handleCloseAddPopup} sx={{ color: '#64748b', fontWeight: 600 }}>
@@ -707,8 +700,9 @@ const ClinicStaff = () => {
         </DialogActions>
       </Dialog>
 
+
       {/* Edit Staff Modal */}
-      <Dialog open={isEditModalOpen} onClose={handleCloseEdit} maxWidth="md" fullWidth>
+      <Dialog open={isEditModalOpen} onClose={handleCloseEdit} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', color: '#8e24aa' }}>
           Edit {editFormData.staffType === 'veterinarian' ? 'Veterinarian' : 'Staff Member'}
         </DialogTitle>
@@ -718,37 +712,49 @@ const ClinicStaff = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth label="First Name" name="firstName" value={editFormData.firstName} onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })} required />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth label="Last Name" name="lastName" value={editFormData.lastName} onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })} required />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth type="email" label="Email Address" name="email" value={editFormData.email} onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })} required />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth label="Phone Number" name="phoneNumber" value={editFormData.phoneNumber} onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })} />
-              </Grid>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', mt: 1 }}>
+              {/* Row 1 */}
+              <TextField fullWidth label="First Name" name="firstName" value={editFormData.firstName} onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })} required />
+              <TextField fullWidth label="Last Name" name="lastName" value={editFormData.lastName} onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })} required />
 
-              <Grid item xs={12} sm={6}>
+              {/* Row 2 */}
+              <TextField fullWidth type="email" label="Email Address" name="email" value={editFormData.email} onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })} required />
+              <TextField fullWidth label="Phone Number" name="phoneNumber" value={editFormData.phoneNumber} onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })} />
+
+              {/* Row 3: Access Level + Role or Vet ID */}
+              <FormControl fullWidth>
+                <InputLabel>Access Level</InputLabel>
+                <Select name="accessLevel" value={editFormData.accessLevel || 'Basic'} onChange={(e) => setEditFormData({ ...editFormData, accessLevel: e.target.value })} label="Access Level">
+                  <MenuItem value="Basic">Basic</MenuItem>
+                  <MenuItem value="Enhanced">Enhanced</MenuItem>
+                </Select>
+              </FormControl>
+
+              {editFormData.staffType === 'veterinarian' ? (
+                <TextField fullWidth label="Veterinary Registration ID" name="veterinaryId" value={editFormData.veterinaryId} onChange={(e) => setEditFormData({ ...editFormData, veterinaryId: e.target.value })} required />
+              ) : (
                 <FormControl fullWidth>
-                  <InputLabel>Access Level</InputLabel>
-                  <Select
-                    name="accessLevel"
-                    value={editFormData.accessLevel || 'Basic'}
-                    onChange={(e) => setEditFormData({ ...editFormData, accessLevel: e.target.value })}
-                    label="Access Level"
-                  >
-                    <MenuItem value="Basic">Basic</MenuItem>
-                    <MenuItem value="Enhanced">Enhanced</MenuItem>
+                  <InputLabel>Role</InputLabel>
+                  <Select name="role" value={editFormData.role} onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })} label="Role">
+                    <MenuItem value="Receptionist">Receptionist</MenuItem>
+                    <MenuItem value="Assistant">Assistant</MenuItem>
+                    <MenuItem value="Vet Tech">Vet Tech</MenuItem>
+                    <MenuItem value="Nurse">Nurse</MenuItem>
+                    <MenuItem value="Manager">Manager</MenuItem>
+                    <MenuItem value="Kennel Staff">Kennel Staff</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
+              )}
 
-              {editFormData.accessLevel === 'Basic' && (
-                <Grid item xs={12}>
+              {/* Row 4: Full-width — Specialization (vet) or Assigned Clinics (staff Basic) */}
+              {editFormData.staffType === 'veterinarian' && (
+                <Box sx={{ gridColumn: '1 / -1' }}>
+                  <TextField fullWidth label="Specialization" name="specialization" value={editFormData.specialization} onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })} />
+                </Box>
+              )}
+              {editFormData.staffType !== 'veterinarian' && editFormData.accessLevel === 'Basic' && (
+                <Box sx={{ gridColumn: '1 / -1' }}>
                   <FormControl fullWidth>
                     <InputLabel>Assigned Clinics</InputLabel>
                     <Select
@@ -760,17 +766,9 @@ const ClinicStaff = () => {
                       renderValue={(selected) => (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                           {selected.map((value) => (
-                            <Chip
-                              key={value}
-                              label={clinics.find(c => c._id === value)?.name || value}
-                              onDelete={(e) => {
-                                e.stopPropagation();
-                                const newValue = editFormData.assignedClinics.filter(id => id !== value);
-                                setEditFormData({ ...editFormData, assignedClinics: newValue });
-                              }}
-                              onMouseDown={(e) => {
-                                e.stopPropagation();
-                              }}
+                            <Chip key={value} label={clinics.find(c => c._id === value)?.name || value}
+                              onDelete={(e) => { e.stopPropagation(); setEditFormData({ ...editFormData, assignedClinics: editFormData.assignedClinics.filter(id => id !== value) }); }}
+                              onMouseDown={(e) => { e.stopPropagation(); }} size="small"
                             />
                           ))}
                         </Box>
@@ -781,38 +779,12 @@ const ClinicStaff = () => {
                       ))}
                     </Select>
                   </FormControl>
-                </Grid>
+                </Box>
               )}
-
-              {editFormData.staffType === 'veterinarian' ? (
-                <>
-                  <Grid item xs={12} sm={6}>
-                    <TextField fullWidth label="Veterinary Registration ID" name="veterinaryId" value={editFormData.veterinaryId} onChange={(e) => setEditFormData({ ...editFormData, veterinaryId: e.target.value })} required />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField fullWidth label="Specialization" name="specialization" value={editFormData.specialization} onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })} />
-                  </Grid>
-                </>
-              ) : (
-                <>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth>
-                      <InputLabel>Role</InputLabel>
-                      <Select name="role" value={editFormData.role} onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })} label="Role">
-                        <MenuItem value="Receptionist">Receptionist</MenuItem>
-                        <MenuItem value="Assistant">Assistant</MenuItem>
-                        <MenuItem value="Vet Tech">Vet Tech</MenuItem>
-                        <MenuItem value="Nurse">Nurse</MenuItem>
-                        <MenuItem value="Manager">Manager</MenuItem>
-                        <MenuItem value="Kennel Staff">Kennel Staff</MenuItem>
-                        <MenuItem value="Other">Other</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                </>
-              )}
-            </Grid>
+            </Box>
           )}
+
+
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={handleCloseEdit} color="inherit" disabled={savingEdit}>

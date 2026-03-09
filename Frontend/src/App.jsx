@@ -106,7 +106,7 @@ function App() {
         <Route path="staff" element={<StaffManagement />} /> */}
 
       </Routes>
-      <ChatWidget />
+      {!shouldHideFooter && <ChatWidget />}
       {!shouldHideFooter && <Footer />}
     </>
   );

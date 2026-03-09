@@ -1,12 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
-import Sidebar from '../../components/layout/sidebar';
-import VetAdminNavbar from '../../components/layout/VetAdminNavbar';
+// src/pages/vet/RegisteredPets.jsx
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Paper, TextField, MenuItem, FormControl, Select, InputLabel, Avatar, IconButton,
-  TablePagination, CircularProgress, useTheme, useMediaQuery, Button, Grid, Tooltip
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  MenuItem,
+  FormControl,
+  Select,
+  InputLabel,
+  Avatar,
+  TablePagination,
+  CircularProgress,
+  useTheme,
+  useMediaQuery,
+  Button,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -14,20 +29,23 @@ import {
   Person as PersonIcon,
   Male as MaleIcon,
   Female as FemaleIcon,
-  Chat as ChatIcon,
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 
-const ContentContainer = styled(Box)(({ theme }) => ({
+import Sidebar from '../../components/layout/sidebar';
+import VetAdminNavbar from '../../components/layout/VetAdminNavbar';
+import api from '../../services/api';
+
+const ContentContainer = styled(Box)({
   backgroundColor: 'white',
-  borderRadius: '16px',
+  borderRadius: 16,
   boxSizing: 'border-box',
   boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
   border: '1px solid #e2e8f0',
   width: '100%',
-  padding: '32px',
+  padding: 32,
   margin: '0 auto',
-}));
+});
 
 const SearchSection = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -39,29 +57,37 @@ const SearchSection = styled(Box)(({ theme }) => ({
   gap: theme.spacing(3),
 }));
 
-const TableRowStyled = styled(TableRow)(({ theme }) => ({
+const TableRowStyled = styled(TableRow)({
   '&:hover': { backgroundColor: '#f0fff4 !important' },
   cursor: 'pointer',
   transition: 'background-color 0.2s',
-}));
+});
 
 const TableHeadCell = styled(TableCell)({
-  backgroundColor: '#e08c0eff',
+  backgroundColor: '#e08c0e',
   color: 'white',
   fontWeight: 'bold',
   fontSize: '1rem',
 });
 
-const PetAvatar = styled(Avatar)(({ theme }) => ({
-  width: 70, height: 70, border: '3px solid white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-}));
+const PetAvatar = styled(Avatar)({
+  width: 70,
+  height: 70,
+  border: '3px solid white',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+});
 
 const RegisteredPets = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Registered Pets State
+  const clinicIdFromQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('clinicId') || null;
+  }, [location.search]);
+
   const [approvedPets, setApprovedPets] = useState([]);
   const [filteredApprovedPets, setFilteredApprovedPets] = useState([]);
   const [loadingApproved, setLoadingApproved] = useState(true);
@@ -76,11 +102,21 @@ const RegisteredPets = () => {
     fetchApprovedPets();
   }, [navigate]);
 
+  // When navigated from clinics page, preselect that clinic in the filter
+  useEffect(() => {
+    if (clinicIdFromQuery) {
+      setClinicFilterApproved(clinicIdFromQuery);
+    }
+  }, [clinicIdFromQuery]);
+
   const fetchApprovedPets = async () => {
     try {
       setLoadingApproved(true);
       const token = localStorage.getItem('vet_token');
-      if (!token) { navigate('/login'); return; }
+      if (!token) {
+        navigate('/vet/login');
+        return;
+      }
 
       const response = await api.get('/pets/clinic/registered').catch(() => ({ data: {} }));
       if (response?.data?.success || response?.data?.registeredPets) {
@@ -90,13 +126,14 @@ const RegisteredPets = () => {
         const userData = JSON.parse(localStorage.getItem('vet_user'));
         const clinicId = userData?.clinicId || userData?.currentActiveClinicId;
         if (clinicId) {
-          const res = await api.get(`/pets/clinic/${clinicId}/registered`).catch(() => null)
-            || await api.get(`/pets/clinic/${clinicId}/approved`).catch(() => null);
+          const res =
+            (await api.get(`/pets/clinic/${clinicId}/registered`).catch(() => null)) ||
+            (await api.get(`/pets/clinic/${clinicId}/approved`).catch(() => null));
           setApprovedPets(res?.data?.approvedPets || res?.data?.registeredPets || res?.data || []);
         }
       }
     } catch (error) {
-      console.error("Failed to fetch registered pets:", error);
+      console.error('Failed to fetch registered pets:', error);
     } finally {
       setLoadingApproved(false);
     }
@@ -104,26 +141,43 @@ const RegisteredPets = () => {
 
   useEffect(() => {
     let filtered = approvedPets;
+
     if (searchQueryApproved.trim()) {
       const query = searchQueryApproved.toLowerCase();
-      filtered = filtered.filter(pet => {
+      filtered = filtered.filter((pet) => {
         switch (searchCriteriaApproved) {
-          case 'petName': return pet.name?.toLowerCase().includes(query);
-          case 'ownerName': return `${pet.ownerId?.firstName || ''} ${pet.ownerId?.lastName || ''}`.toLowerCase().includes(query);
-          case 'species': return pet.species?.toLowerCase().includes(query);
-          case 'breed': return pet.breed?.toLowerCase().includes(query);
-          default: return true;
+          case 'petName':
+            return pet.name?.toLowerCase().includes(query);
+          case 'ownerName':
+            return `${pet.ownerId?.firstName || ''} ${pet.ownerId?.lastName || ''}`
+              .toLowerCase()
+              .includes(query);
+          case 'species':
+            return pet.species?.toLowerCase().includes(query);
+          case 'breed':
+            return pet.breed?.toLowerCase().includes(query);
+          default:
+            return true;
         }
       });
     }
+
     if (speciesFilterApproved !== 'all') {
-      filtered = filtered.filter(pet => pet.species === speciesFilterApproved);
+      filtered = filtered.filter((pet) => pet.species === speciesFilterApproved);
     }
+
     if (clinicFilterApproved !== 'all') {
-      filtered = filtered.filter(pet => pet.registeredClinicId?._id === clinicFilterApproved);
+      filtered = filtered.filter((pet) => pet.registeredClinicId?._id === clinicFilterApproved);
     }
+
     setFilteredApprovedPets(filtered);
-  }, [searchQueryApproved, searchCriteriaApproved, speciesFilterApproved, clinicFilterApproved, approvedPets]);
+  }, [
+    searchQueryApproved,
+    searchCriteriaApproved,
+    speciesFilterApproved,
+    clinicFilterApproved,
+    approvedPets,
+  ]);
 
   const calculateAge = (dob) => {
     if (!dob) return 'Unknown';
@@ -134,19 +188,22 @@ const RegisteredPets = () => {
     return 'Less than a month';
   };
 
-  const getUniqueSpecies = () => [...new Set(approvedPets.map(p => p.species).filter(Boolean))];
+  const getUniqueSpecies = () =>
+    [...new Set(approvedPets.map((p) => p.species).filter(Boolean))];
 
   const getUniqueClinics = () => {
-    const clinicsMap = new Map();
-    approvedPets.forEach(p => {
+    const map = new Map();
+    approvedPets.forEach((p) => {
       if (p.registeredClinicId) {
-        clinicsMap.set(p.registeredClinicId._id, p.registeredClinicId.name);
+        map.set(p.registeredClinicId._id, p.registeredClinicId.name);
       }
     });
-    return Array.from(clinicsMap.entries()).map(([id, name]) => ({ id, name }));
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   };
 
-  const handleRowClick = (petId) => navigate(`/vet/pets/profile/${petId}`);
+  const handleRowClick = (petId) => {
+    navigate(`/vet/pets/profile/${petId}`);
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
@@ -155,7 +212,10 @@ const RegisteredPets = () => {
         {!isMobile && <Sidebar />}
         <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
           <ContentContainer>
-            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 3 }}>
+            <Typography
+              variant="h4"
+              sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 3 }}
+            >
               Registered Pets
             </Typography>
 
@@ -164,7 +224,12 @@ const RegisteredPets = () => {
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                   <FormControl sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                     <InputLabel>Search By</InputLabel>
-                    <Select value={searchCriteriaApproved} onChange={(e) => setSearchCriteriaApproved(e.target.value)} label="Search By" size="small">
+                    <Select
+                      value={searchCriteriaApproved}
+                      label="Search By"
+                      size="small"
+                      onChange={(e) => setSearchCriteriaApproved(e.target.value)}
+                    >
                       <MenuItem value="petName">Pet Name</MenuItem>
                       <MenuItem value="ownerName">Owner Name</MenuItem>
                       <MenuItem value="species">Species</MenuItem>
@@ -177,33 +242,58 @@ const RegisteredPets = () => {
                     onChange={(e) => setSearchQueryApproved(e.target.value)}
                     variant="outlined"
                     size="small"
-                    sx={{ width: isMobile ? '100%' : 300, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                    sx={{
+                      width: isMobile ? '100%' : 300,
+                      '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+                    }}
                   />
                 </Box>
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                   <FormControl sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                     <InputLabel>Species</InputLabel>
-                    <Select value={speciesFilterApproved} onChange={(e) => setSpeciesFilterApproved(e.target.value)} label="Species" size="small">
+                    <Select
+                      value={speciesFilterApproved}
+                      label="Species"
+                      size="small"
+                      onChange={(e) => setSpeciesFilterApproved(e.target.value)}
+                    >
                       <MenuItem value="all">All Species</MenuItem>
-                      {getUniqueSpecies().map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+                      {getUniqueSpecies().map((s) => (
+                        <MenuItem key={s} value={s}>
+                          {s}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                   <FormControl sx={{ minWidth: 150, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                     <InputLabel>Clinic</InputLabel>
-                    <Select value={clinicFilterApproved} onChange={(e) => setClinicFilterApproved(e.target.value)} label="Clinic" size="small">
+                    <Select
+                      value={clinicFilterApproved}
+                      label="Clinic"
+                      size="small"
+                      onChange={(e) => setClinicFilterApproved(e.target.value)}
+                    >
                       <MenuItem value="all">All Clinics</MenuItem>
-                      {getUniqueClinics().map(c => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                      {getUniqueClinics().map((c) => (
+                        <MenuItem key={c.id} value={c.id}>
+                          {c.name}
+                        </MenuItem>
+                      ))}
                     </Select>
                   </FormControl>
                 </Box>
               </SearchSection>
 
               {loadingApproved ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}><CircularProgress color="success" /></Box>
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+                  <CircularProgress color="success" />
+                </Box>
               ) : approvedPets.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 12 }}>
                   <PetsIcon sx={{ fontSize: 100, color: '#ddd', mb: 3 }} />
-                  <Typography variant="h5" color="textSecondary">No Registered Pets</Typography>
+                  <Typography variant="h5" color="textSecondary">
+                    No Registered Pets
+                  </Typography>
                 </Box>
               ) : (
                 <>
@@ -220,47 +310,76 @@ const RegisteredPets = () => {
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {filteredApprovedPets.slice(pageApproved * rowsPerPageApproved, pageApproved * rowsPerPageApproved + rowsPerPageApproved).map((pet) => (
-                          <TableRowStyled key={pet._id} onClick={() => handleRowClick(pet._id)}>
-                            <TableCell>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <PetAvatar src={pet.photo} alt={pet.name}>{pet.name?.[0]?.toUpperCase() || 'P'}</PetAvatar>
+                        {filteredApprovedPets
+                          .slice(
+                            pageApproved * rowsPerPageApproved,
+                            pageApproved * rowsPerPageApproved + rowsPerPageApproved,
+                          )
+                          .map((pet) => (
+                            <TableRowStyled key={pet._id} onClick={() => handleRowClick(pet._id)}>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                  <PetAvatar src={pet.photo} alt={pet.name}>
+                                    {pet.name?.[0]?.toUpperCase() || 'P'}
+                                  </PetAvatar>
+                                  <Box>
+                                    <Typography fontWeight="bold">{pet.name}</Typography>
+                                    <Typography variant="caption" color="textSecondary">
+                                      Registered
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <PersonIcon fontSize="small" color="action" />
+                                  <Box>
+                                    <Typography variant="body1" fontWeight="bold">
+                                      {pet.ownerId
+                                        ? `${pet.ownerId.firstName} ${pet.ownerId.lastName}`
+                                        : 'N/A'}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" fontWeight="500">
+                                  {pet.registeredClinicId?.name || 'Unknown Clinic'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body1" fontWeight="bold">
+                                  {pet.species}
+                                </Typography>
+                                <Typography variant="body2" color="textSecondary">
+                                  {pet.breed || 'Not specified'}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
                                 <Box>
-                                  <Typography fontWeight="bold">{pet.name}</Typography>
-                                  <Typography variant="caption" color="textSecondary">Registered</Typography>
+                                  <Typography variant="body1" fontWeight="bold">
+                                    {calculateAge(pet.dateOfBirth)}
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                                    {pet.gender === 'Male' ? (
+                                      <MaleIcon color="primary" sx={{ fontSize: 18, mr: 0.5 }} />
+                                    ) : pet.gender === 'Female' ? (
+                                      <FemaleIcon color="secondary" sx={{ fontSize: 18, mr: 0.5 }} />
+                                    ) : null}
+                                    <Typography variant="body2" color="textSecondary">
+                                      {pet.gender || 'Unknown'}
+                                    </Typography>
+                                  </Box>
                                 </Box>
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <PersonIcon fontSize="small" color="action" />
-                                <Box>
-                                  <Typography variant="body1" fontWeight="bold">{pet.ownerId ? `${pet.ownerId.firstName} ${pet.ownerId.lastName}` : 'N/A'}</Typography>
-                                </Box>
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2" fontWeight="500">{pet.registeredClinicId?.name || 'Unknown Clinic'}</Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body1" fontWeight="bold">{pet.species}</Typography>
-                              <Typography variant="body2" color="textSecondary">{pet.breed || 'Not specified'}</Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Box>
-                                <Typography variant="body1" fontWeight="bold">{calculateAge(pet.dateOfBirth)}</Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                                  {pet.gender === 'Male' ? <MaleIcon color="primary" sx={{ fontSize: 18, mr: 0.5 }} /> : pet.gender === 'Female' ? <FemaleIcon color="secondary" sx={{ fontSize: 18, mr: 0.5 }} /> : null}
-                                  <Typography variant="body2" color="textSecondary">{pet.gender || 'Unknown'}</Typography>
-                                </Box>
-                              </Box>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                              </TableCell>
+                              <TableCell align="center">
                                 <Button
                                   variant="contained"
                                   size="small"
-                                  onClick={(e) => { e.stopPropagation(); handleRowClick(pet._id); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRowClick(pet._id);
+                                  }}
                                   sx={{
                                     textTransform: 'none',
                                     borderRadius: '12px',
@@ -268,21 +387,28 @@ const RegisteredPets = () => {
                                     fontWeight: 700,
                                     px: 3,
                                     '&:hover': {
-                                      background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                                      background:
+                                        'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
                                       transform: 'translateY(-1px)',
-                                    }
+                                    },
                                   }}
                                 >
                                   View
                                 </Button>
-                              </Box>
-                            </TableCell>
-                          </TableRowStyled>
-                        ))}
+                              </TableCell>
+                            </TableRowStyled>
+                          ))}
                       </TableBody>
                     </Table>
                   </TableContainer>
-                  <TablePagination component="div" count={filteredApprovedPets.length} rowsPerPage={rowsPerPageApproved} page={pageApproved} onPageChange={(e, newPage) => setPageApproved(newPage)} rowsPerPageOptions={[]} />
+                  <TablePagination
+                    component="div"
+                    count={filteredApprovedPets.length}
+                    rowsPerPage={rowsPerPageApproved}
+                    page={pageApproved}
+                    onPageChange={(_, newPage) => setPageApproved(newPage)}
+                    rowsPerPageOptions={[]}
+                  />
                 </>
               )}
             </Box>
@@ -294,3 +420,4 @@ const RegisteredPets = () => {
 };
 
 export default RegisteredPets;
+

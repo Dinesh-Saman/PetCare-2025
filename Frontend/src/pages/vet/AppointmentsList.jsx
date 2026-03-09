@@ -152,7 +152,7 @@ const InfoValue = styled(Typography)({
 const StyledButton = styled(Button)(({ theme }) => ({
   background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
   color: 'white',
-  padding: '10px 24px',
+  padding: '6px 20px',
   borderRadius: '12px',
   fontWeight: 700,
   textTransform: 'none',

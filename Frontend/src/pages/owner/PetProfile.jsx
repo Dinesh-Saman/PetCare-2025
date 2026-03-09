@@ -4,15 +4,22 @@ import api from '../../services/api';
 import Swal from 'sweetalert2';
 import {
   Box, Typography, Grid, Card, CardContent, Avatar, Button, Chip,
-  Divider, Paper, Container, Stack, Tooltip, IconButton, Tabs, Tab
+  Divider, Paper, Container, Stack, Tooltip, IconButton, Tabs, Tab,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
-import { styled } from '@mui/system';
+import AddIcon from '@mui/icons-material/Add';
+import { styled, alpha } from '@mui/material/styles';
 import {
   ArrowBack as ArrowBackIcon,
   Cake as CakeIcon,
   MonitorWeight as WeightIcon,
   ColorLens as ColorIcon,
   LocalHospital as HospitalIcon,
+  Timeline as VitalIcon,
+  Info as InfoIcon,
+  Person as OwnerIcon,
+  PictureAsPdf as PdfIcon,
+  Image as ImageIcon,
   Edit as EditIcon,
   FileUpload as UploadIcon,
   Chat as ChatIcon,
@@ -37,25 +44,12 @@ const PageContainer = styled(Box)({
 });
 
 const ProfileBanner = styled(Card)({
-  borderRadius: '32px',
-  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-  color: 'white',
-  padding: '60px 48px',
-  boxShadow: '0 20px 50px rgba(79, 70, 229, 0.3)',
-  position: 'relative',
-  overflow: 'hidden',
-  border: 'none',
+  borderRadius: '24px',
+  background: '#ffffff',
+  padding: '40px',
+  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+  border: '1px solid #e2e8f0',
   marginBottom: '40px',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: -50,
-    right: -50,
-    width: '200px',
-    height: '200px',
-    background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
-    borderRadius: '50%',
-  }
 });
 
 const GlassCard = styled(Card)({
@@ -68,14 +62,51 @@ const GlassCard = styled(Card)({
 });
 
 const RecordItem = styled(Paper)({
-  padding: '20px',
-  borderRadius: '16px',
-  border: '1px solid #e2e8f0',
+  padding: '16px 24px',
+  borderRadius: '12px',
+  border: '1px solid #f1f5f9',
+  boxShadow: 'none',
   transition: 'all 0.2s ease',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
   '&:hover': {
-    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-    borderColor: '#cbd5e1'
+    backgroundColor: '#f8fafc',
+    borderColor: '#e2e8f0'
   }
+});
+
+const InfoBox = styled(Box)({
+  backgroundColor: '#f8fafc',
+  borderRadius: '12px',
+  padding: '16px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+  height: '100%',
+  '& .info-label': {
+    fontFamily: "'Inter', sans-serif",
+    fontWeight: 700,
+    letterSpacing: '0.02em',
+    textTransform: 'uppercase',
+    color: '#64748b',
+    fontSize: '0.7rem',
+  },
+  '& .info-value': {
+    fontFamily: "'Inter', sans-serif",
+    fontWeight: 800,
+    color: '#1e293b',
+    fontSize: '1.1rem',
+  }
+});
+
+const InstructionBox = styled(Box)({
+  backgroundColor: '#fffbeb',
+  border: '1px solid #fef3c7',
+  borderRadius: '12px',
+  padding: '16px',
+  marginTop: '16px',
+  marginBottom: '16px',
 });
 
 const getStatusColor = (status) => {
@@ -96,6 +127,11 @@ const PetProfile = () => {
   const [records, setRecords] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [vaccinations, setVaccinations] = useState([]);
+  const [openEditPet, setOpenEditPet] = useState(false);
+  const [savingPet, setSavingPet] = useState(false);
+  const [editPetForm, setEditPetForm] = useState({
+    name: '', species: '', breed: '', dateOfBirth: '', gender: '', weight: '', color: '', notes: '', photo: ''
+  });
 
   useEffect(() => {
     fetchPetDetails();
@@ -158,6 +194,96 @@ const PetProfile = () => {
     }
   };
 
+  const handleOpenEditPet = () => {
+    setEditPetForm({
+      name: pet.name || '',
+      species: pet.species || '',
+      breed: pet.breed || '',
+      dateOfBirth: pet.dateOfBirth ? pet.dateOfBirth.split('T')[0] : '',
+      gender: pet.gender || '',
+      weight: pet.weight || '',
+      color: pet.color || '',
+      notes: pet.notes || '',
+      photo: pet.photo || ''
+    });
+    setOpenEditPet(true);
+  };
+
+  const handleUpdatePet = async () => {
+    setSavingPet(true);
+    try {
+      const response = await api.put(`/pets/${pet._id}`, editPetForm);
+      setPet(response.data.pet || response.data);
+      Swal.fire({ title: 'Updated!', text: 'Pet has been updated successfully.', icon: 'success', toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
+      setOpenEditPet(false);
+    } catch (error) {
+      console.error('Error updating pet:', error);
+      Swal.fire('Error', 'Failed to update pet details', 'error');
+    } finally {
+      setSavingPet(false);
+    }
+  };
+
+  const handleUploadPersonalRecord = async (e) => {
+    console.log('Upload function triggered');
+    const file = e.target.files[0];
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+    console.log('File detected:', file.name, file.size);
+
+    Swal.fire({
+      title: 'Uploading...',
+      text: 'Please wait while we secure your document',
+      allowOutsideClick: false,
+      didOpen: () => {
+        console.log('Spinner activated');
+        Swal.showLoading();
+      }
+    });
+
+    const d = new FormData();
+    d.append('file', file);
+    d.append('upload_preset', 'petcare_preset');
+
+    try {
+      console.log('Starting Cloudinary upload...');
+      const r = await fetch('https://api.cloudinary.com/v1_1/dy78lcfqg/auto/upload', {
+        method: 'POST',
+        body: d
+      });
+      const data = await r.json();
+      console.log('Cloudinary data received:', data);
+
+      if (data.secure_url) {
+        console.log('Upload successful, updating backend...');
+        const newRecord = {
+          name: file.name.split('.')[0] || 'Medical Record',
+          url: data.secure_url,
+          date: new Date()
+        };
+
+        const updatedPersonalRecords = [...(pet.personalRecords || []), newRecord];
+
+        await api.put(`/pets/${pet._id}`, { personalRecords: updatedPersonalRecords });
+
+        setPet(prev => ({ ...prev, personalRecords: updatedPersonalRecords }));
+
+        Swal.fire({
+          title: 'Success!',
+          text: 'Record uploaded successfully',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      Swal.fire('Error', 'Failed to upload document. Please check your connection.', 'error');
+    }
+  };
+
   if (loading) {
     return (
       <PageContainer>
@@ -174,7 +300,7 @@ const PetProfile = () => {
   return (
     <PageContainer>
       <Navbar />
-      <Container maxWidth="xl" sx={{ mt: { xs: 12, md: 15 } }}>
+      <Container maxWidth="lg" sx={{ mt: { xs: 12, md: 15 } }}>
         {/* Top Navigation */}
         <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button
@@ -191,12 +317,12 @@ const PetProfile = () => {
               onClick={() => navigate(`/owner/chat?petId=${pet._id}`)}
               sx={{ borderRadius: '12px', fontWeight: 600, px: 3 }}
             >
-              Pet Chat
+              Chat with Vet
             </Button>
             <Button
               variant="contained"
               startIcon={<EditIcon />}
-              onClick={() => Swal.fire('Coming Soon', 'Edit profile feature is under development.', 'info')}
+              onClick={() => handleOpenEditPet()}
               sx={{
                 borderRadius: '12px',
                 fontWeight: 600,
@@ -218,8 +344,8 @@ const PetProfile = () => {
                 sx={{
                   width: 140,
                   height: 140,
-                  border: '6px solid rgba(255,255,255,0.3)',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+                  border: '6px solid #f8fafc',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.05)'
                 }}
               >
                 <PetsIcon sx={{ fontSize: 60 }} />
@@ -227,54 +353,14 @@ const PetProfile = () => {
             </Grid>
             <Grid item xs>
               <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
-                <Typography variant="h2" fontWeight="900" sx={{ letterSpacing: '-0.5px' }}>
+                <Typography variant="h2" fontWeight="900" sx={{ letterSpacing: '-0.5px', color: '#1e293b' }}>
                   {pet.name}
                 </Typography>
-                <Chip
-                  label={pet.status || 'Active'}
-                  sx={{
-                    bgcolor: 'rgba(255,255,255,0.2)',
-                    color: 'white',
-                    fontWeight: 800,
-                    backdropFilter: 'blur(5px)',
-                    border: '1px solid rgba(255,255,255,0.3)'
-                  }}
-                />
               </Stack>
-              <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, mb: 2 }}>
-                {pet.breed} • {pet.species} • {calculateAge(pet.dateOfBirth)}
+              <Typography variant="h6" sx={{ color: '#64748b', fontWeight: 500, mb: 3 }}>
+                {pet.species}
               </Typography>
-              <Stack direction="row" spacing={2}>
-                <Button
-                  variant="contained"
-                  startIcon={<EditIcon />}
-                  sx={{
-                    borderRadius: '50px',
-                    px: 3,
-                    bgcolor: 'white',
-                    color: '#4f46e5',
-                    fontWeight: 700,
-                    '&:hover': { bgcolor: '#f0f4f8' }
-                  }}
-                >
-                  Edit Profile
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<ChatIcon />}
-                  onClick={() => navigate(`/owner/chat?petId=${pet._id}`)}
-                  sx={{
-                    borderRadius: '50px',
-                    px: 3,
-                    color: 'white',
-                    borderColor: 'rgba(255,255,255,0.5)',
-                    fontWeight: 700,
-                    '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
-                  }}
-                >
-                  Chat with Vet
-                </Button>
-              </Stack>
+
             </Grid>
           </Grid>
           <Box sx={{ mt: 4 }}>
@@ -282,264 +368,366 @@ const PetProfile = () => {
               value={tabValue}
               onChange={handleTabChange}
               sx={{
-                '& .MuiTab-root': { color: 'rgba(255,255,255,0.7)', fontWeight: 600, textTransform: 'none', fontSize: '1rem' },
-                '& .Mui-selected': { color: '#fff !important' },
-                '& .MuiTabs-indicator': { backgroundColor: '#fff', height: '3px', borderRadius: '3px' }
+                borderBottom: '1px solid #e2e8f0',
+                '& .MuiTab-root': {
+                  color: '#64748b',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  minWidth: 160,
+                  transition: '0.2s',
+                  '&.Mui-selected': {
+                    color: '#4f46e5',
+                    backgroundColor: alpha('#4f46e5', 0.04),
+                  }
+                },
+                '& .MuiTabs-indicator': { backgroundColor: '#4f46e5', height: '3px', borderRadius: '3px 3px 0 0' }
               }}
             >
               <Tab label="Overview" />
               <Tab label="Medical Records" />
               <Tab label="Prescriptions" />
-              <Tab label="Vaccinations" />
             </Tabs>
           </Box>
         </ProfileBanner>
 
-        {/* Tab Content */}
         <Box sx={{ mt: 4 }}>
           {tabValue === 0 && (
             <Grid container spacing={4}>
-              <Grid item xs={12} md={4}>
-                <GlassCard>
+              <Grid item xs={12} md={7}>
+                <Card sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: 'none', height: '100%' }}>
                   <CardContent sx={{ p: 4 }}>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom display="flex" alignItems="center" gap={1}>
-                      <WeightIcon color="primary" /> Physical Details
-                    </Typography>
-                    <Divider sx={{ my: 2 }} />
-                    <Stack spacing={2}>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography color="text.secondary">Gender</Typography>
-                        <Typography fontWeight="600" display="flex" alignItems="center" gap={0.5}>
-                          {pet.gender === 'Male' ? <MaleIcon color="primary" /> : <FemaleIcon color="error" />}
-                          {pet.gender}
-                        </Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography color="text.secondary">Weight</Typography>
-                        <Typography fontWeight="600">{pet.weight} kg</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography color="text.secondary">Color</Typography>
-                        <Typography fontWeight="600">{pet.color || 'N/A'}</Typography>
-                      </Box>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
+                      <InfoIcon sx={{ color: '#4f46e5' }} />
+                      <Typography variant="h6" fontWeight="800" color="#1e293b">Pet Information</Typography>
                     </Stack>
+
+                    <Grid container spacing={2}>
+                      <Grid item xs={6}>
+                        <InfoBox>
+                          <Typography className="info-label">Age</Typography>
+                          <Typography className="info-value">{calculateAge(pet.dateOfBirth)}</Typography>
+                        </InfoBox>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <InfoBox>
+                          <Typography className="info-label">Weight</Typography>
+                          <Typography className="info-value">{pet.weight ? `${pet.weight}kg` : '—'}</Typography>
+                        </InfoBox>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <InfoBox>
+                          <Typography className="info-label">Gender</Typography>
+                          <Typography className="info-value">{pet.gender || '—'}</Typography>
+                        </InfoBox>
+                      </Grid>
+                    </Grid>
                   </CardContent>
-                </GlassCard>
+                </Card>
               </Grid>
 
-              <Grid item xs={12} md={4}>
-                <GlassCard>
+              <Grid item xs={12} md={5}>
+                <Card sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: 'none', height: '100%' }}>
                   <CardContent sx={{ p: 4 }}>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom display="flex" alignItems="center" gap={1}>
-                      <HospitalIcon color="primary" /> Medical Status
-                    </Typography>
-                    <Divider sx={{ my: 2 }} />
-                    <Stack spacing={2}>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography color="text.secondary">Clinic</Typography>
-                        <Typography fontWeight="600">{pet.clinicId?.name || 'N/A'}</Typography>
-                      </Box>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography color="text.secondary">Last Vaccination</Typography>
-                        <Typography fontWeight="600">
-                          {pet.lastVaccinationDate ? new Date(pet.lastVaccinationDate).toLocaleDateString() : 'N/A'}
-                        </Typography>
-                      </Box>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
+                      <OwnerIcon sx={{ color: '#4f46e5' }} />
+                      <Typography variant="h6" fontWeight="800" color="#1e293b">Owner Details</Typography>
                     </Stack>
-                  </CardContent>
-                </GlassCard>
-              </Grid>
 
-              <Grid item xs={12} md={4}>
-                <GlassCard>
-                  <CardContent sx={{ p: 4 }}>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom display="flex" alignItems="center" gap={1}>
-                      <CakeIcon color="primary" /> Birth Information
-                    </Typography>
-                    <Divider sx={{ my: 2 }} />
-                    <Stack spacing={2}>
-                      <Box display="flex" justifyContent="space-between">
-                        <Typography color="text.secondary">Birthday</Typography>
-                        <Typography fontWeight="600">
-                          {pet.dateOfBirth ? new Date(pet.dateOfBirth).toLocaleDateString() : 'N/A'}
+                    <Stack spacing={3}>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" fontWeight="700" display="block">Primary Owner</Typography>
+                        <Typography variant="body1" fontWeight="800" color="#1e293b">
+                          {pet.ownerId?.firstName} {pet.ownerId?.lastName}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" fontWeight="700" display="block">Contact Number</Typography>
+                        <Typography variant="body1" fontWeight="800" color="#1e293b">
+                          {pet.ownerId?.phoneNumber || '+1 (555) 123-4567'}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" fontWeight="700" display="block">Home Clinic</Typography>
+                        <Typography variant="body1" fontWeight="800" color="#1e293b">
+                          {pet.registeredClinicId?.name || 'Not Registered'}
                         </Typography>
                       </Box>
                     </Stack>
                   </CardContent>
-                </GlassCard>
+                </Card>
               </Grid>
 
               <Grid item xs={12}>
-                <GlassCard>
+                <Card sx={{ borderRadius: '16px', border: '1px solid #f1f5f9', boxShadow: 'none', bgcolor: '#f8fafc' }}>
                   <CardContent sx={{ p: 4 }}>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom>About {pet.name}</Typography>
-                    <Typography variant="body1" sx={{ mt: 2, color: '#475569', lineHeight: 1.6 }}>
+                    <Typography variant="subtitle2" color="text.secondary" fontWeight="800" gutterBottom>ADDITIONAL NOTES</Typography>
+                    <Typography variant="body1" sx={{ color: '#475569', lineHeight: 1.6 }}>
                       {pet.notes || "No special notes recorded for this pawpal."}
                     </Typography>
                   </CardContent>
-                </GlassCard>
+                </Card>
               </Grid>
             </Grid>
           )}
 
           {tabValue === 1 && (
-            <Stack spacing={3}>
-              <Typography variant="h5" fontWeight="800" color="#334155">Vet Certified Records</Typography>
-              {records.length > 0 ? records.map((record) => (
-                <RecordItem key={record._id}>
-                  <Grid container alignItems="center" spacing={2}>
-                    <Grid item xs={12} sm={8}>
+            <Stack spacing={4}>
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
+                  <HospitalIcon sx={{ color: '#4f46e5', fontSize: '1.4rem' }} />
+                  <Typography variant="h6" fontWeight="900" color="#1e293b">Veterinarian Records</Typography>
+                </Stack>
+                <Stack spacing={2}>
+                  {records.length > 0 ? records.map((record) => (
+                    <RecordItem key={record._id}>
                       <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar sx={{ bgcolor: alpha('#4f46e5', 0.1) }}><RecordIcon sx={{ color: '#4f46e5' }} /></Avatar>
+                        <Avatar sx={{ bgcolor: alpha('#ef4444', 0.1), borderRadius: '8px' }}>
+                          <PdfIcon sx={{ color: '#ef4444', fontSize: '1.2rem' }} />
+                        </Avatar>
                         <Box>
-                          <Typography variant="subtitle1" fontWeight={700}>{record.diagnosis}</Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Consulted on {new Date(record.date).toLocaleDateString()} • Dr. {record.vetId?.firstName} {record.vetId?.lastName}
+                          <Typography variant="body1" fontWeight="800" color="#1e293b">{record.diagnosis}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            {new Date(record.date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} • PDF
+                          </Typography>
+                          <Typography variant="caption" display="block" color="#64748b" sx={{ mt: 0.5, fontWeight: 500 }}>
+                            {record.treatmentNotes || 'No additional notes provided'}
                           </Typography>
                         </Box>
                       </Stack>
-                    </Grid>
-                    <Grid item xs={12} sm={4} sx={{ textAlign: 'right' }}>
-                      {record.attachments?.map((file, idx) => (
-                        <Button
-                          key={idx}
-                          variant="outlined"
-                          size="small"
-                          startIcon={<DownloadIcon />}
-                          href={file}
-                          target="_blank"
-                          sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '8px' }}
-                        >
-                          Download Record
-                        </Button>
-                      ))}
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Box sx={{ mt: 2, p: 3, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>TREATMENT NOTES</Typography>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', color: '#334155' }}>
-                          {record.treatmentNotes}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </RecordItem>
-              )) : (
-                <Paper sx={{ p: 6, textAlign: 'center', borderRadius: '24px', border: '2px dashed #e2e8f0', bgcolor: 'transparent' }}>
-                  <Typography color="text.secondary" variant="h6">No certified vet records found for this pawpal.</Typography>
-                </Paper>
-              )}
+                      <IconButton onClick={() => record.attachments?.[0] && window.open(record.attachments[0])}>
+                        <DownloadIcon sx={{ fontSize: '1.2rem', color: '#64748b' }} />
+                      </IconButton>
+                    </RecordItem>
+                  )) : (
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No veterinarian records found.</Typography>
+                  )}
+                </Stack>
+              </Box>
 
-              <Divider sx={{ my: 4 }} />
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
+                  <OwnerIcon sx={{ color: '#4f46e5', fontSize: '1.4rem' }} />
+                  <Typography variant="h6" fontWeight="900" color="#1e293b">My Uploads</Typography>
+                </Stack>
+                <Stack spacing={2}>
+                  {pet.medicalRecords && (
+                    <RecordItem>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar sx={{ bgcolor: alpha('#4f46e5', 0.1), borderRadius: '8px' }}>
+                          <PdfIcon sx={{ color: '#4f46e5', fontSize: '1.2rem' }} />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body1" fontWeight="800" color="#1e293b">Registration Document</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            {new Date(pet.createdAt || Date.now()).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} • PDF
+                          </Typography>
+                          <Typography variant="caption" display="block" color="#64748b" sx={{ mt: 0.5, fontWeight: 500 }}>
+                            Initial registration documentation
+                          </Typography>
+                        </Box>
+                      </Stack>
+                      <IconButton onClick={() => window.open(pet.medicalRecords)}>
+                        <DownloadIcon sx={{ fontSize: '1.2rem', color: '#64748b' }} />
+                      </IconButton>
+                    </RecordItem>
+                  )}
 
-              <Typography variant="h5" fontWeight="800" color="#334155">Personal Uploads</Typography>
-              {pet.medicalRecords ? (
-                <RecordItem>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <Avatar sx={{ bgcolor: '#f1f5f9' }}><UploadIcon sx={{ color: '#64748b' }} /></Avatar>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight={700}>Registration Document</Typography>
-                        <Typography variant="body2" color="text.secondary">Initial documentation provided during registration</Typography>
-                      </Box>
-                    </Stack>
+                  {pet.personalRecords && pet.personalRecords.map((record, index) => (
+                    <RecordItem key={index}>
+                      <Stack direction="row" spacing={2} alignItems="center">
+                        <Avatar sx={{ bgcolor: alpha('#4f46e5', 0.1), borderRadius: '8px' }}>
+                          <PdfIcon sx={{ color: '#4f46e5', fontSize: '1.2rem' }} />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body1" fontWeight="800" color="#1e293b">{record.name}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                            {new Date(record.date).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')} • PDF
+                          </Typography>
+                          <Typography variant="caption" display="block" color="#64748b" sx={{ mt: 0.5, fontWeight: 500 }}>
+                            Personal upload
+                          </Typography>
+                        </Box>
+                      </Stack>
+                      <IconButton onClick={() => window.open(record.url)}>
+                        <DownloadIcon sx={{ fontSize: '1.2rem', color: '#64748b' }} />
+                      </IconButton>
+                    </RecordItem>
+                  ))}
+
+                  {!pet.medicalRecords && (!pet.personalRecords || pet.personalRecords.length === 0) && (
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>No personal uploads found.</Typography>
+                  )}
+                  <Box>
                     <Button
                       variant="outlined"
-                      startIcon={<ViewIcon />}
-                      href={pet.medicalRecords}
-                      target="_blank"
-                      sx={{ borderRadius: '12px', fontWeight: 700 }}
+                      component="label"
+                      startIcon={<AddIcon />}
+                      size="small"
+                      sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, borderColor: '#e2e8f0', color: '#1e293b' }}
                     >
-                      View Document
+                      Upload New Record
+                      <input type="file" hidden onChange={handleUploadPersonalRecord} />
                     </Button>
-                  </Stack>
-                </RecordItem>
-              ) : (
-                <Typography variant="body2" color="text.secondary">No supplemental records uploaded.</Typography>
-              )}
+                  </Box>
+                </Stack>
+              </Box>
             </Stack>
           )}
 
           {tabValue === 2 && (
-            <Grid container spacing={3}>
-              {prescriptions.length > 0 ? prescriptions.map((pres) => (
-                <Grid item xs={12} md={6} key={pres._id}>
-                  <GlassCard>
-                    <CardContent sx={{ p: 4 }}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                        <Stack direction="row" spacing={2}>
-                          <Avatar sx={{ bgcolor: alpha('#10b981', 0.1) }}><MedicineIcon sx={{ color: '#10b981' }} /></Avatar>
-                          <Box>
-                            <Typography variant="h6" fontWeight={800}>{pres.medicationName}</Typography>
-                            <Typography variant="body2" color="text.secondary">Dosage: {pres.dosage}</Typography>
-                          </Box>
+            <Box>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 3 }}>
+                <MedicineIcon sx={{ color: '#4f46e5', fontSize: '1.4rem' }} />
+                <Typography variant="h6" fontWeight="900" color="#1e293b">Active Prescriptions</Typography>
+              </Stack>
+              <Grid container spacing={3}>
+                {prescriptions.length > 0 ? prescriptions.map((pres) => (
+                  <Grid item xs={12} key={pres._id}>
+                    <Card sx={{ borderRadius: '16px', border: '1.5px solid #f1f5f9', boxShadow: 'none' }}>
+                      <CardContent sx={{ p: 4 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }}>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <Avatar sx={{ bgcolor: alpha('#10b981', 0.1), width: 44, height: 44 }}>
+                              <MedicineIcon sx={{ color: '#10b981', fontSize: '1.4rem' }} />
+                            </Avatar>
+                            <Typography variant="h6" fontWeight="900" color="#1e293b" sx={{ fontSize: '1.25rem' }}>{pres.medicationName}</Typography>
+                          </Stack>
+                          <Typography variant="body2" color="#64748b" fontWeight="700">
+                            {new Date(pres.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}
+                          </Typography>
                         </Stack>
-                        <Tooltip title="Download PDF Prescription">
-                          <IconButton onClick={() => downloadPrescription(pres._id, pres.medicationName)} sx={{ bgcolor: alpha('#4f46e5', 0.1), color: '#4f46e5' }}>
-                            <DownloadIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                      <Box sx={{ mt: 3, p: 2, bgcolor: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                        <Typography variant="caption" color="text.secondary" fontWeight="700">INSTRUCTIONS</Typography>
-                        <Typography variant="body2" sx={{ mt: 0.5, color: '#334155' }}>{pres.instructions || 'Follow standard dosage provided by vet'}</Typography>
-                      </Box>
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Next dose reminder: Daily
-                        </Typography>
-                        <Typography variant="caption" fontWeight="700" sx={{ color: '#4f46e5' }}>
-                          Dr. {pres.medicalRecordId?.vetId?.lastName || 'Clinic Vet'}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </GlassCard>
-                </Grid>
-              )) : (
-                <Grid item xs={12}>
-                  <Paper sx={{ p: 6, textAlign: 'center', borderRadius: '24px', border: '2px dashed #e2e8f0', bgcolor: 'transparent' }}>
-                    <Typography color="text.secondary" variant="h6">No active prescriptions found.</Typography>
-                  </Paper>
-                </Grid>
-              )}
-            </Grid>
-          )}
 
-          {tabValue === 3 && (
-            <Stack spacing={3}>
-              <Typography variant="h5" fontWeight="800" color="#334155">Vaccination History</Typography>
-              {vaccinations.length > 0 ? vaccinations.map((vax) => (
-                <RecordItem key={vax._id}>
-                  <Grid container alignItems="center" spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <Stack direction="row" spacing={2} alignItems="center">
-                        <Avatar sx={{ bgcolor: alpha('#f43f5e', 0.1) }}><VaccineIcon sx={{ color: '#f43f5e' }} /></Avatar>
-                        <Box>
-                          <Typography variant="subtitle1" fontWeight={800}>{vax.medicationName}</Typography>
-                          <Typography variant="body2" color="text.secondary">Status: Protocol Administered</Typography>
-                        </Box>
-                      </Stack>
-                    </Grid>
-                    <Grid item xs={12} sm={6} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
-                      <Box sx={{ display: 'inline-block', p: 1.5, bgcolor: alpha('#f43f5e', 0.05), borderRadius: '12px', border: '1px solid', borderColor: alpha('#f43f5e', 0.2) }}>
-                        <Typography variant="caption" color="text.secondary" fontWeight="700" display="block">NEXT BOOSTER DUE</Typography>
-                        <Typography variant="h6" color="#f43f5e" fontWeight="900" sx={{ mt: -0.5 }}>
-                          {vax.dueDate ? new Date(vax.dueDate).toLocaleDateString() : 'Protocol Completed'}
-                        </Typography>
-                      </Box>
-                    </Grid>
+                        <Grid container spacing={4}>
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="800" sx={{ letterSpacing: '1px' }}>DOSAGE</Typography>
+                            <Typography variant="body1" fontWeight="800" sx={{ mt: 0.5 }}>{pres.dosage}</Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="800" sx={{ letterSpacing: '1px' }}>PRESCRIBED BY</Typography>
+                            <Typography variant="body1" fontWeight="800" sx={{ mt: 0.5 }}>
+                              Dr. {pres.medicalRecordId?.vetId?.firstName} {pres.medicalRecordId?.vetId?.lastName || 'Vet'}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+
+                        <InstructionBox>
+                          <Typography variant="body2" fontWeight="800" color="#92400e" display="inline">Instructions: </Typography>
+                          <Typography variant="body2" display="inline" sx={{ color: '#92400e' }}>
+                            {pres.instructions || 'No specific instructions provided.'}
+                          </Typography>
+                        </InstructionBox>
+
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<DownloadIcon />}
+                          onClick={() => downloadPrescription(pres._id, pres.medicationName)}
+                          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, borderColor: '#e2e8f0', color: '#1e293b' }}
+                        >
+                          Download Prescription
+                        </Button>
+                      </CardContent>
+                    </Card>
                   </Grid>
-                </RecordItem>
-              )) : (
-                <Paper sx={{ p: 6, textAlign: 'center', borderRadius: '24px', border: '2px dashed #e2e8f0', bgcolor: 'transparent' }}>
-                  <Typography color="text.secondary" variant="h6">No vaccination history found for this pawpal.</Typography>
-                </Paper>
-              )}
-            </Stack>
+                )) : (
+                  <Grid item xs={12}>
+                    <Paper sx={{ p: 6, textAlign: 'center', borderRadius: '24px', border: '2px dashed #e2e8f0', bgcolor: 'transparent' }}>
+                      <Typography color="text.secondary" variant="h6">No active prescriptions found.</Typography>
+                    </Paper>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
           )}
         </Box>
+
+        {/* Edit Pet Dialog */}
+        <Dialog
+          open={openEditPet}
+          onClose={() => setOpenEditPet(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: '16px' } }}
+        >
+          <DialogTitle sx={{ p: 4, pb: 1 }}>
+            <Typography variant="h5" fontWeight="800" sx={{ color: '#1e293b' }}>Edit {pet.name}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>Update your pet's information</Typography>
+          </DialogTitle>
+          <DialogContent dividers sx={{ p: 4, pt: 5 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+              <TextField fullWidth label="Pet Name *" value={editPetForm.name} onChange={(e) => setEditPetForm({ ...editPetForm, name: e.target.value })} />
+              <TextField fullWidth label="Species *" value={editPetForm.species} onChange={(e) => setEditPetForm({ ...editPetForm, species: e.target.value })} placeholder="Dog, Cat..." />
+              <TextField fullWidth label="Breed" value={editPetForm.breed} onChange={(e) => setEditPetForm({ ...editPetForm, breed: e.target.value })} />
+              <FormControl fullWidth>
+                <InputLabel>Gender</InputLabel>
+                <Select label="Gender" value={editPetForm.gender} onChange={(e) => setEditPetForm({ ...editPetForm, gender: e.target.value })}>
+                  <MenuItem value="">Select</MenuItem>
+                  <MenuItem value="Male">Male</MenuItem>
+                  <MenuItem value="Female">Female</MenuItem>
+                  <MenuItem value="Other">Other</MenuItem>
+                </Select>
+              </FormControl>
+              <TextField fullWidth label="Date of Birth" type="date" InputLabelProps={{ shrink: true }} value={editPetForm.dateOfBirth} onChange={(e) => setEditPetForm({ ...editPetForm, dateOfBirth: e.target.value })} />
+              <TextField fullWidth label="Weight (kg)" type="number" value={editPetForm.weight} onChange={(e) => setEditPetForm({ ...editPetForm, weight: e.target.value })} />
+              <TextField fullWidth label="Color/Markings" value={editPetForm.color} onChange={(e) => setEditPetForm({ ...editPetForm, color: e.target.value })} />
+
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Avatar
+                  src={editPetForm.photo}
+                  sx={{ width: 56, height: 56, border: '2px solid #e2e8f0' }}
+                >
+                  <PetsIcon />
+                </Avatar>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  fullWidth
+                  sx={{ borderRadius: '8px', py: 1.5, borderStyle: 'dashed', borderColor: '#4f46e5', color: '#4f46e5', height: '100%' }}
+                >
+                  Change Photo
+                  <input
+                    type="file" hidden accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      const d = new FormData();
+                      d.append('file', file);
+                      d.append('upload_preset', 'petcare_preset');
+                      try {
+                        const r = await fetch('https://api.cloudinary.com/v1_1/dy78lcfqg/image/upload', { method: 'POST', body: d });
+                        const data = await r.json();
+                        setEditPetForm({ ...editPetForm, photo: data.secure_url });
+                        Swal.fire({ title: 'Uploaded!', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+                      } catch { Swal.fire('Error', 'Upload failed', 'error'); }
+                    }}
+                  />
+                </Button>
+              </Stack>
+
+              <Box sx={{ gridColumn: '1 / -1' }}>
+                <TextField fullWidth label="Additional Notes" multiline rows={4} value={editPetForm.notes} onChange={(e) => setEditPetForm({ ...editPetForm, notes: e.target.value })} placeholder="Allergies, conditions, etc..." />
+              </Box>
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 4, pt: 3 }}>
+            <Button onClick={() => setOpenEditPet(false)} sx={{ borderRadius: '12px', fontWeight: 700, color: 'text.secondary' }}>Cancel</Button>
+            <Button
+              variant="contained" onClick={handleUpdatePet} disabled={savingPet}
+              sx={{
+                borderRadius: '12px', fontWeight: 700, px: 4,
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                boxShadow: '0 8px 20px rgba(79, 70, 229, 0.25)',
+                '&:hover': { background: 'linear-gradient(135deg, #4338ca 0%, #6d28d9 100%)' }
+              }}
+            >
+              {savingPet ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
       </Container>
-    </PageContainer >
+    </PageContainer>
   );
 };
 

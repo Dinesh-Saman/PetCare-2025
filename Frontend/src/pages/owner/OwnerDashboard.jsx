@@ -8,6 +8,7 @@ import {
   Typography,
   Grid,
   Card,
+  Paper,
   CardContent,
   Avatar,
   Button,
@@ -61,68 +62,32 @@ import { useAuth } from '../../context/AuthContext';
 // ────────────────────────────────────────────────
 const DashboardContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
-  background: 'linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%)',
+  background: '#f5f7fa',
   padding: '100px 24px 80px',
   [theme.breakpoints.up('md')]: {
     padding: '120px 40px 100px',
   },
 }));
 
-const WelcomeCard = styled(Card)(({ theme }) => ({
-  borderRadius: '32px',
-  background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-  color: 'white',
-  boxShadow: '0 20px 50px rgba(79, 70, 229, 0.3)',
-  marginBottom: '48px',
+const ContentContainer = styled(Paper)(({ theme }) => ({
+  background: 'white',
+  borderRadius: '16px',
+  padding: '32px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
+  minHeight: '80vh',
+  width: '100%',
+  boxSizing: 'border-box'
+}));
+
+const StatsCard = styled(Card)(({ theme, color }) => ({
+  padding: '20px 24px',
+  borderRadius: '16px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
   position: 'relative',
-  overflow: 'hidden',
-  border: 'none',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: -100,
-    right: -100,
-    width: '300px',
-    height: '300px',
-    background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%)',
-    borderRadius: '50%',
-  },
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    bottom: -50,
-    left: -50,
-    width: '200px',
-    height: '200px',
-    background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%)',
-    borderRadius: '50%',
-  },
-}));
-
-const GlassCard = styled(Card)(({ theme }) => ({
-  background: 'rgba(255, 255, 255, 0.8)',
-  backdropFilter: 'blur(12px)',
-  borderRadius: '24px',
-  border: '1px solid rgba(255, 255, 255, 0.3)',
-  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)',
-  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-5px)',
-    boxShadow: '0 15px 40px rgba(0, 0, 0, 0.1)',
-  },
-}));
-
-const PetCard = styled(GlassCard)(({ theme }) => ({
-  height: '100%',
   display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
-}));
-
-const StatsCard = styled(GlassCard)(({ theme, color }) => ({
-  padding: '28px',
-  height: '100%',
-  position: 'relative',
+  alignItems: 'center',
   '&::after': {
     content: '""',
     position: 'absolute',
@@ -132,6 +97,18 @@ const StatsCard = styled(GlassCard)(({ theme, color }) => ({
     height: '100%',
     background: color || '#4f46e5',
   },
+}));
+
+const PetCard = styled(Card)(({ theme }) => ({
+  height: '100%',
+  borderRadius: '16px',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  transition: 'transform 0.2s',
+  '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }
 }));
 
 const StatusBadge = styled(Box)(({ theme, status }) => ({
@@ -171,7 +148,7 @@ const ModalHeader = styled(Box)(({ theme }) => ({
 }));
 
 const ContentArea = styled(Box)(({ theme }) => ({
-  maxWidth: '1400px',
+  maxWidth: '1200px',
   margin: '0 auto',
   width: '100%',
 }));
@@ -192,6 +169,7 @@ const OwnerDashboard = () => {
     totalPets: 0,
     approvedPets: 0,
     pendingPets: 0,
+    rejectedPets: 0,
     vetVisits: 0,
     healthScore: 85,
   });
@@ -258,11 +236,13 @@ const OwnerDashboard = () => {
         // 3. Calculate Stats
         const approved = petsData.filter(p => p.registrationStatus === 'Approved').length;
         const pending = petsData.filter(p => p.registrationStatus === 'Pending').length;
+        const rejected = petsData.filter(p => p.registrationStatus === 'Rejected').length;
 
         setStats({
           totalPets: petsData.length,
           approvedPets: approved,
           pendingPets: pending,
+          rejectedPets: rejected,
           vetVisits: petsData.reduce((acc, pet) => acc + (pet.vetVisits || 0), 0),
           healthScore: Math.min(100, Math.max(50, 85 - pending * 5)),
         });
@@ -395,178 +375,90 @@ const OwnerDashboard = () => {
     }
   };
 
-  if (authLoading || loading) {
-    return (
-      <DashboardContainer>
-        <ContentArea>
-          <Stack spacing={5}>
-            <Skeleton variant="rounded" height={220} sx={{ borderRadius: 4 }} />
-            <Grid container spacing={3}>
-              {Array(6).fill(0).map((_, i) => (
-                <Grid item xs={12} sm={6} md={4} lg={2} key={i}>
-                  <Skeleton variant="rounded" height={160} sx={{ borderRadius: 4 }} />
-                </Grid>
-              ))}
-            </Grid>
-            <Grid container spacing={4}>
-              <Grid item xs={12}>
-                <Skeleton variant="rounded" height={500} sx={{ borderRadius: 4 }} />
-              </Grid>
-            </Grid>
-          </Stack>
-        </ContentArea>
-      </DashboardContainer>
-    );
-  }
-
   return (
     <>
       <Navbar />
       <DashboardContainer>
         <ContentArea>
           {/* Welcome Section */}
-          <WelcomeCard>
-            <CardContent sx={{ p: { xs: 4, md: 5 }, position: 'relative', zIndex: 1 }}>
+          <ContentContainer>
+            {/* Header Section */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
               <Box>
-                <Typography variant="h3" fontWeight="800" gutterBottom sx={{ letterSpacing: '-0.5px', mb: 2 }}>
-                  Welcome back, {owner?.firstName} 👋
+                <Typography variant="h4" fontWeight="800" sx={{ color: '#1e293b', mb: 1 }}>
+                  Welcome back, {owner?.firstName}
                 </Typography>
-                <Typography variant="h6" sx={{ opacity: 0.9, mb: 4, fontWeight: 400 }}>
+                <Typography variant="body1" sx={{ color: '#64748b' }}>
                   Here's an overview of your registered pets and their status
                 </Typography>
-                <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ mt: 3 }}>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={() => setOpenAddPet(true)}
-                    size="large"
-                    sx={{
-                      background: 'rgba(255,255,255,0.2)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      borderRadius: '16px',
-                      px: 4,
-                      py: 1.5,
-                      fontSize: '1rem',
-                      fontWeight: 700,
-                      textTransform: 'none',
-                      color: 'white',
-                      '&:hover': {
-                        background: 'rgba(255,255,255,0.3)',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 10px 20px rgba(0,0,0,0.1)'
-                      }
-                    }}
-                  >
-                    Add Pawpal
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={() => setOpenEditProfile(true)}
-                    size="large"
-                    sx={{
-                      borderColor: 'rgba(255,255,255,0.4)',
-                      background: 'rgba(255,255,255,0.1)',
-                      backdropFilter: 'blur(5px)',
-                      color: 'white',
-                      borderRadius: '16px',
-                      px: 4,
-                      py: 1.5,
-                      fontSize: '1rem',
-                      fontWeight: 700,
-                      textTransform: 'none',
-                      '&:hover': {
-                        borderColor: 'white',
-                        background: 'rgba(255,255,255,0.2)',
-                        transform: 'translateY(-2px)'
-                      }
-                    }}
-                  >
-                    Manage Profile
-                  </Button>
-                </Stack>
               </Box>
-            </CardContent>
-          </WelcomeCard>
+              <Stack direction="row" spacing={2} flexWrap="wrap">
+                <Button variant="outlined" onClick={() => setOpenEditProfile(true)} sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}>
+                  Manage Profile
+                </Button>
+                <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenAddPet(true)} sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, background: '#49149e', '&:hover': { background: '#3b0c82' } }}>
+                  Add Pet
+                </Button>
+              </Stack>
+            </Box>
 
-          {/* Stats Overview */}
-          <Grid container spacing={3} sx={{ mb: 6 }}>
-            <Grid item xs={6} sm={6} md={4} lg={2}>
+            <Box sx={{ height: '1px', bgcolor: '#e2e8f0', mb: 4 }} />
+
+            {/* Stats Overview */}
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+              gap: 3,
+              mb: 6
+            }}>
               <StatsCard>
-                <Stack spacing={2}>
+                <Box>
                   <Typography variant="subtitle2" color="text.secondary">Total Pets</Typography>
-                  <Typography variant="h3" fontWeight="800" color="#667eea">
+                  <Typography variant="h3" fontWeight="800" color="#667eea" sx={{ mt: 1 }}>
                     {stats.totalPets}
                   </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={100}
-                    sx={{
-                      height: 6,
-                      borderRadius: 4,
-                      backgroundColor: 'rgba(102,126,234,0.12)',
-                      '& .MuiLinearProgress-bar': { backgroundColor: '#667eea' }
-                    }}
-                  />
-                </Stack>
+                </Box>
               </StatsCard>
-            </Grid>
 
-            <Grid item xs={6} sm={6} md={4} lg={2}>
               <StatsCard color="#10B981">
-                <Stack spacing={2}>
+                <Box>
                   <Typography variant="subtitle2" color="text.secondary">Approved</Typography>
-                  <Typography variant="h3" fontWeight="800" color="#10B981">
+                  <Typography variant="h3" fontWeight="800" color="#10B981" sx={{ mt: 0.5, mb: 0.5 }}>
                     {stats.approvedPets}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {stats.totalPets > 0 ? `${((stats.approvedPets / stats.totalPets) * 100).toFixed(0)}%` : '0%'}
                   </Typography>
-                </Stack>
+                </Box>
               </StatsCard>
-            </Grid>
 
-            <Grid item xs={6} sm={6} md={4} lg={2}>
               <StatsCard color="#F59E0B">
-                <Stack spacing={2}>
+                <Box>
                   <Typography variant="subtitle2" color="text.secondary">Pending</Typography>
-                  <Typography variant="h3" fontWeight="800" color="#F59E0B">
+                  <Typography variant="h3" fontWeight="800" color="#F59E0B" sx={{ mt: 0.5, mb: 0.5 }}>
                     {stats.pendingPets}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">Awaiting approval</Typography>
-                </Stack>
+                </Box>
               </StatsCard>
-            </Grid>
-          </Grid>
 
-          {/* My Pets Section */}
-          <GlassCard sx={{ mb: 6 }}>
-            <CardContent sx={{ p: { xs: 4, md: 5 } }}>
+              <StatsCard color="#EF4444">
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">Rejected</Typography>
+                  <Typography variant="h3" fontWeight="800" color="#EF4444" sx={{ mt: 0.5, mb: 0.5 }}>
+                    {stats.rejectedPets}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">Requires attention</Typography>
+                </Box>
+              </StatsCard>
+            </Box>
+
+            {/* My Pets Section */}
+            <Box sx={{ mb: 6 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5, flexWrap: 'wrap', gap: 3 }}>
                 <Typography variant="h4" fontWeight="800" sx={{ color: '#1e293b' }}>
-                  Your Pawpals <PetsIcon sx={{ verticalAlign: 'middle', ml: 1, color: '#4f46e5' }} />
+                  Your Pets <PetsIcon sx={{ verticalAlign: 'middle', ml: 1, color: '#4f46e5' }} />
                 </Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => setOpenAddPet(true)}
-                  sx={{
-                    borderRadius: '50px',
-                    px: 4,
-                    py: 1.2,
-                    background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                    boxShadow: '0 10px 25px rgba(79, 70, 229, 0.3)',
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #4338ca 0%, #6d28d9 100%)',
-                      transform: 'translateY(-2px)'
-                    }
-                  }}
-                >
-                  Register New Pet
-                </Button>
               </Box>
 
               {pets.length === 0 ? (
@@ -594,24 +486,31 @@ const OwnerDashboard = () => {
                     startIcon={<AddIcon />}
                     onClick={() => setOpenAddPet(true)}
                     sx={{
-                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                      borderRadius: '8px',
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      background: '#49149e',
                       px: 5,
                       py: 1.5,
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #5a6fd8, #6a4090)',
+                        background: '#3b0c82',
                       }
                     }}
                   >
-                    Register First Pet
+                    Add Pet
                   </Button>
                 </Box>
               ) : (
-                <Grid container spacing={3}>
+                <Box sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(3, 1fr)', xl: 'repeat(3, 1fr)' },
+                  gap: 3
+                }}>
                   {pets.map((pet) => (
-                    <Grid item xs={12} sm={6} md={4} key={pet._id}>
+                    <Box key={pet._id} sx={{ height: '100%' }}>
                       <PetCard>
                         <CardContent sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                          <Box sx={{ position: 'relative', mb: 2 }}>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2, gap: 1.5 }}>
                             <Avatar
                               src={pet.photo}
                               sx={{
@@ -626,11 +525,11 @@ const OwnerDashboard = () => {
                             >
                               {pet.name?.charAt(0)?.toUpperCase() || 'P'}
                             </Avatar>
-                            <Box sx={{ position: 'absolute', bottom: -10, left: '50%', transform: 'translateX(-50%)' }}>
-                              <StatusBadge status={pet.registrationStatus || 'Pending'} sx={{ mb: 0, fontSize: '0.75rem', px: 1.5, py: 0.5 }}>
-                                {pet.registrationStatus === 'Approved' ? <CheckCircleIcon sx={{ fontSize: 12 }} /> :
-                                  pet.registrationStatus === 'Pending' ? <PendingIcon sx={{ fontSize: 12 }} /> :
-                                    <WarningIcon sx={{ fontSize: 12 }} />}
+                            <Box sx={{ bgcolor: 'white', borderRadius: '30px' }}>
+                              <StatusBadge status={pet.registrationStatus || 'Pending'} sx={{ mb: 0, fontSize: '0.7rem', px: 1.5, py: 0.5 }}>
+                                {pet.registrationStatus === 'Approved' ? <CheckCircleIcon sx={{ fontSize: 14, mr: 0.5 }} /> :
+                                  pet.registrationStatus === 'Pending' ? <PendingIcon sx={{ fontSize: 14, mr: 0.5 }} /> :
+                                    <WarningIcon sx={{ fontSize: 14, mr: 0.5 }} />}
                                 {pet.registrationStatus || 'Pending'}
                               </StatusBadge>
                             </Box>
@@ -640,7 +539,7 @@ const OwnerDashboard = () => {
                             {pet.name || 'Unnamed'}
                           </Typography>
 
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }} noWrap>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 6 }} noWrap>
                             {pet.species || '—'}
                           </Typography>
 
@@ -668,27 +567,25 @@ const OwnerDashboard = () => {
                           </Box>
                         </CardContent>
                       </PetCard>
-                    </Grid>
+                    </Box>
                   ))}
-                </Grid>
+                </Box>
               )}
-            </CardContent>
-          </GlassCard>
+            </Box>
+          </ContentContainer>
 
           {/* Edit Profile Dialog */}
-          <GlassDialog
+          <Dialog
             open={openEditProfile}
             onClose={() => { setOpenEditProfile(false); setTwoFactorData(null); setTwoFactorToken(''); }}
             maxWidth="sm"
             fullWidth
+            PaperProps={{ sx: { borderRadius: '16px' } }}
           >
-            <ModalHeader>
-              <Avatar sx={{ width: 70, height: 70, bgcolor: 'rgba(255,255,255,0.2)', mx: 'auto', mb: 2 }}>
-                <PersonIcon sx={{ fontSize: 40 }} />
-              </Avatar>
-              <Typography variant="h4" fontWeight="800">Edit Profile</Typography>
-              <Typography variant="subtitle1" sx={{ opacity: 0.8 }}>Manage your account settings and security</Typography>
-            </ModalHeader>
+            <DialogTitle sx={{ p: 4, pb: 1 }}>
+              <Typography variant="h5" fontWeight="800" sx={{ color: '#1e293b' }}>Edit Profile</Typography>
+              <Typography variant="body2" color="text.secondary">Manage your account settings and security</Typography>
+            </DialogTitle>
 
             <DialogContent sx={{ p: 4 }}>
               <Tabs
@@ -706,39 +603,26 @@ const OwnerDashboard = () => {
               </Tabs>
               {activeTab === 0 ? (
                 <Stack spacing={4} sx={{ mt: 2 }}>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="First Name"
-                        value={editForm.firstName}
-                        onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start"><PersonIcon color="action" /></InputAdornment>,
-                        }}
-                      />
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Last Name"
-                        value={editForm.lastName}
-                        onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start"><PersonIcon color="action" /></InputAdornment>,
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
+                  <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
+                    <TextField
+                      fullWidth
+                      label="First Name"
+                      value={editForm.firstName}
+                      onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Last Name"
+                      value={editForm.lastName}
+                      onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                    />
+                  </Box>
 
                   <TextField
                     fullWidth
                     label="Email"
                     value={editForm.email}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start"><EmailIcon color="action" /></InputAdornment>,
-                    }}
                   />
 
                   <TextField
@@ -746,9 +630,6 @@ const OwnerDashboard = () => {
                     label="Phone Number"
                     value={editForm.phoneNumber}
                     onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start"><PhoneIcon color="action" /></InputAdornment>,
-                    }}
                   />
 
                   <TextField
@@ -758,9 +639,6 @@ const OwnerDashboard = () => {
                     onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
                     multiline
                     rows={3}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start"><LocationOnIcon color="action" /></InputAdornment>,
-                    }}
                   />
                 </Stack>
               ) : (
@@ -870,22 +748,20 @@ const OwnerDashboard = () => {
                 </Button>
               )}
             </DialogActions>
-          </GlassDialog>
+          </Dialog>
 
           {/* Edit Pet Dialog */}
-          <GlassDialog
+          <Dialog
             open={openEditPet}
             onClose={() => setOpenEditPet(false)}
             maxWidth="md"
             fullWidth
+            PaperProps={{ sx: { borderRadius: '16px' } }}
           >
-            <ModalHeader>
-              <Avatar src={selectedPet?.photo} sx={{ width: 80, height: 80, border: '4px solid rgba(255,255,255,0.3)', mx: 'auto', mb: 2 }}>
-                <PetsIcon />
-              </Avatar>
-              <Typography variant="h4" fontWeight="800">Edit {selectedPet?.name}</Typography>
-              <Typography variant="subtitle1" sx={{ opacity: 0.8 }}>Update your furry friend's information</Typography>
-            </ModalHeader>
+            <DialogTitle sx={{ p: 4, pb: 1 }}>
+              <Typography variant="h5" fontWeight="800" sx={{ color: '#1e293b' }}>Edit {selectedPet?.name}</Typography>
+              <Typography variant="body2" color="text.secondary">Update your furry friend's information</Typography>
+            </DialogTitle>
 
             <DialogContent sx={{ p: 4 }}>
               <Grid container spacing={3}>
@@ -995,7 +871,7 @@ const OwnerDashboard = () => {
                           formData.append('file', file);
                           formData.append('upload_preset', 'petcare_preset');
                           try {
-                            const response = await fetch('https://api.cloudinary.com/v1_1/dtt1ytuzj/image/upload', {
+                            const response = await fetch('https://api.cloudinary.com/v1_1/dy78lcfqg/image/upload', {
                               method: 'POST',
                               body: formData,
                             });
@@ -1037,7 +913,7 @@ const OwnerDashboard = () => {
                 {savingPet ? 'Saving...' : 'Save Changes'}
               </Button>
             </DialogActions>
-          </GlassDialog>
+          </Dialog>
 
           {/* Floating Action Button */}
           <Fab

@@ -23,9 +23,9 @@ exports.createPrescription = async (req, res) => {
       });
     }
 
-    if (!['Medication', 'Vaccination'].includes(type)) {
+    if (!type) {
       return res.status(400).json({
-        message: 'type must be "Medication" or "Vaccination"'
+        message: 'type is required'
       });
     }
 
@@ -122,7 +122,7 @@ exports.getPrescriptionsByPet = async (req, res) => {
         }
       })
       .sort({ createdAt: -1 }) // Most recent first — consistent and expected
-      // Alternative: .sort({ dueDate: 1 }) for upcoming first
+    // Alternative: .sort({ dueDate: 1 }) for upcoming first
 
     res.status(200).json({
       count: prescriptions.length,
@@ -242,7 +242,7 @@ exports.updatePrescription = async (req, res) => {
       return res.status(400).json({ message: 'Cannot change associated pet' });
     }
 
-    if (updates.type && !['Medication', 'Vaccination'].includes(updates.type)) {
+    if (updates.type && !updates.type) {
       return res.status(400).json({ message: 'Invalid type' });
     }
 
@@ -364,7 +364,7 @@ exports.generatePrescriptionPDF = async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="Prescription_${pet.name}_${prescription.medicationName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().slice(0,10)}.pdf"`
+      `attachment; filename="Prescription_${pet.name}_${prescription.medicationName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().slice(0, 10)}.pdf"`
     );
 
     doc.pipe(res);

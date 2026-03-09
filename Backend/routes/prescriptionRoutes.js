@@ -25,7 +25,7 @@ const authorizePetOwner = async (req, res, next) => {
       return res.status(404).json({ message: 'Pet not found' });
     }
 
-    if (pet.ownerId.toString() !== req.user.id) {
+    if (pet.ownerId.toString() !== req.user.id.toString()) {
       return res.status(403).json({
         message: 'Not authorized: You do not own this pet'
       });
@@ -40,7 +40,7 @@ const authorizePetOwner = async (req, res, next) => {
 
 // Middleware: Ensure owner ID matches authenticated user
 const authorizeSelfOwner = (req, res, next) => {
-  if (req.params.ownerId !== req.user.id) {
+  if (req.params.ownerId !== req.user.id.toString()) {
     return res.status(403).json({
       message: 'Not authorized to view reminders for other owners'
     });
@@ -101,7 +101,7 @@ router.get('/:id/pdf', protect, async (req, res, next) => {
       return next();
     }
 
-    if (req.user.role === 'owner' && pet.ownerId.toString() === req.user.id) {
+    if (req.user.role === 'owner' && pet.ownerId.toString() === req.user.id.toString()) {
       return next();
     }
 
