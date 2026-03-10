@@ -49,10 +49,17 @@ exports.protect = async (req, res, next) => {
         role = 'vet';
         console.log('Determined role: vet');
       } else {
-        user = await PetOwner.findById(userId).select('-passwordHash');
+        const ClinicStaff = require('../models/ClinicStaff');
+        user = await ClinicStaff.findById(userId).select('-passwordHash');
         if (user) {
-          role = 'owner';
-          console.log('Determined role: owner');
+          role = 'vet';
+          console.log('Determined role: vet (ClinicStaff)');
+        } else {
+          user = await PetOwner.findById(userId).select('-passwordHash');
+          if (user) {
+            role = 'owner';
+            console.log('Determined role: owner');
+          }
         }
       }
 
@@ -75,11 +82,31 @@ exports.protect = async (req, res, next) => {
         user = await Veterinarian.findById(userId)
           .select('-passwordHash')
           .populate('currentActiveClinicId', 'name address phoneNumber');
-        console.log('Fetched Veterinarian with populate:', user ? 'Found' : 'Not found');
+
+        if (!user) {
+          const ClinicStaff = require('../models/ClinicStaff');
+          user = await ClinicStaff.findById(userId)
+            .select('-passwordHash')
+            .populate('clinicId', 'name address phoneNumber');
+
+          if (user) {
+            user.currentActiveClinicId = user.clinicId; // Map for downstream middleware
+            user.role = 'vet'; // Ensure logical processing
+          }
+        }
+        console.log('Fetched Veterinarian/Staff with populate:', user ? 'Found' : 'Not found');
       } catch (populateError) {
         console.log('Populate failed:', populateError.message);
         user = await Veterinarian.findById(userId).select('-passwordHash');
-        console.log('Fetched Veterinarian (no populate):', user ? 'Found' : 'Not found');
+        if (!user) {
+          const ClinicStaff = require('../models/ClinicStaff');
+          user = await ClinicStaff.findById(userId).select('-passwordHash');
+          if (user) {
+            user.currentActiveClinicId = user.clinicId;
+            user.role = 'vet';
+          }
+        }
+        console.log('Fetched Veterinarian/Staff (no populate):', user ? 'Found' : 'Not found');
       }
     }
 
@@ -132,6 +159,7 @@ exports.protect = async (req, res, next) => {
       req.user.currentActiveClinicId = user.currentActiveClinicId || null;
       req.user.isPrimaryVet = user.isPrimaryVet || false;
       req.user.ownedClinics = user.ownedClinics || [];
+      req.user.staffRole = user.role || null;
 
       console.log('Vet clinic info:', req.user.clinic);
     }

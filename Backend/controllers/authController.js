@@ -1,5 +1,6 @@
 const PetOwner = require('../models/PetOwner');
 const Veterinarian = require('../models/Veterinarian');
+const ClinicStaff = require('../models/ClinicStaff');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
 const { OAuth2Client } = require('google-auth-library');
@@ -39,6 +40,20 @@ exports.login = async (req, res) => {
       if (user) {
         role = 'vet';
         modelName = 'Veterinarian';
+      }
+    }
+
+    // If still not found → try ClinicStaff
+    if (!user) {
+      user = await ClinicStaff.findOne({
+        email: normalizedEmail,
+        status: 'Active'
+      }).populate('clinicId', 'name address phoneNumber');
+
+      if (user) {
+        role = 'vet'; // Use vet role for frontend routing
+        modelName = 'ClinicStaff';
+        user.currentActiveClinicId = user.clinicId; // Map for response formatting
       }
     }
 
@@ -90,6 +105,7 @@ exports.login = async (req, res) => {
       responseUser.accessLevel = user.accessLevel || null;
       responseUser.isPrimaryVet = user.isPrimaryVet || false;
       responseUser.ownedClinics = user.ownedClinics || [];
+      responseUser.staffRole = user.role || null;
 
       if (user.currentActiveClinicId) {
         if (typeof user.currentActiveClinicId === 'object') {
@@ -150,7 +166,17 @@ exports.getMe = async (req, res) => {
       user = await Veterinarian.findById(req.user.id)
         .select('-passwordHash -__v')
         .populate('currentActiveClinicId', 'name address phoneNumber');
-      role = 'vet';
+      if (user) role = 'vet';
+    }
+
+    if (!user) {
+      user = await ClinicStaff.findById(req.user.id)
+        .select('-passwordHash -__v')
+        .populate('clinicId', 'name address phoneNumber');
+      if (user) {
+        role = 'vet';
+        user.currentActiveClinicId = user.clinicId;
+      }
     }
 
     if (!user) {
@@ -174,6 +200,7 @@ exports.getMe = async (req, res) => {
       responseUser.accessLevel = user.accessLevel || null;
       responseUser.isPrimaryVet = user.isPrimaryVet || false;
       responseUser.ownedClinics = user.ownedClinics || [];
+      responseUser.staffRole = user.role || null;
 
       if (user.currentActiveClinicId && typeof user.currentActiveClinicId === 'object') {
         responseUser.clinic = {
@@ -237,6 +264,15 @@ exports.googleLogin = async (req, res) => {
       }
     }
 
+    if (!user) {
+      user = await ClinicStaff.findOne({ email: normalizedEmail, status: 'Active' })
+        .populate('clinicId', 'name address phoneNumber');
+      if (user) {
+        actualRole = 'vet';
+        user.currentActiveClinicId = user.clinicId;
+      }
+    }
+
     // If no user exists and requested role is owner, register them automatically
     if (!user) {
       if (role === 'vet') {
@@ -294,6 +330,7 @@ exports.googleLogin = async (req, res) => {
     if (actualRole === 'vet') {
       responseUser.accessLevel = user.accessLevel || null;
       responseUser.isPrimaryVet = user.isPrimaryVet || false;
+      responseUser.staffRole = user.role || null;
       if (user.currentActiveClinicId && typeof user.currentActiveClinicId === 'object') {
         responseUser.clinic = {
           id: user.currentActiveClinicId._id,
@@ -320,7 +357,7 @@ exports.googleLogin = async (req, res) => {
 exports.setup2FA = async (req, res) => {
   try {
     const userId = req.user.id;
-    let user = await PetOwner.findById(userId) || await Veterinarian.findById(userId);
+    let user = await PetOwner.findById(userId) || await Veterinarian.findById(userId) || await ClinicStaff.findById(userId);
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -355,11 +392,15 @@ exports.verify2FA = async (req, res) => {
     let user = null;
     if (role === 'vet') {
       user = await Veterinarian.findById(targetUserId).populate('currentActiveClinicId', 'name address phoneNumber');
+      if (!user) {
+        user = await ClinicStaff.findById(targetUserId).populate('clinicId', 'name address phoneNumber');
+        if (user) user.currentActiveClinicId = user.clinicId;
+      }
     } else {
       user = await PetOwner.findById(targetUserId);
     }
 
-    if (!user) user = await Veterinarian.findById(targetUserId) || await PetOwner.findById(targetUserId);
+    if (!user) user = await Veterinarian.findById(targetUserId) || await ClinicStaff.findById(targetUserId) || await PetOwner.findById(targetUserId);
 
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -401,6 +442,7 @@ exports.verify2FA = async (req, res) => {
     if (actualRole === 'vet') {
       responseUser.accessLevel = user.accessLevel || null;
       responseUser.isPrimaryVet = user.isPrimaryVet || false;
+      responseUser.staffRole = user.role || null;
       if (user.currentActiveClinicId && typeof user.currentActiveClinicId === 'object') {
         responseUser.clinic = {
           id: user.currentActiveClinicId._id,
@@ -426,7 +468,7 @@ exports.verify2FA = async (req, res) => {
 exports.disable2FA = async (req, res) => {
   try {
     const userId = req.user.id;
-    let user = await PetOwner.findById(userId) || await Veterinarian.findById(userId);
+    let user = await PetOwner.findById(userId) || await Veterinarian.findById(userId) || await ClinicStaff.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     user.isTwoFactorEnabled = false;
@@ -447,7 +489,7 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
 
-    let user = await PetOwner.findOne({ email: normalizedEmail }) || await Veterinarian.findOne({ email: normalizedEmail });
+    let user = await PetOwner.findOne({ email: normalizedEmail }) || await Veterinarian.findOne({ email: normalizedEmail }) || await ClinicStaff.findOne({ email: normalizedEmail });
 
     if (!user) {
       // Don't reveal user doesn't exist for security
@@ -489,6 +531,9 @@ exports.resetPassword = async (req, res) => {
     }) || await Veterinarian.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() }
+    }) || await ClinicStaff.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() }
     });
 
     if (!user) return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
@@ -516,8 +561,8 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide old and new passwords' });
     }
 
-    // Find user in either model
-    let user = await PetOwner.findById(userId) || await Veterinarian.findById(userId);
+    // Find user in any model
+    let user = await PetOwner.findById(userId) || await Veterinarian.findById(userId) || await ClinicStaff.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     // Verify old password

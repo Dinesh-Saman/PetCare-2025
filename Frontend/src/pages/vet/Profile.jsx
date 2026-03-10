@@ -243,22 +243,26 @@ const VetProfile = () => {
                                                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                                     />
                                                 </Grid>
-                                                <Grid item xs={12} sm={6} md={4}>
-                                                    <TextField
-                                                        fullWidth label="Vet License ID"
-                                                        value={formData.veterinaryId}
-                                                        onChange={(e) => setFormData({ ...formData, veterinaryId: e.target.value })}
-                                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                                                    />
-                                                </Grid>
-                                                <Grid item xs={12} sm={6} md={4}>
-                                                    <TextField
-                                                        fullWidth label="Specialization"
-                                                        value={formData.specialization}
-                                                        onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                                                    />
-                                                </Grid>
+                                                {!user?.staffRole && (
+                                                    <>
+                                                        <Grid item xs={12} sm={6} md={4}>
+                                                            <TextField
+                                                                fullWidth label="Vet License ID"
+                                                                value={formData.veterinaryId}
+                                                                onChange={(e) => setFormData({ ...formData, veterinaryId: e.target.value })}
+                                                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                                            />
+                                                        </Grid>
+                                                        <Grid item xs={12} sm={6} md={4}>
+                                                            <TextField
+                                                                fullWidth label="Specialization"
+                                                                value={formData.specialization}
+                                                                onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
+                                                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                                            />
+                                                        </Grid>
+                                                    </>
+                                                )}
                                             </Grid>
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 4 }}>
                                                 <Button

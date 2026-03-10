@@ -42,7 +42,8 @@ import {
   useTheme,
   useMediaQuery,
   Stack,
-  Autocomplete
+  Autocomplete,
+  alpha
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PetsIcon from '@mui/icons-material/Pets';
@@ -182,6 +183,33 @@ const PetProfile = () => {
   const [expandedPresRows, setExpandedPresRows] = useState(new Set());
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [highlightedApptId, setHighlightedApptId] = useState(null);
+
+  // Clear highlight when switching away from appointments tab
+  useEffect(() => {
+    if (activeTab !== 3) {
+      setHighlightedApptId(null);
+    }
+  }, [activeTab]);
+
+  const navigateToAppointment = (record) => {
+    setActiveTab(3);
+    // Try to find by appointmentId (new records) or date fallback (old records)
+    const targetId = record.appointmentId || appointments.find(a =>
+      Math.abs(new Date(a.dateTime).getTime() - new Date(record.date).getTime()) < 1000
+    )?._id;
+
+    if (targetId) {
+      setHighlightedApptId(targetId);
+      // Give time for tab to switch and DOM to render
+      setTimeout(() => {
+        const el = document.getElementById(`appt-row-${targetId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  };
 
   // Modal visibilities
   const [showMedForm, setShowMedForm] = useState(false);
@@ -595,7 +623,7 @@ const PetProfile = () => {
             </Box>
 
             <Tabs value={activeTab} onChange={handleTabChange} variant={isMobile ? "scrollable" : "standard"} scrollButtons="auto" centered={!isMobile} sx={{ bgcolor: '#f5f7fa', borderBottom: 1, borderColor: 'divider' }}>
-              <Tab label="Vet Info" />
+              <Tab label="Pet Info" />
               <Tab label="Medical Notes" />
               <Tab label="Medical Records" />
               <Tab label="Appointments & Prescs" />
@@ -654,7 +682,7 @@ const PetProfile = () => {
                         <TableRow sx={{ bgcolor: '#e08c0eff' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Appointment Date</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
+                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Diagnosis</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Veterinarian</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
                         </TableRow>
@@ -671,7 +699,12 @@ const PetProfile = () => {
                                 </IconButton>
                               </TableCell>
                               <TableCell>
-                                <Link component="button" variant="body2" sx={{ fontWeight: 'bold', textDecoration: 'none', color: '#1976d2' }} onClick={() => setActiveTab(3)}>
+                                <Link
+                                  component="button"
+                                  variant="body2"
+                                  sx={{ fontWeight: 'bold', textDecoration: 'none', color: '#1976d2' }}
+                                  onClick={() => navigateToAppointment(record)}
+                                >
                                   {new Date(record.date).toLocaleDateString()}
                                 </Link>
                               </TableCell>
@@ -686,11 +719,20 @@ const PetProfile = () => {
                               <TableCell colSpan={5} sx={{ p: 0 }}>
                                 <Collapse in={expandedMedRows.has(record._id)} timeout="auto" unmountOnExit>
                                   <Box sx={{ p: 3, bgcolor: '#f5fdf5', borderLeft: '4px solid #2e7d32' }}>
-                                    <Typography fontWeight="bold" mb={1}>Description:</Typography>
-                                    <Typography mb={2}>{record.diagnosis || 'N/A'}</Typography>
+                                    <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>Diagnosis:</Typography>
+                                    <Typography variant="body1" mb={2} sx={{ whiteSpace: 'pre-wrap' }}>{record.diagnosis || 'N/A'}</Typography>
+
+                                    <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>Treatment Notes:</Typography>
+                                    <Typography variant="body2" mb={2} sx={{ whiteSpace: 'pre-wrap' }}>{record.treatmentNotes || 'No treatment notes recorded.'}</Typography>
+
                                     <Divider sx={{ my: 1 }} />
-                                    <Typography variant="body2" color="textSecondary">
-                                      Appointment: <Link component="button" variant="body2" sx={{ fontWeight: 'bold' }} onClick={() => setActiveTab(3)}>
+                                    <Typography variant="caption" color="textSecondary">
+                                      Appointment: <Link
+                                        component="button"
+                                        variant="body2"
+                                        sx={{ fontWeight: 'bold' }}
+                                        onClick={() => navigateToAppointment(record)}
+                                      >
                                         {new Date(record.date).toLocaleDateString()} at {new Date(record.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                       </Link>
                                     </Typography>
@@ -715,83 +757,164 @@ const PetProfile = () => {
                     </Button>
                   </Box>
 
-                  <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
-                    <Table>
-                      <TableHead>
-                        <TableRow sx={{ bgcolor: '#e08c0eff' }}>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Veterinarian</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Visibility</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Attachments</TableCell>
-                          <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {medicalRecords.length === 0 ? (
-                          <TableRow><TableCell colSpan={7} align="center"><Typography color="textSecondary" py={4}>No medical records found</Typography></TableCell></TableRow>
-                        ) : medicalRecords.map(record => (
-                          <React.Fragment key={record._id}>
-                            <TableRow sx={{ bgcolor: '#f9f9f9', '&:hover': { bgcolor: '#f1f1f1' } }}>
-                              <TableCell>
-                                <IconButton size="small" onClick={() => toggleMedExpand(record._id)}>
-                                  <ExpandMoreIcon sx={{ transform: expandedMedRows.has(record._id) ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} />
-                                </IconButton>
-                              </TableCell>
-                              <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
-                              <TableCell><Typography fontWeight="bold">{record.diagnosis || 'N/A'}</Typography></TableCell>
-                              <TableCell>{record.vetId ? `Dr. ${record.vetId.firstName} ${record.vetId.lastName}` : 'N/A'}</TableCell>
-                              <TableCell>
-                                <Tooltip title={record.visibleToOwner ? 'Visible to Owner' : 'Hidden from Owner'}>
-                                  <IconButton size="small" onClick={() => handleToggleVisibility(record._id, record.visibleToOwner)}>
-                                    {record.visibleToOwner ? <VisibilityIcon color="success" /> : <VisibilityOffIcon color="disabled" />}
-                                  </IconButton>
-                                </Tooltip>
-                              </TableCell>
-                              <TableCell>
-                                {record.attachments?.length > 0 ? (
-                                  <Chip label={`${record.attachments.length} file(s)`} size="small" icon={<AttachFileIcon />} />
-                                ) : <Typography variant="caption" color="textSecondary">None</Typography>}
-                              </TableCell>
-                              <TableCell align="center">
-                                <Tooltip title="Edit/View"><IconButton size="small" color="primary" onClick={() => startEditMed(record)}><EditIcon /></IconButton></Tooltip>
-                                <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDeleteRecord(record._id)}><DeleteIcon /></IconButton></Tooltip>
-                              </TableCell>
+                  {(() => {
+                    const combinedRecords = [
+                      ...medicalRecords.map(r => ({ ...r, recordType: 'vet' })),
+                      ...(pet?.personalRecords?.map((r, idx) => ({
+                        _id: `owner-${idx}`,
+                        date: r.date,
+                        diagnosis: r.name,
+                        vetId: null,
+                        visibleToOwner: true,
+                        attachments: [r.url].filter(Boolean),
+                        recordType: 'owner'
+                      })) || []),
+                      ...(pet?.medicalRecords ? [{
+                        _id: 'reg-doc',
+                        date: pet.createdAt || new Date(),
+                        diagnosis: 'Initial Registration Document',
+                        vetId: null,
+                        visibleToOwner: true,
+                        attachments: [pet.medicalRecords].filter(Boolean),
+                        recordType: 'owner'
+                      }] : [])
+                    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    return (
+                      <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+                        <Table>
+                          <TableHead>
+                            <TableRow sx={{ bgcolor: '#e08c0eff' }}>
+                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
+                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date</TableCell>
+                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
+                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Source / Vet</TableCell>
+                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Visibility</TableCell>
+                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Attachments</TableCell>
+                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
                             </TableRow>
-                            <TableRow>
-                              <TableCell colSpan={7} sx={{ p: 0 }}>
-                                <Collapse in={expandedMedRows.has(record._id)} timeout="auto" unmountOnExit>
-                                  <Box sx={{ p: 3, bgcolor: '#f5fdf5', borderLeft: '4px solid #1976d2' }}>
-                                    {record.attachments?.length > 0 && (
-                                      <Box mt={2}>
-                                        <Typography fontWeight="bold" mb={1}>Attachments:</Typography>
-                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                          {record.attachments.map((url, i) => (
-                                            <Chip
-                                              key={i}
-                                              icon={url.endsWith('.pdf') ? <PictureAsPdfIcon /> : <ImageIcon />}
-                                              label={`File ${i + 1}`}
-                                              component="a"
-                                              href={url}
-                                              target="_blank"
-                                              download
-                                              clickable
-                                              size="small"
-                                            />
-                                          ))}
-                                        </Box>
-                                      </Box>
+                          </TableHead>
+                          <TableBody>
+                            {combinedRecords.length === 0 ? (
+                              <TableRow><TableCell colSpan={7} align="center"><Typography color="textSecondary" py={4}>No medical records found</Typography></TableCell></TableRow>
+                            ) : combinedRecords.map(record => (
+                              <React.Fragment key={record._id}>
+                                <TableRow sx={{ bgcolor: record.recordType === 'owner' ? alpha('#4f46e5', 0.03) : '#f9f9f9', '&:hover': { bgcolor: '#f1f1f1' } }}>
+                                  <TableCell>
+                                    <IconButton size="small" onClick={() => toggleMedExpand(record._id)}>
+                                      <ExpandMoreIcon sx={{ transform: expandedMedRows.has(record._id) ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} />
+                                    </IconButton>
+                                  </TableCell>
+                                  <TableCell>
+                                    {record.recordType === 'vet' ? (
+                                      <Link
+                                        component="button"
+                                        variant="body2"
+                                        sx={{ fontWeight: 'bold', textDecoration: 'none', color: '#1976d2' }}
+                                        onClick={() => navigateToAppointment(record)}
+                                      >
+                                        {new Date(record.date).toLocaleDateString()}
+                                      </Link>
+                                    ) : (
+                                      <Typography variant="body2" fontWeight="bold">
+                                        {new Date(record.date).toLocaleDateString()}
+                                      </Typography>
                                     )}
-                                  </Box>
-                                </Collapse>
-                              </TableCell>
-                            </TableRow>
-                          </React.Fragment>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography fontWeight="bold">{record.diagnosis || 'N/A'}</Typography>
+                                      {record.recordType === 'owner' && (
+                                        <Chip label="Owner Upload" size="small" variant="outlined" color="secondary" sx={{ height: 20, fontSize: '0.65rem' }} />
+                                      )}
+                                    </Box>
+                                  </TableCell>
+                                  <TableCell>
+                                    {record.recordType === 'vet' ? (
+                                      record.vetId ? `Dr. ${record.vetId.firstName} ${record.vetId.lastName}` : 'Vet Staff'
+                                    ) : (
+                                      <Typography variant="body2" color="secondary" fontWeight="bold">Pet Owner</Typography>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {record.recordType === 'vet' ? (
+                                      <Tooltip title={record.visibleToOwner ? 'Visible to Owner' : 'Hidden from Owner'}>
+                                        <IconButton size="small" onClick={() => handleToggleVisibility(record._id, record.visibleToOwner)}>
+                                          {record.visibleToOwner ? <VisibilityIcon color="success" /> : <VisibilityOffIcon color="disabled" />}
+                                        </IconButton>
+                                      </Tooltip>
+                                    ) : (
+                                      <Chip label="Private & Shared" size="small" color="info" variant="outlined" sx={{ fontSize: '0.7rem' }} />
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    {record.attachments?.filter(url => !url.includes('vet-prescriptions')).length > 0 ? (
+                                      <Chip label={`${record.attachments.filter(url => !url.includes('vet-prescriptions')).length} file(s)`} size="small" icon={<AttachFileIcon />} />
+                                    ) : <Typography variant="caption" color="textSecondary">None</Typography>}
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    {record.recordType === 'vet' ? (
+                                      <>
+                                        <Tooltip title="Edit/View"><IconButton size="small" color="primary" onClick={() => startEditMed(record)}><EditIcon /></IconButton></Tooltip>
+                                        <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDeleteRecord(record._id)}><DeleteIcon /></IconButton></Tooltip>
+                                      </>
+                                    ) : (
+                                      <Typography variant="caption" color="textSecondary">External Record</Typography>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                                <TableRow>
+                                  <TableCell colSpan={7} sx={{ p: 0 }}>
+                                    <Collapse in={expandedMedRows.has(record._id)} timeout="auto" unmountOnExit>
+                                      <Box sx={{ p: 3, bgcolor: record.recordType === 'owner' ? alpha('#4f46e5', 0.05) : '#f0f4f8', borderLeft: `4px solid ${record.recordType === 'owner' ? '#4f46e5' : '#1976d2'}` }}>
+                                        {record.attachments?.length > 0 ? (
+                                          <Box mt={2}>
+                                            <Typography variant="subtitle2" fontWeight="bold" mb={1}>Attachments:</Typography>
+                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                              {record.attachments
+                                                .filter(url => !url.includes('vet-prescriptions'))
+                                                .map((url, i) => (
+                                                  <Button
+                                                    key={i}
+                                                    variant="outlined"
+                                                    size="small"
+                                                    startIcon={url.endsWith('.pdf') ? <PictureAsPdfIcon /> : <ImageIcon />}
+                                                    endIcon={<DownloadIcon />}
+                                                    component="a"
+                                                    href={url}
+                                                    target="_blank"
+                                                    download
+                                                    sx={{
+                                                      textTransform: 'none',
+                                                      borderRadius: '8px',
+                                                      bgcolor: 'white',
+                                                      borderColor: '#e2e8f0',
+                                                      color: '#1e293b',
+                                                      '&:hover': {
+                                                        bgcolor: '#f1f5f9',
+                                                        borderColor: '#cbd5e1'
+                                                      }
+                                                    }}
+                                                  >
+                                                    {record.recordType === 'owner' ? (record.diagnosis || `File ${i + 1}`) : `File ${i + 1}`}
+                                                  </Button>
+                                                ))}
+                                            </Box>
+                                          </Box>
+                                        ) : (
+                                          <Typography variant="body2" color="textSecondary">No attachments available.</Typography>
+                                        )}
+                                      </Box>
+                                    </Collapse>
+                                  </TableCell>
+                                </TableRow>
+                              </React.Fragment>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    );
+                  })()}
                 </AlignedContent>
               )}
 
@@ -815,7 +938,16 @@ const PetProfile = () => {
                         {appointments.length === 0 ? (
                           <TableRow><TableCell colSpan={7} align="center"><Typography color="textSecondary" py={4}>No appointments</Typography></TableCell></TableRow>
                         ) : appointments.map(appt => (
-                          <TableRow key={appt._id} sx={{ '&:hover': { bgcolor: '#fff9f7' } }}>
+                          <TableRow
+                            key={appt._id}
+                            id={`appt-row-${appt._id}`}
+                            sx={{
+                              '&:hover': { bgcolor: '#fff9f7' },
+                              bgcolor: highlightedApptId === appt._id ? alpha('#e08c0eff', 0.15) : 'inherit',
+                              borderLeft: highlightedApptId === appt._id ? '4px solid #e08c0eff' : 'none',
+                              transition: 'all 0.5s ease'
+                            }}
+                          >
                             <TableCell>
                               <Typography fontWeight="bold">{new Date(appt.dateTime).toLocaleDateString()}</Typography>
                               <Typography variant="caption">{new Date(appt.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Typography>
@@ -826,33 +958,71 @@ const PetProfile = () => {
                             <TableCell>{appt.reason || 'N/A'}</TableCell>
                             <TableCell>{appt.notes || '-'}</TableCell>
                             <TableCell align="center">
-                              <Button
-                                variant="contained"
-                                size="small"
-                                onClick={async () => {
-                                  try {
-                                    const res = await api.get(`/appointments/${appt._id}`);
-                                    setSelectedAppt(res.data);
-                                    setShowApptModal(true);
-                                  } catch (err) {
-                                    setSelectedAppt(appt);
-                                    setShowApptModal(true);
-                                  }
-                                }}
-                                sx={{
-                                  textTransform: 'none',
-                                  borderRadius: '12px',
-                                  background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
-                                  fontWeight: 700,
-                                  px: 3,
-                                  '&:hover': {
-                                    background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
-                                    transform: 'translateY(-1px)',
-                                  },
-                                }}
-                              >
-                                View
-                              </Button>
+                              {appt.status === 'Completed' ? (
+                                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                  <Button
+                                    variant="contained"
+                                    size="small"
+                                    onClick={async () => {
+                                      try {
+                                        const res = await api.get(`/appointments/${appt._id}`);
+                                        setSelectedAppt(res.data);
+                                        setShowApptModal(true);
+                                      } catch (err) {
+                                        setSelectedAppt(appt);
+                                        setShowApptModal(true);
+                                      }
+                                    }}
+                                    sx={{
+                                      textTransform: 'none',
+                                      borderRadius: '12px',
+                                      background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
+                                      fontWeight: 700,
+                                      px: 2,
+                                      '&:hover': {
+                                        background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                                        transform: 'translateY(-1px)',
+                                      },
+                                    }}
+                                  >
+                                    View
+                                  </Button>
+                                  <Box sx={{ display: 'flex', width: 44, justifyContent: 'center' }}>
+                                    {(() => {
+                                      const linkedPres = prescriptions.find(p => {
+                                        const record = medicalRecords.find(m => m.appointmentId === appt._id);
+                                        return p.medicalRecordId === record?._id || p.medicalRecordId?._id === record?._id;
+                                      });
+
+                                      if (!appt.prescriptionUrl && !linkedPres) return null;
+
+                                      return (
+                                        <Tooltip title="Download Prescription">
+                                          <IconButton
+                                            size="small"
+                                            onClick={() => {
+                                              if (linkedPres) {
+                                                handleDownloadPres(linkedPres._id);
+                                              } else if (appt.prescriptionUrl) {
+                                                window.open(appt.prescriptionUrl, '_blank');
+                                              }
+                                            }}
+                                            sx={{
+                                              color: '#1976d2',
+                                              bgcolor: alpha('#1976d2', 0.1),
+                                              '&:hover': { bgcolor: alpha('#1976d2', 0.2) }
+                                            }}
+                                          >
+                                            <DownloadIcon fontSize="small" />
+                                          </IconButton>
+                                        </Tooltip>
+                                      );
+                                    })()}
+                                  </Box>
+                                </Box>
+                              ) : (
+                                <Typography variant="caption" color="textSecondary">Finalizing...</Typography>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -1080,20 +1250,11 @@ const PetProfile = () => {
               </Dialog>
 
               <Dialog open={showApptModal} onClose={() => setShowApptModal(false)} maxWidth="sm" fullWidth>
-                <DialogTitle sx={{ bgcolor: '#f5f7fa' }}>Appointment Details & Documents</DialogTitle>
+                <DialogTitle sx={{ bgcolor: '#f5f7fa' }}>Appointment Details & Prescriptions</DialogTitle>
                 <DialogContent dividers>
                   {selectedAppt && (
                     <Box sx={{ py: 1 }}>
                       <Typography variant="h6" color="primary" gutterBottom>Documents</Typography>
-                      {selectedAppt.medicalRecordUrl ? (
-                        <Box sx={{ mb: 2, p: 2, bgcolor: '#f0f4f8', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <AttachFileIcon color="primary" />
-                            <Typography fontWeight="bold">Medical Notes</Typography>
-                          </Box>
-                          <Button size="small" variant="contained" component="a" href={selectedAppt.medicalRecordUrl} target="_blank">View</Button>
-                        </Box>
-                      ) : <Typography color="textSecondary" mb={2}>No medical notes document attached.</Typography>}
 
                       {selectedAppt.prescriptionUrl ? (
                         <Box sx={{ mb: 2, p: 2, bgcolor: '#f0f4f8', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1101,9 +1262,34 @@ const PetProfile = () => {
                             <AttachFileIcon color="secondary" />
                             <Typography fontWeight="bold">Prescription</Typography>
                           </Box>
-                          <Button size="small" variant="contained" color="secondary" component="a" href={selectedAppt.prescriptionUrl} target="_blank">View</Button>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button size="small" variant="contained" color="secondary" component="a" href={selectedAppt.prescriptionUrl} target="_blank">View</Button>
+                            <Tooltip title="Download">
+                              <IconButton size="small" color="secondary" component="a" href={selectedAppt.prescriptionUrl.includes('cloudinary.com') ? selectedAppt.prescriptionUrl.replace('/upload/', '/upload/fl_attachment/') : selectedAppt.prescriptionUrl} download>
+                                <DownloadIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
                         </Box>
                       ) : <Typography color="textSecondary" mb={2}>No prescription document attached.</Typography>}
+
+                      {selectedAppt.diagnosis && (
+                        <Box sx={{ mt: 3, mb: 1 }}>
+                          <Typography variant="h6" color="primary" gutterBottom>Diagnosis</Typography>
+                          <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: 2, border: '1px solid #e0e0e0' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 500, whiteSpace: 'pre-wrap' }}>{selectedAppt.diagnosis}</Typography>
+                          </Box>
+                        </Box>
+                      )}
+
+                      {selectedAppt.medicalNotes && (
+                        <Box sx={{ mt: 3 }}>
+                          <Typography variant="h6" color="primary" gutterBottom>Medical Notes</Typography>
+                          <Box sx={{ p: 2, bgcolor: '#fff', borderRadius: 2, border: '1px solid #e0e0e0' }}>
+                            <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>{selectedAppt.medicalNotes}</Typography>
+                          </Box>
+                        </Box>
+                      )}
                     </Box>
                   )}
                 </DialogContent>

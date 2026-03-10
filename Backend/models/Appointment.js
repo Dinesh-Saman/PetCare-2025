@@ -12,7 +12,9 @@ const appointmentSchema = new mongoose.Schema({
     default: 'Booked'
   },
   reason: { type: String },
-  notes: { type: String },
+  notes: { type: String }, // Owner notes
+  diagnosis: { type: String }, // ← NEW
+  medicalNotes: { type: String }, // Vet notes
   medicalRecordUrl: { type: String },
   prescriptionUrl: { type: String },
   isReadByVet: { type: Boolean, default: false }

@@ -817,6 +817,9 @@ const OwnerDashboard = () => {
                     InputLabelProps={{ shrink: true }}
                     value={editPetForm.dateOfBirth}
                     onChange={(e) => setEditPetForm({ ...editPetForm, dateOfBirth: e.target.value })}
+                    inputProps={{
+                      max: new Date().toISOString().split('T')[0]
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>

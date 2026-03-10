@@ -361,74 +361,113 @@ exports.generatePrescriptionPDF = async (req, res) => {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
     // Set headers for download
+    const isVaccination = prescription.type === 'Vaccination';
+    const reportTitle = isVaccination ? 'Pet Vaccinations' : 'Veterinary Prescription';
+    const filename = `${reportTitle.replace(/ /g, '_')}_${pet.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="Prescription_${pet.name}_${prescription.medicationName.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().slice(0, 10)}.pdf"`
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     doc.pipe(res);
 
-    // Header
-    doc.fontSize(24).text('Veterinary Prescription', { align: 'center' });
-    doc.moveDown(2);
+    // Color Palette
+    const primaryColor = '#2e7d32'; // Vet Green
+    const secondaryColor = '#455a64';
+    const accentColor = '#1565c0';
 
-    // Pet Info
-    doc.fontSize(16).text('Pet Information', { underline: true });
-    doc.fontSize(12)
-      .text(`Name: ${pet.name}`)
-      .text(`Species: ${pet.species}`)
-      .text(`Breed: ${pet.breed || 'Not specified'}`)
-      .text(`Date of Birth: ${pet.dateOfBirth ? new Date(pet.dateOfBirth).toLocaleDateString() : 'Unknown'}`)
-      .moveDown();
+    // --- Header Section ---
+    doc.rect(0, 0, 612, 120).fill(primaryColor);
+    doc.fillColor('#ffffff')
+      .fontSize(28)
+      .font('Helvetica-Bold')
+      .text(reportTitle.toUpperCase(), 50, 45);
 
-    // Owner Info
+    doc.fontSize(10)
+      .font('Helvetica')
+      .text('OFFICIAL MEDICAL RECORD', 50, 80);
+
+    // --- Content Start ---
+    doc.fillColor('#000000').moveDown(6);
+
+    // Row 1: Pet & Owner Info
+    const startY = 160;
+    doc.fontSize(14).font('Helvetica-Bold').fillColor(primaryColor).text('PET INFORMATION', 50, startY);
+    doc.fontSize(14).font('Helvetica-Bold').text('OWNER INFORMATION', 320, startY);
+
+    doc.rect(50, startY + 20, 240, 1).fill(primaryColor);
+    doc.rect(320, startY + 20, 240, 1).fill(primaryColor);
+
+    doc.fillColor('#333333').fontSize(11).font('Helvetica').moveDown(1.5);
+
+    // Pet details
+    let currentY = startY + 35;
+    doc.text(`Name:`, 50, currentY, { continued: true }).font('Helvetica-Bold').text(` ${pet.name}`);
+    doc.font('Helvetica').text(`Species:`, 50, currentY + 18, { continued: true }).font('Helvetica-Bold').text(` ${pet.species}`);
+    doc.font('Helvetica').text(`Breed:`, 50, currentY + 36, { continued: true }).font('Helvetica-Bold').text(` ${pet.breed || 'N/A'}`);
+    doc.font('Helvetica').text(`DOB:`, 50, currentY + 54, { continued: true }).font('Helvetica-Bold').text(` ${pet.dateOfBirth ? new Date(pet.dateOfBirth).toLocaleDateString() : 'N/A'}`);
+
+    // Owner details
     if (pet.ownerId) {
-      doc.fontSize(16).text('Owner Information', { underline: true });
-      doc.fontSize(12)
-        .text(`Name: ${pet.ownerId.firstName} ${pet.ownerId.lastName}`)
-        .text(`Phone: ${pet.ownerId.phoneNumber || 'Not provided'}`)
-        .text(`Email: ${pet.ownerId.email || 'Not provided'}`)
-        .moveDown();
+      doc.font('Helvetica').text(`Name:`, 320, currentY, { continued: true }).font('Helvetica-Bold').text(` ${pet.ownerId.firstName} ${pet.ownerId.lastName}`);
+      doc.font('Helvetica').text(`Phone:`, 320, currentY + 18, { continued: true }).font('Helvetica-Bold').text(` ${pet.ownerId.phoneNumber || 'N/A'}`);
+      doc.font('Helvetica').text(`Email:`, 320, currentY + 36, { continued: true }).font('Helvetica-Bold').text(` ${pet.ownerId.email || 'N/A'}`);
     }
 
-    // Issuing Vet (if from medical record)
+    // --- Medical Record / Vet Context ---
+    doc.moveDown(6);
+    const middleY = doc.y;
+    doc.fontSize(14).font('Helvetica-Bold').fillColor(primaryColor).text('CLINICAL CONTEXT', 50, middleY);
+    doc.rect(50, middleY + 20, 510, 1).fill(primaryColor);
+
+    doc.fillColor('#333333').fontSize(11).font('Helvetica').moveDown(2.5);
+
     if (prescription.medicalRecordId && prescription.medicalRecordId.vetId) {
-      doc.text(`Issued by: Dr. ${prescription.medicalRecordId.vetId.firstName} ${prescription.medicalRecordId.vetId.lastName}`);
-      doc.moveDown();
+      doc.font('Helvetica-Bold').text('Attending Veterinarian:', 50, middleY + 35);
+      doc.font('Helvetica').text(`Dr. ${prescription.medicalRecordId.vetId.firstName} ${prescription.medicalRecordId.vetId.lastName}`, 180, middleY + 35);
     }
 
-    // Prescription Details
-    doc.fontSize(18).text('Prescription Details', { underline: true });
-    doc.moveDown(0.5);
+    doc.font('Helvetica-Bold').text('Date Issued:', 50, middleY + 53);
+    doc.font('Helvetica').text(new Date(prescription.createdAt).toLocaleDateString(), 180, middleY + 53);
 
-    const details = [
-      { label: 'Type', value: prescription.type },
-      { label: 'Medication/Vaccine', value: prescription.medicationName },
-      { label: 'Dosage', value: prescription.dosage },
-      { label: 'Duration', value: prescription.duration || 'N/A' },
-      { label: 'Due Date / Next Booster', value: prescription.dueDate ? new Date(prescription.dueDate).toLocaleDateString() : 'N/A' },
-    ];
+    // --- Prescription DETAILS ---
+    doc.moveDown(5);
+    const boxY = doc.y;
+    doc.rect(50, boxY, 510, 150).lineWidth(1).stroke('#cccccc');
 
-    details.forEach(item => {
-      doc.fontSize(14).text(`${item.label}:`, { continued: true });
-      doc.fontSize(14).text(` ${item.value}`, { align: 'left' });
-    });
+    // Aesthetic "Rx" or "Vaccine" Badge
+    doc.rect(50, boxY, 120, 30).fill(primaryColor);
+    doc.fillColor('#ffffff').fontSize(12).font('Helvetica-Bold').text(isVaccination ? 'VACCINATION' : 'PRESCRIPTION (Rx)', 60, boxY + 10);
 
-    doc.moveDown(2);
+    doc.fillColor('#000000').fontSize(16).font('Helvetica-Bold').text(prescription.medicationName, 70, boxY + 50);
 
-    // Instructions
-    doc.fontSize(16).text('Instructions', { underline: true });
-    doc.fontSize(12).text(
-      prescription.instructions || 'No specific instructions provided.',
-      { align: 'justify' }
+    doc.fontSize(12).font('Helvetica').text(`Dosage: `, 70, boxY + 75, { continued: true }).font('Helvetica-Bold').text(prescription.dosage);
+
+    if (prescription.duration) {
+      doc.fontSize(12).font('Helvetica').text(`Duration: `, 70, boxY + 95, { continued: true }).font('Helvetica-Bold').text(prescription.duration);
+    }
+
+    if (prescription.dueDate) {
+      const dateLabel = isVaccination ? 'Next Booster Due:' : 'Valid Until:';
+      doc.fontSize(12).font('Helvetica').text(`${dateLabel} `, 70, boxY + 115, { continued: true }).font('Helvetica-Bold').fillColor('#d32f2f').text(new Date(prescription.dueDate).toLocaleDateString());
+    }
+
+    // --- Instructions ---
+    doc.fillColor('#000000').moveDown(6);
+    doc.fontSize(14).font('Helvetica-Bold').fillColor(primaryColor).text('DIRECTIONS / NOTES', 50);
+    doc.rect(50, doc.y + 2, 510, 1).fill(primaryColor);
+    doc.moveDown(1.5);
+
+    doc.fillColor('#333333').fontSize(11).font('Helvetica').text(
+      prescription.instructions || 'Follow as directed by your veterinarian.',
+      { align: 'justify', width: 510 }
     );
 
-    // Footer
-    doc.moveDown(4);
-    doc.fontSize(10)
-      .text(`Issued on: ${new Date().toLocaleDateString()}`, { align: 'center' })
-      .text('This is an official veterinary prescription.', { align: 'center' });
+    // --- Footer ---
+    const footerY = 750;
+    doc.rect(50, footerY - 10, 510, 1).fill('#eeeeee');
+    doc.fillColor('#999999').fontSize(9).font('Helvetica')
+      .text('This document is generated by PetCare-2025. It is an official medical record.', 50, footerY, { align: 'center' })
+      .text(`Record ID: ${prescription._id} | Page 1 of 1`, { align: 'center' });
 
     doc.end();
 

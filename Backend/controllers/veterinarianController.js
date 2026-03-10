@@ -1,4 +1,5 @@
 const Veterinarian = require('../models/Veterinarian');
+const ClinicStaff = require('../models/ClinicStaff');
 const Clinic = require('../models/Clinic');
 const PetProfile = require('../models/PetProfile');
 const bcrypt = require('bcryptjs');
@@ -275,6 +276,36 @@ const updateVet = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
     const requesterId = req.user?.id;
+
+    // Handle ClinicStaff trying to update their own profile
+    if (req.user?.staffRole && requesterId === id) {
+      const ClinicStaff = require('../models/ClinicStaff');
+      const staffToUpdate = await ClinicStaff.findById(id);
+      if (!staffToUpdate) return res.status(404).json({ message: 'Staff member not found' });
+
+      const cleanUpdates = { ...updates };
+      delete cleanUpdates.clinicId;
+      delete cleanUpdates.assignedClinics;
+      delete cleanUpdates.role;
+      delete cleanUpdates.accessLevel;
+      delete cleanUpdates.status;
+      delete cleanUpdates.passwordHash;
+
+      if (cleanUpdates.firstName) cleanUpdates.firstName = cleanUpdates.firstName.trim();
+      if (cleanUpdates.lastName) cleanUpdates.lastName = cleanUpdates.lastName.trim();
+      if (cleanUpdates.phoneNumber) cleanUpdates.phoneNumber = cleanUpdates.phoneNumber.trim();
+      if (cleanUpdates.email) cleanUpdates.email = cleanUpdates.email.toLowerCase().trim();
+
+      const updatedStaff = await ClinicStaff.findByIdAndUpdate(
+        id, cleanUpdates, { new: true, runValidators: true }
+      ).select('-passwordHash');
+
+      return res.status(200).json({
+        message: 'Staff updated successfully',
+        vet: updatedStaff
+      });
+    }
+
     const requester = await Veterinarian.findById(requesterId);
 
     if (!requester) {
@@ -1087,14 +1118,23 @@ const getVetNotifications = async (req, res) => {
     const vetId = req.user.id;
     console.log(`Fetching notifications for Vet: ${vetId}`);
 
-    const vet = await Veterinarian.findById(vetId);
+    let vet = await Veterinarian.findById(vetId);
+    let isStaff = false;
+
     if (!vet) {
-      console.log('Vet not found in database');
-      return res.status(404).json({ message: 'Vet not found' });
+      vet = await ClinicStaff.findById(vetId);
+      if (vet) {
+        isStaff = true;
+      }
     }
 
-    const clinicId = vet.currentActiveClinicId;
-    const ownedClinics = vet.ownedClinics || [];
+    if (!vet) {
+      console.log('Vet/Staff not found in database');
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const clinicId = isStaff ? vet.clinicId : vet.currentActiveClinicId;
+    const ownedClinics = isStaff ? [] : (vet.ownedClinics || []);
 
     // 1. Pending pet registration requests
     let pendingPetsQuery = {

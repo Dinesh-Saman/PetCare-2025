@@ -26,7 +26,7 @@ api.interceptors.request.use(
       token = localStorage.getItem('owner_token') || localStorage.getItem('vet_token') || localStorage.getItem('token');
     }
 
-    if (token) {
+    if (token && !config.headers.Authorization) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 

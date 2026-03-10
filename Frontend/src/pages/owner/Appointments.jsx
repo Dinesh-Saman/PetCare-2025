@@ -58,9 +58,9 @@ const CardHeaderStyled = styled(Box)(({ theme, status }) => ({
   color: 'white',
   background:
     status === 'Confirmed' ? 'linear-gradient(90deg, #4caf50, #66bb6a)' :
-    status === 'Booked' ? 'linear-gradient(90deg, #2196f3, #21cbf3)' :
-    status === 'Canceled' ? 'linear-gradient(90deg, #f44336, #ef5350)' :
-    'linear-gradient(90deg, #9e9e9e, #bdbdbd)',
+      status === 'Booked' ? 'linear-gradient(90deg, #2196f3, #21cbf3)' :
+        status === 'Canceled' ? 'linear-gradient(90deg, #f44336, #ef5350)' :
+          'linear-gradient(90deg, #9e9e9e, #bdbdbd)',
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -152,7 +152,7 @@ const OwnerAppointments = () => {
     if (result.isConfirmed) {
       try {
         await api.patch(`/appointments/${apptId}/cancel`, { reason: 'Canceled by owner' });
-        setAppointments(prev => prev.map(a => 
+        setAppointments(prev => prev.map(a =>
           a._id === apptId ? { ...a, status: 'Canceled' } : a
         ));
         Swal.fire('Canceled!', 'Appointment has been canceled', 'success');
@@ -180,7 +180,7 @@ const OwnerAppointments = () => {
 
       Swal.fire('Booked!', 'Your appointment has been requested', 'success');
       setOpenBookDialog(false);
-      
+
       // Add new appointment to list
       setAppointments(prev => [response.data.appointment, ...prev]);
     } catch (error) {
@@ -323,9 +323,23 @@ const OwnerAppointments = () => {
                         </Box>
 
                         {appt.notes && (
-                          <Box>
+                          <Box sx={{ mb: 3 }}>
                             <Typography variant="subtitle2" color="textSecondary">Notes</Typography>
                             <Typography variant="body1">{appt.notes}</Typography>
+                          </Box>
+                        )}
+
+                        {appt.diagnosis && (
+                          <Box sx={{ mb: 3 }}>
+                            <Typography variant="subtitle2" color="primary">Diagnosis</Typography>
+                            <Typography variant="body1" fontWeight="bold" sx={{ whiteSpace: 'pre-wrap' }}>{appt.diagnosis}</Typography>
+                          </Box>
+                        )}
+
+                        {appt.medicalNotes && (
+                          <Box>
+                            <Typography variant="subtitle2" color="primary">Medical Notes</Typography>
+                            <Typography variant="body1">{appt.medicalNotes}</Typography>
                           </Box>
                         )}
                       </Grid>
@@ -360,22 +374,26 @@ const OwnerAppointments = () => {
         </DialogTitle>
         <DialogContent sx={{ pt: 4 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Select Pet</InputLabel>
-                <Select
-                  value={bookForm.petId}
-                  onChange={(e) => setBookForm({ ...bookForm, petId: e.target.value })}
-                >
-                  <MenuItem value=""><em>Choose a pet</em></MenuItem>
-                  {pets.map(pet => (
-                    <MenuItem key={pet._id} value={pet._id}>
-                      {pet.name} ({pet.species} - {pet.breed || 'Mixed'})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+            {pets.filter(pet => pet.registrationStatus === 'Approved').length > 0 && (
+              <Grid item xs={12}>
+                <FormControl fullWidth required>
+                  <InputLabel>Select Pet</InputLabel>
+                  <Select
+                    value={bookForm.petId}
+                    onChange={(e) => setBookForm({ ...bookForm, petId: e.target.value })}
+                  >
+                    <MenuItem value=""><em>Choose a pet</em></MenuItem>
+                    {pets
+                      .filter(pet => pet.registrationStatus === 'Approved')
+                      .map(pet => (
+                        <MenuItem key={pet._id} value={pet._id}>
+                          {pet.name} ({pet.species} - {pet.breed || 'Mixed'})
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
 
             <Grid item xs={12}>
               <TextField

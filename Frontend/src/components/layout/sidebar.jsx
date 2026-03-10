@@ -136,7 +136,7 @@ const CategoryHeader = styled.div`
 const Sidebar = ({ computedHeight, mobileView, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [expandedCats, setExpandedCats] = React.useState({});
 
   const toggleCat = (title) => {
@@ -153,6 +153,8 @@ const Sidebar = ({ computedHeight, mobileView, onClose }) => {
     navigate('/');
   };
 
+  const isEnhanced = user?.accessLevel === 'Enhanced';
+
   const categories = [
     {
       title: "Dashboard",
@@ -163,8 +165,8 @@ const Sidebar = ({ computedHeight, mobileView, onClose }) => {
     {
       title: "Clinic Management",
       items: [
-        { to: "/vet/clinic-settings", icon: <FaCog />, label: "Manage Clinics" },
-        { to: "/vet/chat", icon: <FaComments />, label: "Chat with Owners" },
+        { to: "/vet/clinic-settings", icon: <FaCog />, label: "Manage Clinics", requireEnhanced: true },
+        { to: "/vet/chat", icon: <FaComments />, label: "Chat with Owners", requireEnhanced: true },
       ]
     },
     {
@@ -184,11 +186,16 @@ const Sidebar = ({ computedHeight, mobileView, onClose }) => {
     {
       title: "Staff Management",
       items: [
-        { to: "/vet/staff", icon: <FaUsers />, label: "All Staff" },
+        { to: "/vet/staff", icon: <FaUsers />, label: "All Staff", requireEnhanced: true },
         { to: "/vet/profile", icon: <FaUser />, label: "My Profile" },
       ]
     }
-  ];
+  ]
+    .map(cat => ({
+      ...cat,
+      items: cat.items.filter(item => isEnhanced || !item.requireEnhanced)
+    }))
+    .filter(cat => cat.items.length > 0);
 
   return (
     <SidebarContainer computedHeight={computedHeight} mobileView={mobileView}>

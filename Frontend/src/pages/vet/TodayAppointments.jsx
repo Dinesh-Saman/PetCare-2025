@@ -317,36 +317,40 @@ const TodayAppointments = () => {
 
     const [openManageModal, setOpenManageModal] = useState(false);
     const [selectedApp, setSelectedApp] = useState(null);
+    const [manageDiagnosis, setManageDiagnosis] = useState('');
     const [manageNotes, setManageNotes] = useState('');
     const [recordFile, setRecordFile] = useState(null);
     const [rxFile, setRxFile] = useState(null);
 
     const handleOpenManage = (app) => {
         setSelectedApp(app);
-        setManageNotes(app.notes || '');
+        setManageDiagnosis(app.diagnosis || '');
+        setManageNotes(app.medicalNotes || '');
         setOpenManageModal(true);
     };
 
     const handleCloseManage = () => {
         setOpenManageModal(false);
         setSelectedApp(null);
+        setManageDiagnosis('');
+        setManageNotes('');
     };
 
     const handleUpdateConfirmedApp = async (markCompleted = false) => {
         try {
             const formData = new FormData();
-            formData.append('notes', manageNotes);
+            formData.append('diagnosis', manageDiagnosis);
+            formData.append('medicalNotes', manageNotes);
             if (recordFile) formData.append('medicalRecord', recordFile);
             if (rxFile) formData.append('prescription', rxFile);
             if (markCompleted) formData.append('status', 'Completed');
 
-            await api.patch(`/appointments/${selectedApp._id}/manage`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const response = await api.patch(`/appointments/${selectedApp._id}/manage`, formData);
+            const updatedAppt = response.data.appointment;
 
             setAppointments(prev => prev.map(app =>
                 app._id === selectedApp._id
-                    ? { ...app, notes: manageNotes, status: markCompleted ? 'Completed' : app.status }
+                    ? updatedAppt
                     : app
             ));
 
@@ -422,13 +426,14 @@ const TodayAppointments = () => {
                                         <TableHeadCell></TableHeadCell>
                                         <TableHeadCell>Pet</TableHeadCell>
                                         <TableHeadCell>Owner</TableHeadCell>
+                                        <TableHeadCell>Clinic</TableHeadCell>
                                         <TableHeadCell>Status</TableHeadCell>
                                         <TableHeadCell>Actions</TableHeadCell>
                                     </TableHeadRow>
                                 </TableHead>
                                 <TableBody>
                                     {paginatedAppointments.length === 0 ? (
-                                        <TableRow><TableCell colSpan={5} align="center">No appointments for today.</TableCell></TableRow>
+                                        <TableRow><TableCell colSpan={6} align="center">No appointments for today.</TableCell></TableRow>
                                     ) : (
                                         paginatedAppointments.map((app) => (
                                             <React.Fragment key={app._id}>
@@ -444,7 +449,16 @@ const TodayAppointments = () => {
                                                             <Typography fontWeight="bold">{app.petId?.name}</Typography>
                                                         </Box>
                                                     </TableCell>
-                                                    <TableCell>{app.petId?.ownerId ? `${app.petId.ownerId.firstName} ${app.petId.ownerId.lastName}` : 'N/A'}</TableCell>
+                                                    <TableCell>
+                                                        <Typography fontWeight="bold">
+                                                            {app.petId?.ownerId ? `${app.petId.ownerId.firstName} ${app.petId.ownerId.lastName}` : 'N/A'}
+                                                        </Typography>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#49149eff' }}>
+                                                            {app.clinicId?.name || 'N/A'}
+                                                        </Typography>
+                                                    </TableCell>
                                                     <TableCell><StatusChip label={app.status === 'Booked' ? 'Pending' : app.status} status={app.status} /></TableCell>
                                                     <TableCell>
                                                         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -455,7 +469,7 @@ const TodayAppointments = () => {
                                                     </TableCell>
                                                 </TableRowStyled>
                                                 <TableRow>
-                                                    <TableCell colSpan={5} style={{ padding: 0 }}>
+                                                    <TableCell colSpan={6} style={{ padding: 0 }}>
                                                         <Collapse in={expandedRow === app._id} timeout="auto" unmountOnExit>
                                                             <DetailsCard sx={{ m: 2 }}>
                                                                 <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
@@ -600,8 +614,47 @@ const TodayAppointments = () => {
                             </Box>
                         </Box>
 
+                        {(selectedApp?.medicalRecordUrl || selectedApp?.prescriptionUrl) && (
+                            <Box sx={{ mb: 3, p: 2, bgcolor: '#f8fafc', borderRadius: 2 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: '#333' }}>Previously Uploaded Documents:</Typography>
+                                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                                    {selectedApp.medicalRecordUrl && (
+                                        <Button size="small" variant="outlined" component="a" href={selectedApp.medicalRecordUrl} target="_blank" startIcon={<DescriptionIcon />}>
+                                            View Medical Record
+                                        </Button>
+                                    )}
+                                    {selectedApp.prescriptionUrl && (
+                                        <Button size="small" variant="outlined" color="success" component="a" href={selectedApp.prescriptionUrl} target="_blank" startIcon={<MedicationIcon />}>
+                                            View Prescription
+                                        </Button>
+                                    )}
+                                </Box>
+                            </Box>
+                        )}
+
                         <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#666', mb: 1.5, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>
-                            Special Notes & Observations
+                            Diagnosis
+                        </Typography>
+                        <TextField
+                            multiline
+                            rows={2}
+                            variant="outlined"
+                            fullWidth
+                            value={manageDiagnosis}
+                            onChange={(e) => setManageDiagnosis(e.target.value)}
+                            placeholder="e.g. Mild dermatitis, Gastrointestinal upset"
+                            sx={{
+                                mb: 3,
+                                '& .MuiOutlinedInput-root': {
+                                    backgroundColor: '#f9f9f9',
+                                    borderRadius: 2,
+                                    '& fieldset': { borderColor: '#e0e0e0' }
+                                }
+                            }}
+                        />
+
+                        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#666', mb: 1.5, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+                            Special Notes & Observations (Medical Notes)
                         </Typography>
                         <TextField
                             multiline

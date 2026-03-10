@@ -130,18 +130,22 @@ exports.getAppointmentsByVet = async (req, res) => {
     const { vetId } = req.params;
     const { date, clinicId } = req.query;
 
-    // Security: Only the assigned vet can view, UNLESS the requester is an Enhanced Vet
+    // Security: Enhanced Vet sees all, Basic staff/vet sees appointments in their clinic
     const isEnhanced = req.user.role === 'vet' && req.user.accessLevel === 'Enhanced';
-    if (req.user.role === 'vet' && !isEnhanced && req.user.id.toString() !== vetId) {
-      return res.status(403).json({ message: 'You can only view your own appointments' });
-    }
+
+    // Instead of completely blocking, we will enforce the clinicId constraint in the query.
 
     let query = {};
     if (isEnhanced && req.user.id.toString() === vetId) {
       // Enhanced vet looking at their own ID get global system view
       query = {};
     } else {
-      query = { vetId };
+      // Basic access level: see all appointments for their clinic
+      if (req.user.clinicId) {
+        query = { clinicId: req.user.clinicId };
+      } else {
+        query = { vetId };
+      }
     }
 
     if (clinicId) query.clinicId = clinicId;
@@ -310,7 +314,7 @@ exports.confirmAppointment = async (req, res) => {
 exports.manageAppointment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { notes, status } = req.body || {};
+    const { diagnosis, medicalNotes, status } = req.body || {};
 
     const appointment = await Appointment.findById(id);
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
@@ -331,9 +335,6 @@ exports.manageAppointment = async (req, res) => {
     if (req.files) {
       if (req.files.medicalRecord && req.files.medicalRecord[0]) {
         const url = await uploadToCloudinary(req.files.medicalRecord[0].buffer, 'vet-medical-records');
-        // You might want to save this URL to the appointment or a separate MedicalRecord model
-        // For now, let's just log it or add it to notes if no model exists, 
-        // but typically you'd have fields for these in the Appointment schema.
         appointment.medicalRecordUrl = url;
       }
       if (req.files.prescription && req.files.prescription[0]) {
@@ -342,7 +343,8 @@ exports.manageAppointment = async (req, res) => {
       }
     }
 
-    if (notes !== undefined) appointment.notes = notes;
+    if (diagnosis !== undefined) appointment.diagnosis = diagnosis;
+    if (medicalNotes !== undefined) appointment.medicalNotes = medicalNotes;
     if (status) appointment.status = status;
 
     await appointment.save();
@@ -350,26 +352,19 @@ exports.manageAppointment = async (req, res) => {
     // If appointment is completed, automatically create a Medical Record entry
     if (status === 'Completed' || appointment.status === 'Completed') {
       try {
-        // Check if a record already exists for this appointment (optional, but good for idempotency)
-        // Since we don't have appointmentId in MedicalRecord, we'll just create one.
-        // Or we could check if one exists for this pet and vet on this day.
-
         const medicalRecord = new MedicalRecord({
           petId: appointment.petId,
           vetId: appointment.vetId,
-          diagnosis: appointment.reason || 'Routine Checkup',
-          treatmentNotes: appointment.notes || '',
+          appointmentId: appointment._id,
+          diagnosis: appointment.diagnosis || appointment.reason || 'Medical Notes from Appointment',
+          treatmentNotes: appointment.medicalNotes || '',
           date: appointment.dateTime || new Date(),
           visibleToOwner: true,
-          attachments: [appointment.medicalRecordUrl, appointment.prescriptionUrl].filter(Boolean)
+          attachments: [appointment.medicalRecordUrl].filter(Boolean)
         });
         await medicalRecord.save();
-
-        // If there's a prescription, we could also create a Prescription entry here if we wanted to be thorough.
-        // But for now, creating the Medical Record with attachments satisfies the requirement.
       } catch (recordError) {
         console.error('Error auto-creating medical record:', recordError);
-        // We continue anyway as the appointment itself was saved
       }
     }
 
@@ -440,13 +435,9 @@ exports.getTodayAppointmentsCountByVet = async (req, res) => {
       });
     }
 
-    // If Enhanced, allow viewing ANY vet's stats
+    // If Enhanced, allow viewing ANY vet's stats (Global)
+    // For Basic, we will restrict to their clinicId in the DB query below.
     const isEnhanced = req.user.accessLevel === 'Enhanced';
-    if (!isEnhanced && req.user.id.toString() !== vetId) {
-      return res.status(403).json({
-        message: 'You can only view your own appointment stats'
-      });
-    }
 
     // Define today's date range (00:00:00 to 23:59:59)
     const today = new Date();
@@ -461,9 +452,13 @@ exports.getTodayAppointmentsCountByVet = async (req, res) => {
       status: 'Confirmed'
     };
 
-    // If NOT Enhanced, only count for the specific vetId
+    // If NOT Enhanced, only count for the specific clinic (or vet if no clinic)
     if (!isEnhanced) {
-      countQuery.vetId = vetId;
+      if (req.user.clinicId) {
+        countQuery.clinicId = req.user.clinicId;
+      } else {
+        countQuery.vetId = vetId;
+      }
     }
 
     const count = await Appointment.countDocuments(countQuery);

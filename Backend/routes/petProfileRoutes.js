@@ -61,11 +61,21 @@ router.get('/clinic/pending', protect, authorize('vet'), async (req, res) => {
     console.log('=== GET /clinic/pending ===');
     console.log('User:', req.user.id, req.user.role);
 
-    // Fetch ALL pending registrations regardless of clinic
-    const pendingPets = await PetProfile.find({
+    const isEnhanced = req.user.accessLevel === 'Enhanced';
+
+    let query = {
       registrationStatus: 'Pending',
       isDeleted: { $ne: true }
-    })
+    };
+
+    if (!isEnhanced) {
+      if (!req.user.clinicId) {
+        return res.status(200).json({ success: true, count: 0, pendingPets: [], isGlobalView: false });
+      }
+      query.registeredClinicId = req.user.clinicId;
+    }
+
+    const pendingPets = await PetProfile.find(query)
       .populate('ownerId', 'firstName lastName email phoneNumber')
       .populate('registeredClinicId', 'name address phoneNumber')
       .sort({ createdAt: -1 })
@@ -75,7 +85,7 @@ router.get('/clinic/pending', protect, authorize('vet'), async (req, res) => {
       success: true,
       count: pendingPets.length,
       pendingPets,
-      isGlobalView: true
+      isGlobalView: isEnhanced
     });
   } catch (error) {
     console.error('Error in /clinic/pending:', error);

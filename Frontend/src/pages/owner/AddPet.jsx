@@ -112,7 +112,18 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
             </Select>
           </FormControl>
 
-          <TextField fullWidth label="Date of Birth" name="dateOfBirth" type="date" InputLabelProps={{ shrink: true }} value={formData.dateOfBirth} onChange={handleChange} />
+          <TextField
+            fullWidth
+            label="Date of Birth"
+            name="dateOfBirth"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={formData.dateOfBirth}
+            onChange={handleChange}
+            inputProps={{
+              max: new Date().toISOString().split('T')[0]
+            }}
+          />
 
           <TextField fullWidth label="Weight (kg)" name="weight" type="number" value={formData.weight} onChange={handleChange} />
 
@@ -128,7 +139,18 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
             </Select>
           </FormControl>
 
-          <TextField fullWidth label="Last Vaccination" name="lastVaccinationDate" type="date" InputLabelProps={{ shrink: true }} value={formData.lastVaccinationDate} onChange={handleChange} />
+          <TextField
+            fullWidth
+            label="Last Vaccination"
+            name="lastVaccinationDate"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            value={formData.lastVaccinationDate}
+            onChange={handleChange}
+            inputProps={{
+              max: new Date().toISOString().split('T')[0]
+            }}
+          />
 
           <Button
             variant="outlined"
@@ -167,7 +189,7 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
           </Button>
 
           <Box sx={{ gridColumn: '1 / -1' }}>
-            <TextField fullWidth label="Medical Notes" name="notes" multiline rows={3} value={formData.notes} onChange={handleChange} placeholder="Allergies, conditions, etc..." />
+            <TextField fullWidth label="Additional Notes" name="notes" multiline rows={3} value={formData.notes} onChange={handleChange} placeholder="Allergies, conditions, etc..." />
           </Box>
         </Box>
       </DialogContent>

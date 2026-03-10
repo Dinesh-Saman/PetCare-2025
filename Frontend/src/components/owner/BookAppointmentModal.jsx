@@ -260,27 +260,37 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                     <form onSubmit={handleSubmit}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-                                <FormControl fullWidth required>
-                                    <InputLabel shrink>Select Your Pet</InputLabel>
-                                    <StyledSelect
-                                        name="petId"
-                                        label="Select Your Pet"
-                                        value={formData.petId}
-                                        onChange={handleChange}
-                                        displayEmpty
-                                        renderValue={(selected) => {
-                                            if (!selected) return <Typography sx={{ color: '#94a3b8' }}>Choose a pet...</Typography>;
-                                            const pet = pets.find(p => p._id === selected);
-                                            return pet ? `${pet.name} (${pet.species})` : selected;
-                                        }}
-                                        startAdornment={<InputAdornment position="start"><PetsIcon sx={{ color: '#4f46e5', mr: 1 }} /></InputAdornment>}
-                                    >
-                                        <MenuItem value="" disabled><em>Choose a pet...</em></MenuItem>
-                                        {pets.map(pet => (
-                                            <MenuItem key={pet._id} value={pet._id}>{pet.name} ({pet.species})</MenuItem>
-                                        ))}
-                                    </StyledSelect>
-                                </FormControl>
+                                {pets.filter(p => p.registrationStatus === 'Approved').length > 0 ? (
+                                    <FormControl fullWidth required>
+                                        <InputLabel shrink>Select Your Pet</InputLabel>
+                                        <StyledSelect
+                                            name="petId"
+                                            label="Select Your Pet"
+                                            value={formData.petId}
+                                            onChange={handleChange}
+                                            displayEmpty
+                                            renderValue={(selected) => {
+                                                if (!selected) return <Typography sx={{ color: '#94a3b8' }}>Choose a pet...</Typography>;
+                                                const pet = pets.find(p => p._id === selected);
+                                                return pet ? `${pet.name} (${pet.species})` : selected;
+                                            }}
+                                            startAdornment={<InputAdornment position="start"><PetsIcon sx={{ color: '#4f46e5', mr: 1 }} /></InputAdornment>}
+                                        >
+                                            <MenuItem value="" disabled><em>Choose a pet...</em></MenuItem>
+                                            {pets
+                                                .filter(pet => pet.registrationStatus === 'Approved')
+                                                .map(pet => (
+                                                    <MenuItem key={pet._id} value={pet._id}>{pet.name} ({pet.species})</MenuItem>
+                                                ))}
+                                        </StyledSelect>
+                                    </FormControl>
+                                ) : (
+                                    <Box sx={{ gridColumn: '1 / -1', p: 3, bgcolor: alpha('#f59e0b', 0.1), borderRadius: 4, border: '1px dashed #f59e0b', textAlign: 'center' }}>
+                                        <Typography sx={{ color: '#d97706', fontWeight: 600 }}>
+                                            No approved pets found. You can only book appointments for pets that have been approved by a clinic.
+                                        </Typography>
+                                    </Box>
+                                )}
 
                                 <FormControl fullWidth required>
                                     <InputLabel shrink>Clinic</InputLabel>

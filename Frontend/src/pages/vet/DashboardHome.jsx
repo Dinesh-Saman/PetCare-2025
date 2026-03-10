@@ -128,7 +128,10 @@ import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
 import { PickersDay } from '@mui/x-date-pickers/PickersDay';
 import dayjs from 'dayjs';
 
+import { useAuth } from '../../context/AuthContext';
+
 const DashboardHome = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -141,13 +144,15 @@ const DashboardHome = () => {
     totalPets: 0,
     totalClinics: 0,
     todayAppointments: 0,
-    clinicStaff: 0
+    clinicStaff: 0,
+    pendingRegistrations: 0
   });
   const [loading, setLoading] = useState({
     totalPets: true,
     totalClinics: true,
     todayAppointments: true,
-    clinicStaff: true
+    clinicStaff: true,
+    pendingRegistrations: true
   });
 
   const fetchDashboardStats = async () => {
@@ -159,25 +164,28 @@ const DashboardHome = () => {
       const vetId = user.id || user._id;
 
       // Parallel fetching for better performance
-      const [registeredRes, clinicsRes, apptRes, staffRes] = await Promise.all([
+      const [registeredRes, clinicsRes, apptRes, staffRes, pendingRes] = await Promise.all([
         api.get('/pets/clinic/registered').catch(() => ({ data: {} })),
         api.get('/vets/my-clinics').catch(() => ({ data: {} })),
         api.get(`/appointments/vet/${vetId}/today-count`).catch(() => ({ data: {} })),
-        api.get('/vets/clinics/staff').catch(() => ({ data: {} }))
+        api.get('/vets/clinics/staff').catch(() => ({ data: {} })),
+        api.get('/pets/clinic/pending').catch(() => ({ data: {} }))
       ]);
 
       setStats({
         totalPets: registeredRes.data.count || registeredRes.data.registeredPets?.length || 0,
         totalClinics: clinicsRes.data.total || 0,
         todayAppointments: apptRes.data.todayAppointmentsCount || 0,
-        clinicStaff: staffRes.data.totalStaff || staffRes.data.staff?.length || 0
+        clinicStaff: staffRes.data.totalStaff || staffRes.data.staff?.length || 0,
+        pendingRegistrations: pendingRes.data.count || 0
       });
 
       setLoading({
         totalPets: false,
         totalClinics: false,
         todayAppointments: false,
-        clinicStaff: false
+        clinicStaff: false,
+        pendingRegistrations: false
       });
       // Also fetch all confirmed appointment dates for highlighting (next 30 days and last 30 days)
       fetchAppointmentHighlightDates();
@@ -258,12 +266,17 @@ const DashboardHome = () => {
     fetchAppointmentsForDate(newDate);
   };
 
-  const statCards = [
+  let statCards = [
     { label: "Today's Appointments", count: stats.todayAppointments, loading: loading.todayAppointments, icon: <FaCalendarCheck />, color: '#3b82f6' },
-    { label: "Registered Pets", count: stats.totalPets, loading: loading.totalPets, icon: <FaPaw />, color: '#10b981' },
-    { label: "Total Staff Members", count: stats.clinicStaff, loading: loading.clinicStaff, icon: <FaUsers />, color: '#6366f1' },
-    { label: "Registered clinics", count: stats.totalClinics, loading: loading.totalClinics, icon: <FaHospital />, color: '#f59e0b' }
+    { label: "Registered Pets", count: stats.totalPets, loading: loading.totalPets, icon: <FaPaw />, color: '#10b981' }
   ];
+
+  if (user?.accessLevel === 'Enhanced') {
+    statCards.push({ label: "Total Staff Members", count: stats.clinicStaff, loading: loading.clinicStaff, icon: <FaUsers />, color: '#6366f1' });
+    statCards.push({ label: "Registered Clinics", count: stats.totalClinics, loading: loading.totalClinics, icon: <FaHospital />, color: '#f59e0b' });
+  } else {
+    statCards.push({ label: "Pending Registrations", count: stats.pendingRegistrations, loading: loading.pendingRegistrations, icon: <FaNotesMedical />, color: '#f59e0b' });
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>

@@ -157,10 +157,14 @@ const PetProfile = () => {
       const recordsRes = await api.get(`/medical-records/pet/${id}?ownerView=true`);
       setRecords(recordsRes.data.records || []);
 
-      // Fetch prescriptions (separate into meds and vaccines)
+      // Fetch prescriptions (include all for the prescriptions tab)
       const presRes = await api.get(`/prescriptions/pet/${id}`);
       const allPres = presRes.data.prescriptions || [];
-      setPrescriptions(allPres.filter(p => p.type === 'Medication'));
+
+      // Store ALL prescriptions in the main state for the tab
+      setPrescriptions(allPres.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+
+      // Keep a filtered version for any other potential specific displays
       setVaccinations(allPres.filter(p => p.type === 'Vaccination'));
     } catch (error) {
       console.error('Error fetching medical history:', error);
@@ -584,56 +588,121 @@ const PetProfile = () => {
               <Grid container spacing={3}>
                 {prescriptions.length > 0 ? prescriptions.map((pres) => (
                   <Grid item xs={12} key={pres._id}>
-                    <Card sx={{ borderRadius: '16px', border: '1.5px solid #f1f5f9', boxShadow: 'none' }}>
+                    <Card sx={{ borderRadius: '16px', border: '1.5px solid #f1f5f9', boxShadow: 'none', position: 'relative', overflow: 'visible' }}>
                       <CardContent sx={{ p: 4 }}>
                         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 4 }}>
                           <Stack direction="row" spacing={2} alignItems="center">
-                            <Avatar sx={{ bgcolor: alpha('#10b981', 0.1), width: 44, height: 44 }}>
-                              <MedicineIcon sx={{ color: '#10b981', fontSize: '1.4rem' }} />
+                            <Avatar sx={{
+                              bgcolor: pres.type === 'Vaccination' ? alpha('#7c3aed', 0.1) : alpha('#10b981', 0.1),
+                              width: 52,
+                              height: 52,
+                              borderRadius: '14px'
+                            }}>
+                              {pres.type === 'Vaccination' ?
+                                <VaccineIcon sx={{ color: '#7c3aed', fontSize: '1.6rem' }} /> :
+                                <MedicineIcon sx={{ color: '#10b981', fontSize: '1.6rem' }} />
+                              }
                             </Avatar>
-                            <Typography variant="h6" fontWeight="900" color="#1e293b" sx={{ fontSize: '1.25rem' }}>{pres.medicationName}</Typography>
+                            <Box>
+                              <Typography variant="h6" fontWeight="900" color="#1e293b" sx={{ fontSize: '1.25rem', lineHeight: 1.2 }}>
+                                {pres.medicationName}
+                              </Typography>
+                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                                <Chip
+                                  label={pres.type}
+                                  size="small"
+                                  sx={{
+                                    height: 20,
+                                    fontSize: '0.65rem',
+                                    fontWeight: 800,
+                                    bgcolor: pres.type === 'Vaccination' ? '#f5f3ff' : '#f0fdf4',
+                                    color: pres.type === 'Vaccination' ? '#7c3aed' : '#166534',
+                                    border: '1px solid',
+                                    borderColor: pres.type === 'Vaccination' ? '#ddd6fe' : '#bbf7d0'
+                                  }}
+                                />
+                                <Typography variant="caption" color="text.secondary" fontWeight="700">
+                                  {new Date(pres.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                </Typography>
+                              </Stack>
+                            </Box>
                           </Stack>
-                          <Typography variant="body2" color="#64748b" fontWeight="700">
-                            {new Date(pres.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}
-                          </Typography>
+                          {pres.dueDate && pres.type === 'Vaccination' && (
+                            <Box sx={{
+                              textAlign: 'right',
+                              p: '10px 16px',
+                              bgcolor: '#fff7ed',
+                              borderRadius: '12px',
+                              border: '1px solid #ffedd5'
+                            }}>
+                              <Typography variant="caption" color="#9a3412" fontWeight="800" display="block" sx={{ letterSpacing: '0.5px' }}>NEXT DUE DATE</Typography>
+                              <Typography variant="body2" color="#c2410c" fontWeight="900">
+                                {new Date(pres.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                              </Typography>
+                            </Box>
+                          )}
                         </Stack>
 
-                        <Grid container spacing={4}>
-                          <Grid item xs={12} sm={6}>
-                            <Typography variant="caption" color="text.secondary" fontWeight="800" sx={{ letterSpacing: '1px' }}>DOSAGE</Typography>
-                            <Typography variant="body1" fontWeight="800" sx={{ mt: 0.5 }}>{pres.dosage}</Typography>
+                        <Grid container spacing={4} sx={{ mb: 3 }}>
+                          <Grid item xs={12} sm={4}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="800" sx={{ letterSpacing: '1px' }}>DOSAGE/DETAIL</Typography>
+                            <Typography variant="body1" fontWeight="800" sx={{ mt: 0.5, color: '#334155' }}>{pres.dosage || 'Standard'}</Typography>
                           </Grid>
-                          <Grid item xs={12} sm={6}>
+                          {pres.duration && (
+                            <Grid item xs={12} sm={4}>
+                              <Typography variant="caption" color="text.secondary" fontWeight="800" sx={{ letterSpacing: '1px' }}>DURATION/FREQUENCY</Typography>
+                              <Typography variant="body1" fontWeight="800" sx={{ mt: 0.5, color: '#334155' }}>{pres.duration}</Typography>
+                            </Grid>
+                          )}
+                          <Grid item xs={12} sm={4}>
                             <Typography variant="caption" color="text.secondary" fontWeight="800" sx={{ letterSpacing: '1px' }}>PRESCRIBED BY</Typography>
-                            <Typography variant="body1" fontWeight="800" sx={{ mt: 0.5 }}>
-                              Dr. {pres.medicalRecordId?.vetId?.firstName} {pres.medicalRecordId?.vetId?.lastName || 'Vet'}
+                            <Typography variant="body1" fontWeight="800" sx={{ mt: 0.5, color: '#334155' }}>
+                              {pres.createdBy?.firstName ? `Dr. ${pres.createdBy.firstName} ${pres.createdBy.lastName}` :
+                                (pres.medicalRecordId?.vetId?.firstName ? `Dr. ${pres.medicalRecordId.vetId.firstName} ${pres.medicalRecordId.vetId.lastName}` : 'Medical Staff')}
                             </Typography>
                           </Grid>
                         </Grid>
 
                         <InstructionBox>
-                          <Typography variant="body2" fontWeight="800" color="#92400e" display="inline">Instructions: </Typography>
-                          <Typography variant="body2" display="inline" sx={{ color: '#92400e' }}>
-                            {pres.instructions || 'No specific instructions provided.'}
+                          <Typography variant="body2" fontWeight="800" color="#92400e" display="inline">Medical Instructions & Notes: </Typography>
+                          <Typography variant="body2" display="inline" sx={{ color: '#92400e', fontWeight: 500 }}>
+                            {pres.instructions || 'No specific instructions provided. Follow standard administration procedures.'}
                           </Typography>
                         </InstructionBox>
 
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<DownloadIcon />}
-                          onClick={() => downloadPrescription(pres._id, pres.medicationName)}
-                          sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, borderColor: '#e2e8f0', color: '#1e293b' }}
-                        >
-                          Download Prescription
-                        </Button>
+                        <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
+                          <Button
+                            variant="outlined"
+                            size="medium"
+                            startIcon={<DownloadIcon />}
+                            onClick={() => downloadPrescription(pres._id, pres.medicationName)}
+                            sx={{
+                              borderRadius: '10px',
+                              textTransform: 'none',
+                              fontWeight: 700,
+                              borderColor: '#e2e8f0',
+                              color: '#475569',
+                              px: 3,
+                              '&:hover': {
+                                bgcolor: '#f8fafc',
+                                borderColor: '#cbd5e1'
+                              }
+                            }}
+                          >
+                            Download {pres.type === 'Vaccination' ? 'Certification' : 'Prescription'}
+                          </Button>
+                        </Stack>
                       </CardContent>
                     </Card>
                   </Grid>
                 )) : (
                   <Grid item xs={12}>
-                    <Paper sx={{ p: 6, textAlign: 'center', borderRadius: '24px', border: '2px dashed #e2e8f0', bgcolor: 'transparent' }}>
-                      <Typography color="text.secondary" variant="h6">No active prescriptions found.</Typography>
+                    <Paper sx={{ p: 8, textAlign: 'center', borderRadius: '32px', border: '2px dashed #e2e8f0', bgcolor: alpha('#f1f5f9', 0.5) }}>
+                      <Box sx={{ mb: 2 }}>
+                        <MedicineIcon sx={{ fontSize: 48, color: '#cbd5e1' }} />
+                      </Box>
+                      <Typography color="#64748b" variant="h6" fontWeight="800">No medical records or prescriptions found.</Typography>
+                      <Typography color="#94a3b8" variant="body2" sx={{ mt: 1 }}>All your pet's professional medical treatments will appear here.</Typography>
                     </Paper>
                   </Grid>
                 )}
