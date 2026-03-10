@@ -349,27 +349,76 @@ exports.manageAppointment = async (req, res) => {
 
     await appointment.save();
 
-    // If appointment is completed, automatically create a Medical Record entry
+    // If appointment is completed, automatically create/update a Medical Record entry
     if (status === 'Completed' || appointment.status === 'Completed') {
       try {
-        const medicalRecord = new MedicalRecord({
-          petId: appointment.petId,
-          vetId: appointment.vetId,
-          appointmentId: appointment._id,
-          diagnosis: appointment.diagnosis || appointment.reason || 'Medical Notes from Appointment',
-          treatmentNotes: appointment.medicalNotes || '',
-          date: appointment.dateTime || new Date(),
-          visibleToOwner: true,
-          attachments: [appointment.medicalRecordUrl].filter(Boolean)
-        });
+        let medicalRecord = await MedicalRecord.findOne({ appointmentId: appointment._id });
+
+        if (!medicalRecord) {
+          medicalRecord = new MedicalRecord({
+            petId: appointment.petId,
+            vetId: appointment.vetId,
+            appointmentId: appointment._id,
+            diagnosis: appointment.diagnosis || appointment.reason || 'Medical Notes from Appointment',
+            treatmentNotes: appointment.medicalNotes || '',
+            date: appointment.dateTime || new Date(),
+            visibleToOwner: true,
+            attachments: [appointment.medicalRecordUrl].filter(Boolean)
+          });
+        } else {
+          medicalRecord.diagnosis = appointment.diagnosis || medicalRecord.diagnosis;
+          medicalRecord.treatmentNotes = appointment.medicalNotes || medicalRecord.treatmentNotes;
+          if (appointment.medicalRecordUrl && !medicalRecord.attachments.includes(appointment.medicalRecordUrl)) {
+            medicalRecord.attachments.push(appointment.medicalRecordUrl);
+          }
+        }
         await medicalRecord.save();
+
+        // Handle structured prescriptions if provided
+        const { prescriptions } = req.body || {};
+        if (prescriptions) {
+          let presArray = [];
+          try {
+            presArray = typeof prescriptions === 'string' ? JSON.parse(prescriptions) : prescriptions;
+          } catch (e) {
+            console.error('Error parsing prescriptions JSON:', e);
+          }
+
+          if (Array.isArray(presArray) && presArray.length > 0) {
+            // Optional: delete old prescriptions for this record to avoid duplicates on multi-save
+            await Prescription.deleteMany({ medicalRecordId: medicalRecord._id });
+
+            for (const pres of presArray) {
+              if (pres.medicationName && pres.medicationName.trim()) {
+                const newPres = new Prescription({
+                  petId: appointment.petId,
+                  medicalRecordId: medicalRecord._id,
+                  medicationName: pres.medicationName.trim(),
+                  dosage: pres.dosage?.trim() || '',
+                  duration: pres.duration?.trim() || '',
+                  instructions: pres.instructions?.trim() || '',
+                  type: pres.type || 'Medication',
+                  dueDate: pres.dueDate ? new Date(pres.dueDate) : null,
+                  createdBy: req.user.id
+                });
+                await newPres.save();
+              }
+            }
+          }
+        }
       } catch (recordError) {
-        console.error('Error auto-creating medical record:', recordError);
+        console.error('Error auto-creating medical record or prescriptions:', recordError);
       }
     }
 
     const updated = await Appointment.findById(id)
-      .populate('petId vetId clinicId ownerId');
+      .populate({
+        path: 'petId',
+        populate: { path: 'ownerId', select: 'firstName lastName phoneNumber email' }
+      })
+      .populate('clinicId', 'name address phoneNumber')
+      .populate('vetId', 'firstName lastName specialization')
+      .populate('ownerId', 'firstName lastName');
 
     res.status(200).json({
       message: 'Appointment updated successfully',

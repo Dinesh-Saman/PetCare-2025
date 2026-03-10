@@ -82,16 +82,26 @@ router.get('/owner/:ownerId/upcoming', protect, authorize('owner'), authorizeSel
 // === PDF Download Route ===
 router.get('/:id/pdf', protect, async (req, res, next) => {
   try {
-    // Find the prescription to check authorization
-    const prescription = await require('../models/Prescription')
-      .findById(req.params.id)
-      .populate('petId', 'ownerId');
+    const { id } = req.params;
+    const Prescription = require('../models/Prescription');
+    const MedicalRecord = require('../models/MedicalRecord');
 
-    if (!prescription) {
-      return res.status(404).json({ message: 'Prescription not found' });
+    // Check if it's a direct prescription ID
+    let record = await Prescription.findById(id).populate('petId', 'ownerId');
+
+    // If not found, check if it's a medical record ID (linked to prescriptions)
+    if (!record) {
+      const medRecord = await MedicalRecord.findById(id).populate('petId', 'ownerId');
+      if (medRecord) {
+        record = medRecord; // Use medical record for auth check
+      }
     }
 
-    const pet = prescription.petId;
+    if (!record) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    const pet = record.petId;
     if (!pet) {
       return res.status(404).json({ message: 'Associated pet not found' });
     }
@@ -105,8 +115,9 @@ router.get('/:id/pdf', protect, async (req, res, next) => {
       return next();
     }
 
-    return res.status(403).json({ message: 'Not authorized to download this prescription' });
+    return res.status(403).json({ message: 'Not authorized to download this report' });
   } catch (err) {
+    console.error('Auth error for PDF download:', err);
     return res.status(500).json({ message: 'Authorization check failed' });
   }
 }, generatePrescriptionPDF);

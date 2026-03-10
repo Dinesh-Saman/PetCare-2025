@@ -43,7 +43,8 @@ import {
   useMediaQuery,
   Stack,
   Autocomplete,
-  alpha
+  alpha,
+  Badge
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PetsIcon from '@mui/icons-material/Pets';
@@ -441,22 +442,26 @@ const PetProfile = () => {
         attachments: attachmentUrls,
       };
 
-      if (!isEditingMed) {
-        payload.petId = petId;
-      }
+      let medicalRecordId = currentMedRecordId;
 
       if (isEditingMed) {
         await api.put(`/medical-records/${currentMedRecordId}`, payload);
       } else {
-        await api.post('/medical-records', payload);
+        payload.petId = petId;
+        const res = await api.post('/medical-records', payload);
+        medicalRecordId = res.data.record._id || res.data.record.id;
       }
 
-      const refreshed = await api.get(`/medical-records/pet/${petId}`);
-      setMedicalRecords(refreshed.data.records || []);
+      // Refresh data
+      const refreshedRecords = await api.get(`/medical-records/pet/${petId}`);
+      setMedicalRecords(refreshedRecords.data.records || []);
+      const refreshedPres = await api.get(`/prescriptions/pet/${petId}`);
+      setPrescriptions(refreshedPres.data.prescriptions || []);
 
       cancelMedForm();
-      Swal.fire('Success!', 'Medical record saved!', 'success');
+      Swal.fire('Success!', 'Medical record and prescriptions saved!', 'success');
     } catch (error) {
+      console.error('Save error:', error);
       Swal.fire('Error', error.response?.data?.message || 'Failed to save', 'error');
     } finally {
       setSaving(false);
@@ -554,17 +559,17 @@ const PetProfile = () => {
     }
   };
 
-  const handleDownloadPres = async (presId) => {
+  const handleDownloadPres = async (presId, reportType = 'prescription') => {
     try {
-      const res = await api.get(`/prescriptions/${presId}/pdf`, { responseType: 'blob' });
+      const res = await api.get(`/prescriptions/${presId}/pdf?reportType=${reportType}`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `prescription_${presId}.pdf`);
+      link.setAttribute('download', `${reportType}_${presId}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-      Swal.fire('Success', 'Prescription PDF downloaded', 'success');
+      Swal.fire('Success', 'PDF downloaded successfully', 'success');
     } catch (error) {
       Swal.fire('Error', 'Failed to download PDF', 'error');
     }
@@ -959,10 +964,11 @@ const PetProfile = () => {
                             <TableCell>{appt.notes || '-'}</TableCell>
                             <TableCell align="center">
                               {appt.status === 'Completed' ? (
-                                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                <Stack spacing={1} alignItems="center">
                                   <Button
                                     variant="contained"
                                     size="small"
+                                    fullWidth
                                     onClick={async () => {
                                       try {
                                         const res = await api.get(`/appointments/${appt._id}`);
@@ -978,7 +984,7 @@ const PetProfile = () => {
                                       borderRadius: '12px',
                                       background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
                                       fontWeight: 700,
-                                      px: 2,
+                                      maxWidth: '100px',
                                       '&:hover': {
                                         background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
                                         transform: 'translateY(-1px)',
@@ -987,39 +993,69 @@ const PetProfile = () => {
                                   >
                                     View
                                   </Button>
-                                  <Box sx={{ display: 'flex', width: 44, justifyContent: 'center' }}>
-                                    {(() => {
-                                      const linkedPres = prescriptions.find(p => {
-                                        const record = medicalRecords.find(m => m.appointmentId === appt._id);
-                                        return p.medicalRecordId === record?._id || p.medicalRecordId?._id === record?._id;
-                                      });
 
-                                      if (!appt.prescriptionUrl && !linkedPres) return null;
+                                  {/* Prescriptions Group Box */}
+                                  {(() => {
+                                    const getSafeId = (val) => {
+                                      if (!val) return null;
+                                      if (typeof val === 'object') return (val._id || val.id || val).toString();
+                                      return val.toString();
+                                    };
 
-                                      return (
-                                        <Tooltip title="Download Prescription">
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => {
-                                              if (linkedPres) {
-                                                handleDownloadPres(linkedPres._id);
-                                              } else if (appt.prescriptionUrl) {
-                                                window.open(appt.prescriptionUrl, '_blank');
-                                              }
-                                            }}
-                                            sx={{
-                                              color: '#1976d2',
-                                              bgcolor: alpha('#1976d2', 0.1),
-                                              '&:hover': { bgcolor: alpha('#1976d2', 0.2) }
-                                            }}
-                                          >
-                                            <DownloadIcon fontSize="small" />
-                                          </IconButton>
-                                        </Tooltip>
-                                      );
-                                    })()}
-                                  </Box>
-                                </Box>
+                                    const apptRecord = medicalRecords.find(m =>
+                                      getSafeId(m.appointmentId) === getSafeId(appt._id)
+                                    );
+                                    const relatedPres = prescriptions.filter(p => {
+                                      const pMedId = getSafeId(p.medicalRecordId);
+                                      return pMedId && apptRecord && pMedId === getSafeId(apptRecord._id);
+                                    });
+
+                                    if (relatedPres.length === 0 && !appt.prescriptionUrl) return null;
+
+                                    return (
+                                      <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
+                                        {relatedPres.length > 0 && (
+                                          <Tooltip title="Download System Prescription Report">
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => handleDownloadPres(apptRecord?._id)}
+                                              sx={{
+                                                color: '#2e7d32',
+                                                bgcolor: alpha('#2e7d32', 0.08),
+                                                border: '1px solid',
+                                                borderColor: alpha('#2e7d32', 0.2),
+                                                borderRadius: 1.5,
+                                                '&:hover': { bgcolor: alpha('#2e7d32', 0.16) },
+                                                p: 0.7
+                                              }}
+                                            >
+                                              <DownloadIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                        )}
+                                        {appt.prescriptionUrl && (
+                                          <Tooltip title="Download Uploaded Prescription File">
+                                            <IconButton
+                                              size="small"
+                                              onClick={() => window.open(appt.prescriptionUrl, '_blank')}
+                                              sx={{
+                                                color: '#1976d2',
+                                                bgcolor: alpha('#1976d2', 0.08),
+                                                border: '1px solid',
+                                                borderColor: alpha('#1976d2', 0.2),
+                                                borderRadius: 1.5,
+                                                '&:hover': { bgcolor: alpha('#1976d2', 0.16) },
+                                                p: 0.7
+                                              }}
+                                            >
+                                              <AttachFileIcon fontSize="small" />
+                                            </IconButton>
+                                          </Tooltip>
+                                        )}
+                                      </Box>
+                                    );
+                                  })()}
+                                </Stack>
                               ) : (
                                 <Typography variant="caption" color="textSecondary">Finalizing...</Typography>
                               )}
@@ -1066,7 +1102,7 @@ const PetProfile = () => {
                             <TableCell>{pres.dueDate ? new Date(pres.dueDate).toLocaleDateString() : '-'}</TableCell>
                             <TableCell align="center">
                               <Tooltip title="Edit"><IconButton size="small" color="primary" onClick={() => startEditPres(pres)}><EditIcon /></IconButton></Tooltip>
-                              <Tooltip title="Download PDF"><IconButton size="small" color="info" onClick={() => handleDownloadPres(pres._id)}><DownloadIcon /></IconButton></Tooltip>
+                              <Tooltip title="Download Vaccination PDF"><IconButton size="small" color="info" onClick={() => handleDownloadPres(pres._id, 'vaccination')}><DownloadIcon /></IconButton></Tooltip>
                               <Tooltip title="Delete"><IconButton size="small" color="error" onClick={() => handleDeletePres(pres._id)}><DeleteIcon /></IconButton></Tooltip>
                             </TableCell>
                           </TableRow>
@@ -1128,18 +1164,95 @@ const PetProfile = () => {
                       />
                     </Grid>
 
+                    {/* Prescribed Medications Section */}
+                    {isEditingMed && (
+                      <Grid item xs={12}>
+                        {(() => {
+                          const getSafeId = (val) => {
+                            if (!val) return null;
+                            if (typeof val === 'object') return (val._id || val.id || val).toString();
+                            return val.toString();
+                          };
+
+                          // Filter current record medications
+                          const currentPres = prescriptions.filter(p => {
+                            const pMedId = getSafeId(p.medicalRecordId);
+                            return pMedId && pMedId === getSafeId(currentMedRecordId);
+                          });
+
+                          // Filter all other previous medications for history
+                          const historicalPres = prescriptions.filter(p => {
+                            const pMedId = getSafeId(p.medicalRecordId);
+                            return !pMedId || pMedId !== getSafeId(currentMedRecordId);
+                          }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                          if (currentPres.length === 0 && historicalPres.length === 0) return null;
+
+                          return (
+                            <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              {/* Current Session Medications */}
+                              {currentPres.length > 0 && (
+                                <Box sx={{ p: 2, bgcolor: alpha('#2e7d32', 0.05), borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                                    <Badge badgeContent={currentPres.length} color="success">
+                                      <Typography variant="subtitle2" fontWeight="bold" color="primary">Medications for This Visit</Typography>
+                                    </Badge>
+                                  </Box>
+                                  <Stack spacing={1}>
+                                    {currentPres.map((pres, idx) => (
+                                      <Box key={idx} sx={{ p: 1.5, bgcolor: 'white', borderRadius: 1.5, border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Box>
+                                          <Typography variant="body2" fontWeight="bold">{pres.medicationName}</Typography>
+                                          <Typography variant="caption" color="textSecondary">{pres.dosage} {pres.duration ? `• ${pres.duration}` : ''}</Typography>
+                                        </Box>
+                                        <Chip label={pres.type} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20 }} />
+                                      </Box>
+                                    ))}
+                                  </Stack>
+                                </Box>
+                              )}
+
+                              {/* Historical Medications */}
+                              {historicalPres.length > 0 && (
+                                <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                                  <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <AccessTimeIcon sx={{ fontSize: 16 }} /> Medication History
+                                  </Typography>
+                                  <Box sx={{ maxHeight: 110, overflowY: 'auto', pr: 1 }}>
+                                    <Stack spacing={1}>
+                                      {historicalPres.map((pres, idx) => (
+                                        <Box key={idx} sx={{ p: 1, bgcolor: 'white', borderRadius: 1, border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <Box>
+                                            <Typography variant="caption" fontWeight="bold" display="block">{pres.medicationName}</Typography>
+                                            <Typography variant="caption" color="textSecondary">{new Date(pres.createdAt).toLocaleDateString()} • {pres.dosage}</Typography>
+                                          </Box>
+                                          <Chip label={pres.type} size="small" variant="outlined" sx={{ fontSize: '0.55rem', height: 16 }} />
+                                        </Box>
+                                      ))}
+                                    </Stack>
+                                  </Box>
+                                </Box>
+                              )}
+                            </Box>
+                          );
+                        })()}
+                      </Grid>
+                    )}
+
                     {/* Attachments Section */}
                     <Grid item xs={12}>
                       <Box sx={{ p: 2, border: '1px dashed #cbd5e1', borderRadius: 2 }}>
-                        <Button
-                          variant="contained"
-                          component="label"
-                          startIcon={<AttachFileIcon />}
-                          sx={{ borderRadius: 2, textTransform: 'none', bgcolor: '#1e293b', '&:hover': { bgcolor: '#334155' } }}
-                        >
-                          Choose Files
-                          <input type="file" hidden multiple accept="image/*,.pdf" onChange={handleFileSelect} />
-                        </Button>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Button
+                            variant="contained"
+                            component="label"
+                            startIcon={<AttachFileIcon />}
+                            sx={{ borderRadius: 2, textTransform: 'none', bgcolor: '#1e293b', '&:hover': { bgcolor: '#334155' } }}
+                          >
+                            Upload Files (Existing Prescription)
+                            <input type="file" hidden multiple accept="image/*,.pdf" onChange={handleFileSelect} />
+                          </Button>
+                        </Box>
                         <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 2 }}>
                           {selectedFiles.map((f, i) => (
                             <Chip

@@ -193,7 +193,7 @@ const Footer = () => {
         }
         
         .pawpal-link-list li {
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
         
         .pawpal-link-button {
@@ -206,7 +206,7 @@ const Footer = () => {
           align-items: center;
           gap: 8px;
           position: relative;
-          padding-left: 20px;
+          padding-left: 0;
           cursor: pointer;
           font-family: inherit;
           text-align: left;
@@ -214,23 +214,11 @@ const Footer = () => {
           text-decoration: none;
         }
 
-        .pawpal-link-button::before {
-          content: '🐾';
-          position: absolute;
-          left: 0;
-          opacity: 0;
-          transform: translateX(-10px);
-          transition: all 0.3s ease;
-        }
+
         
         .pawpal-link-button:hover {
           color: white;
-          padding-left: 28px;
-        }
-        
-        .pawpal-link-button:hover::before {
-          opacity: 1;
-          transform: translateX(0);
+          transform: translateX(4px);
         }
         
         /* Contact Section */
@@ -415,7 +403,7 @@ const Footer = () => {
         
         /* Desktop-specific margins */
         .pawpal-quick-links-section {
-          margin-left: 50px;
+          margin-left: 0;
         }
         
         .pawpal-contact-section {

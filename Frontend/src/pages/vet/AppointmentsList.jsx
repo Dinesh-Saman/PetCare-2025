@@ -4,7 +4,7 @@ import {
   Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, TextField, MenuItem, FormControl, Select, InputLabel, TablePagination,
   Avatar, Chip, IconButton, Collapse, Grid, Card, CardContent, CardHeader, Tabs, Tab, Button,
-  Dialog, DialogTitle, DialogContent, DialogActions, alpha
+  Dialog, DialogTitle, DialogContent, DialogActions, alpha, Divider, Stack, Autocomplete
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Swal from 'sweetalert2';
@@ -24,7 +24,9 @@ import {
   Event as EventIcon,
   CheckCircleOutline as CheckCircleOutlineIcon,
   Medication as MedicationIcon,
-  Chat as ChatIcon
+  Chat as ChatIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 import socket, { connectSocket, disconnectSocket } from '../../services/socket';
@@ -209,19 +211,20 @@ const VetAppointmentsList = () => {
   const [expandedRow, setExpandedRow] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const getCurrentVetId = () => {
+  const getCurrentUser = () => {
     try {
       const userData = localStorage.getItem('vet_user');
       if (!userData) return null;
-      const user = JSON.parse(userData);
-      return user.id || user._id || null;
+      return JSON.parse(userData);
     } catch (err) {
       console.error('Failed to parse user from localStorage:', err);
       return null;
     }
   };
 
-  const vetId = getCurrentVetId();
+  const currentUser = getCurrentUser();
+  const vetId = currentUser?.id || currentUser?._id || null;
+  const isVeterinarian = currentUser && (!currentUser.staffRole || currentUser.staffRole === 'Veterinarian');
 
   const isToday = (dateString) => {
     if (!dateString) return false;
@@ -408,13 +411,67 @@ const VetAppointmentsList = () => {
   const [recordFile, setRecordFile] = useState(null);
   const [rxFile, setRxFile] = useState(null);
 
-  const handleOpenManage = (app) => {
+  const [prescriptionsRows, setPrescriptionsRows] = useState([]);
+
+  const handleAddPresRow = () => {
+    setPrescriptionsRows(prev => [...prev, { medicationName: '', dosage: '', duration: '', type: 'Medication' }]);
+  };
+
+  const handleRemovePresRow = (index) => {
+    setPrescriptionsRows(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handlePresFieldChange = (index, field, value) => {
+    setPrescriptionsRows(prev => {
+      const newPres = [...prev];
+      newPres[index] = { ...newPres[index], [field]: value };
+      return newPres;
+    });
+  };
+
+  const handleOpenManage = async (app) => {
     setSelectedApp(app);
     setManageDiagnosis(app.diagnosis || '');
     setManageNotes(app.medicalNotes || '');
     setRecordFile(null);
     setRxFile(null);
+    setPrescriptionsRows([]);
     setOpenManageModal(true);
+
+    // Fetch previously saved prescriptions for this appointment
+    try {
+      const petId = app.petId?._id || app.petId;
+      if (petId) {
+        const res = await api.get(`/prescriptions/pet/${petId}`);
+        const allPres = res.data.prescriptions || [];
+
+        // Fetch medical records for the pet to find this appointment's record
+        const medRes = await api.get(`/medical-records/pet/${petId}`);
+        const medRecords = medRes.data.records || [];
+        const apptRecord = medRecords.find(m => {
+          const mid = m.appointmentId?._id || m.appointmentId;
+          return mid?.toString() === app._id?.toString();
+        });
+
+        if (apptRecord) {
+          const linked = allPres.filter(p => {
+            const pMedId = p.medicalRecordId?._id || p.medicalRecordId;
+            return pMedId?.toString() === apptRecord._id?.toString();
+          });
+
+          if (linked.length > 0) {
+            setPrescriptionsRows(linked.map(p => ({
+              medicationName: p.medicationName || '',
+              dosage: p.dosage || '',
+              duration: p.duration || '',
+              type: p.type || 'Medication'
+            })));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load existing prescriptions:', err);
+    }
   };
 
   const handleCloseManage = () => {
@@ -422,6 +479,7 @@ const VetAppointmentsList = () => {
     setSelectedApp(null);
     setManageDiagnosis('');
     setManageNotes('');
+    setPrescriptionsRows([]);
   };
 
   const handleUpdateConfirmedApp = async (markCompleted = false) => {
@@ -433,6 +491,10 @@ const VetAppointmentsList = () => {
       if (recordFile) formData.append('medicalRecord', recordFile);
       if (rxFile) formData.append('prescription', rxFile);
       if (markCompleted) formData.append('status', 'Completed');
+
+      if (prescriptionsRows.length > 0) {
+        formData.append('prescriptions', JSON.stringify(prescriptionsRows));
+      }
 
       // Do not explicitly set Content-Type header so Axios can automatically generate the correct boundary
       const response = await api.patch(`/appointments/${selectedApp._id}/manage`, formData);
@@ -509,7 +571,7 @@ const VetAppointmentsList = () => {
                     <TableCell><StatusChip label={app.status === 'Booked' ? 'Pending' : app.status} status={app.status} /></TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        {app.status === 'Booked' && (
+                        {isVeterinarian && app.status === 'Booked' && (
                           <StyledButton
                             size="small"
                             onClick={() => handlePendingManage(app)}
@@ -517,7 +579,7 @@ const VetAppointmentsList = () => {
                             Manage
                           </StyledButton>
                         )}
-                        {(app.status === 'Confirmed' || app.status === 'Completed') && (
+                        {isVeterinarian && (app.status === 'Confirmed' || app.status === 'Completed') && (
                           <StyledButton
                             size="small"
                             onClick={() => handleOpenManage(app)}
@@ -796,6 +858,7 @@ const VetAppointmentsList = () => {
               onChange={(e) => setManageNotes(e.target.value)}
               placeholder="Luna has been a bit sluggish lately, owner wants to check energy levels."
               sx={{
+                mb: 3,
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: '#f9f9f9',
                   borderRadius: 2,
@@ -803,6 +866,62 @@ const VetAppointmentsList = () => {
                 }
               }}
             />
+
+            {/* Structured Prescriptions Section */}
+            <Box sx={{ mt: 3, border: '1px solid #e0e0e0', borderRadius: 2, p: 2, bgcolor: '#f8fafc' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#333' }}>Medications</Typography>
+                <Button startIcon={<AddIcon />} size="small" variant="outlined" onClick={handleAddPresRow} sx={{ textTransform: 'none' }}>Add Medication</Button>
+              </Box>
+              <Divider sx={{ mb: 2 }} />
+              {prescriptionsRows.length === 0 ? (
+                <Typography variant="caption" color="textSecondary" align="center" display="block" py={2}>No medications added.</Typography>
+              ) : (
+                <Stack spacing={2}>
+                  {prescriptionsRows.map((pres, idx) => (
+                    <Box key={idx} sx={{ p: 1.5, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: 'white' }}>
+                      <Grid container spacing={1} alignItems="center">
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            size="small"
+                            fullWidth
+                            label="Medication Name"
+                            placeholder="e.g. Amoxicillin"
+                            value={pres.medicationName}
+                            onChange={(e) => handlePresFieldChange(idx, 'medicationName', e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={3}>
+                          <TextField
+                            size="small"
+                            fullWidth
+                            label="Dosage"
+                            placeholder="e.g. 250mg"
+                            value={pres.dosage}
+                            onChange={(e) => handlePresFieldChange(idx, 'dosage', e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={10} sm={4}>
+                          <TextField
+                            size="small"
+                            fullWidth
+                            label="Duration"
+                            placeholder="e.g. 7 days / Twice daily"
+                            value={pres.duration}
+                            onChange={(e) => handlePresFieldChange(idx, 'duration', e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={2} sm={1} sx={{ textAlign: 'right' }}>
+                          <IconButton size="small" color="error" onClick={() => handleRemovePresRow(idx)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 4, pt: 2, backgroundColor: '#fdfdfd' }}>
