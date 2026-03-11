@@ -56,6 +56,9 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   padding: '32px',
   display: 'flex',
   flexDirection: 'column',
+  [theme.breakpoints.down('md')]: {
+    padding: '16px',
+  },
 }));
 
 const SearchSection = styled(Box)(({ theme }) => ({
@@ -104,6 +107,10 @@ const PetAvatar = styled(Avatar)(({ theme }) => ({
   height: 60,
   boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
   border: '3px solid white',
+  [theme.breakpoints.down('sm')]: {
+    width: 45,
+    height: 45,
+  },
 }));
 
 const StatusChip = styled(Chip)(({ status }) => ({
@@ -596,7 +603,7 @@ const VetAppointmentsList = () => {
                       <Collapse in={expandedRow === app._id} timeout="auto" unmountOnExit>
                         <DetailsCard sx={{ m: 2 }}>
                           <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
-                            <Grid item xs={6} sx={{ display: 'flex' }}>
+                            <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                               <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
                                 <Typography variant="h6" sx={{ color: '#49149eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <LocationOnIcon /> Clinic Information
@@ -609,7 +616,7 @@ const VetAppointmentsList = () => {
                               </Box>
                             </Grid>
 
-                            <Grid item xs={6} sx={{ display: 'flex' }}>
+                            <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                               <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
                                 <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <CalendarTodayIcon /> Appointment Details
@@ -666,12 +673,18 @@ const VetAppointmentsList = () => {
   );
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
-          <ContentContainer>
+        <Box sx={{
+          flexGrow: 1,
+          p: { xs: 1.5, sm: 2, md: 3 },
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#f8fafc'
+        }}>
+          <ContentContainer sx={{ flexGrow: 1 }}>
             <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 3 }}>
               Appointments Management
             </Typography>
@@ -691,11 +704,11 @@ const VetAppointmentsList = () => {
                   <TextField
                     size="small"
                     variant="outlined"
-                    placeholder={`Search by ${searchCriteria.replace(/([A-Z])/g, ' $1')}`}
+                    placeholder={`Search...`}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     sx={{
-                      width: 300,
+                      width: isMobile ? '100%' : 300,
                       '& .MuiOutlinedInput-root': { borderRadius: '12px' },
                     }}
                   />

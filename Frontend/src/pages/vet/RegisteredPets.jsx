@@ -36,7 +36,7 @@ import Sidebar from '../../components/layout/sidebar';
 import VetAdminNavbar from '../../components/layout/VetAdminNavbar';
 import api from '../../services/api';
 
-const ContentContainer = styled(Box)({
+const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
   borderRadius: 16,
   boxSizing: 'border-box',
@@ -45,7 +45,10 @@ const ContentContainer = styled(Box)({
   width: '100%',
   padding: 32,
   margin: '0 auto',
-});
+  [theme.breakpoints.down('md')]: {
+    padding: 16,
+  },
+}));
 
 const SearchSection = styled(Box)(({ theme }) => ({
   display: 'flex',
@@ -70,12 +73,16 @@ const TableHeadCell = styled(TableCell)({
   fontSize: '1rem',
 });
 
-const PetAvatar = styled(Avatar)({
+const PetAvatar = styled(Avatar)(({ theme }) => ({
   width: 70,
   height: 70,
   border: '3px solid white',
   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-});
+  [theme.breakpoints.down('sm')]: {
+    width: 50,
+    height: 50,
+  },
+}));
 
 const RegisteredPets = () => {
   const theme = useTheme();
@@ -206,12 +213,18 @@ const RegisteredPets = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
-          <ContentContainer>
+        <Box sx={{
+          flexGrow: 1,
+          p: { xs: 1.5, sm: 2, md: 3 },
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#f8fafc'
+        }}>
+          <ContentContainer sx={{ flexGrow: 1 }}>
             <Typography
               variant="h4"
               sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 3 }}
@@ -221,8 +234,8 @@ const RegisteredPets = () => {
 
             <Box>
               <SearchSection>
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                  <FormControl sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+                  <FormControl sx={{ flex: { xs: 1, sm: 'none' }, minWidth: 120, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}>
                     <InputLabel>Search By</InputLabel>
                     <Select
                       value={searchCriteriaApproved}
@@ -237,12 +250,13 @@ const RegisteredPets = () => {
                     </Select>
                   </FormControl>
                   <TextField
-                    placeholder="Search registered pets..."
+                    placeholder="Search pets..."
                     value={searchQueryApproved}
                     onChange={(e) => setSearchQueryApproved(e.target.value)}
                     variant="outlined"
                     size="small"
                     sx={{
+                      flex: { xs: 2, sm: 'none' },
                       width: isMobile ? '100%' : 300,
                       '& .MuiOutlinedInput-root': { borderRadius: '12px' },
                     }}

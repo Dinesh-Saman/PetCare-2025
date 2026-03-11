@@ -60,6 +60,9 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   padding: '32px',
   display: 'flex',
   flexDirection: 'column',
+  [theme.breakpoints.down('md')]: {
+    padding: '16px',
+  },
 }));
 
 const SearchSection = styled(Box)({
@@ -146,6 +149,11 @@ const StyledButton = styled(Button)(({ theme }) => ({
   boxShadow: '0 10px 25px rgba(142, 36, 170, 0.2)',
   transition: 'all 0.3s ease',
   height: 44,
+  [theme.breakpoints.down('sm')]: {
+    padding: '8px 16px',
+    fontSize: '0.85rem',
+    height: 'auto',
+  },
   '&:hover': {
     background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
     transform: 'translateY(-2px)',
@@ -360,15 +368,21 @@ const ClinicList = () => {
   const paginatedClinics = filteredClinics.slice(page * rowsPerPage, (page + 1) * rowsPerPage);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#f5f7fa' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
-          <ContentContainer>
+        <Box sx={{
+          flexGrow: 1,
+          p: { xs: 1.5, sm: 2, md: 3 },
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#f8fafc'
+        }}>
+          <ContentContainer sx={{ flexGrow: 1 }}>
             <SearchSection>
-              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>My Clinics</Typography>
-              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', width: isMobile ? '100%' : 'auto' }}>My Clinics</Typography>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-end' }}>
                 <ToggleButtonGroup
                   value={viewMode}
                   exclusive
@@ -404,6 +418,7 @@ const ClinicList = () => {
                   variant="contained"
                   startIcon={<AddIcon />}
                   onClick={handleOpenPopup}
+                  sx={{ width: isMobile ? '100%' : 'auto' }}
                 >
                   Create New Clinic
                 </StyledButton>

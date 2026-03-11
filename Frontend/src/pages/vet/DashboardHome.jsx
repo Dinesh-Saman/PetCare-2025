@@ -17,16 +17,16 @@ const PageContainer = styled(Box)({
   display: 'flex',
   minHeight: '100vh',
   background: '#f8fafc',
-  overflow: 'hidden',
+  // Removed overflow: hidden to allow natural scrolling
 });
 
 const MainContent = styled(Box)(({ theme }) => ({
   flexGrow: 1,
-  padding: '16px',
+  padding: '24px',
   minWidth: 0,
   width: '100%',
   [theme.breakpoints.down('md')]: {
-    padding: '8px',
+    padding: '12px',
   },
 }));
 
@@ -107,7 +107,10 @@ const ContentCard = styled(Paper)(({ theme }) => ({
   boxShadow: '0 10px 40px rgba(0,0,0,0.02)',
   minHeight: '80vh',
   width: '100%',
-  boxSizing: 'border-box'
+  boxSizing: 'border-box',
+  [theme.breakpoints.down('md')]: {
+    padding: '16px',
+  },
 }));
 
 import {
@@ -303,7 +306,12 @@ const DashboardHome = () => {
               {/* === TOP SECTION: Stats (left 2/3) + Calendar (right 1/3) === */}
               <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', md: 'row' }, alignItems: 'stretch' }}>
                 {/* Left: 2x2 Stats Grid */}
-                <Box sx={{ flex: 2, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <Box sx={{
+                  flex: 2,
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                  gap: 2
+                }}>
                   {statCards.map((stat, index) => (
                     <GlassCard key={index} elevation={0} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '160px' }}>
                       <IconBox color={stat.color} sx={{ width: '48px', height: '48px', fontSize: '22px', mb: 2 }}>
@@ -424,10 +432,11 @@ const DashboardHome = () => {
                         key={appt._id}
                         sx={{
                           display: 'flex',
-                          alignItems: 'center',
-                          gap: 3,
+                          flexDirection: { xs: 'column', sm: 'row' },
+                          alignItems: { xs: 'flex-start', sm: 'center' },
+                          gap: { xs: 1.5, sm: 3 },
                           py: 2,
-                          px: 1,
+                          px: 2,
                           borderBottom: idx < selectedDateAppointments.length - 1 ? '1px solid #f1f5f9' : 'none',
                           transition: 'background 0.15s ease',
                           borderRadius: '8px',

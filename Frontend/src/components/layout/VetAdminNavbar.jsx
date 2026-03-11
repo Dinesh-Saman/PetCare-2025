@@ -116,13 +116,21 @@ const VetAdminNavbar = () => {
     return (
         <>
             <AppBar
-                position="sticky"
+                position="fixed"
                 sx={{
                     background: 'linear-gradient(135deg, #49149e 0%, #8e24aa 100%)',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    width: '100%',
+                    left: 0,
+                    top: 0,
+                    zIndex: (theme) => theme.zIndex.drawer + 1
                 }}
             >
-                <Toolbar sx={{ justifyContent: 'space-between' }}>
+                <Toolbar sx={{
+                    justifyContent: 'space-between',
+                    minHeight: { xs: '64px', md: '70px' },
+                    px: { xs: 1.5, sm: 2, md: 3 }
+                }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         {isMobile && (
                             <IconButton
@@ -130,27 +138,35 @@ const VetAdminNavbar = () => {
                                 aria-label="open drawer"
                                 edge="start"
                                 onClick={toggleDrawer(true)}
-                                sx={{ mr: 2 }}
+                                sx={{ mr: 1 }}
                             >
                                 <MenuIcon />
                             </IconButton>
                         )}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 } }}>
                             <img
                                 src="https://i.imgur.com/RHsVvXq.jpeg"
                                 alt="Logo"
-                                style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid white' }}
+                                style={{ width: isMobile ? 32 : 40, height: isMobile ? 32 : 40, borderRadius: '50%', border: '2px solid white' }}
                             />
-                            <Typography variant="h6" fontWeight="800" sx={{ letterSpacing: '0.5px', display: { xs: 'none', sm: 'block' } }}>
-                                PAWPAL <span style={{ fontWeight: 400, opacity: 0.8 }}>VET ADMIN</span>
+                            <Typography
+                                variant={isMobile ? "subtitle1" : "h6"}
+                                fontWeight="800"
+                                sx={{
+                                    letterSpacing: '0.5px',
+                                    display: { xs: 'block', sm: 'block' },
+                                    fontSize: { xs: '0.9rem', sm: '1.25rem' }
+                                }}
+                            >
+                                PAWPAL {!isMobile && <span style={{ fontWeight: 400, opacity: 0.8 }}>VET ADMIN</span>}
                             </Typography>
                         </Box>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <IconButton color="inherit" onClick={handleNotifMenuOpen}>
-                            <Badge badgeContent={totalNotifs} color="error">
-                                <NotificationsIcon />
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
+                        <IconButton color="inherit" onClick={handleNotifMenuOpen} size={isMobile ? "small" : "medium"}>
+                            <Badge badgeContent={totalNotifs} color="error" sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', height: 16, minWidth: 16 } }}>
+                                <NotificationsIcon fontSize={isMobile ? "small" : "medium"} />
                             </Badge>
                         </IconButton>
                         <Box
@@ -158,10 +174,10 @@ const VetAdminNavbar = () => {
                             sx={{
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: 1.5,
+                                gap: { xs: 0.5, sm: 1.5 },
                                 cursor: 'pointer',
-                                ml: 1,
-                                padding: '4px 12px',
+                                ml: { xs: 0.5, sm: 1 },
+                                padding: { xs: '2px 4px', sm: '4px 12px' },
                                 borderRadius: '50px',
                                 transition: 'all 0.2s',
                                 '&:hover': {
@@ -169,7 +185,14 @@ const VetAdminNavbar = () => {
                                 }
                             }}
                         >
-                            <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#fff', 0.2), fontSize: '0.9rem', border: '1px solid rgba(255,255,255,0.4)', fontWeight: 'bold' }}>
+                            <Avatar sx={{
+                                width: isMobile ? 28 : 32,
+                                height: isMobile ? 28 : 32,
+                                bgcolor: alpha('#fff', 0.2),
+                                fontSize: isMobile ? '0.75rem' : '0.9rem',
+                                border: '1px solid rgba(255,255,255,0.4)',
+                                fontWeight: 'bold'
+                            }}>
                                 {user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'V'}
                             </Avatar>
                             {!isMobile && (
@@ -179,270 +202,273 @@ const VetAdminNavbar = () => {
                             )}
                         </Box>
                     </Box>
-
-                    <Menu
-                        anchorEl={anchorEl}
-                        open={Boolean(anchorEl)}
-                        onClose={handleProfileMenuClose}
-                        PaperProps={{
-                            sx: {
-                                mt: 1.5,
-                                width: 200,
-                                borderRadius: '16px',
-                                boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                                border: '1px solid #f1f5f9'
-                            }
-                        }}
-                        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                    >
-                        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/profile'); }}>
-                            <ListItemIcon><Person fontSize="small" color="primary" /></ListItemIcon>
-                            My Profile
-                        </MenuItem>
-                        <Divider sx={{ my: 1 }} />
-
-                        {/* Dashboard */}
-                        <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Dashboard</MenuItem>
-                        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/dashboard'); }}>
-                            <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
-                            Overview
-                        </MenuItem>
-                        <Divider sx={{ my: 0.5 }} />
-
-                        {/* Clinic Management */}
-                        <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Clinic Management</MenuItem>
-                        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/clinic-settings'); }}>
-                            <ListItemIcon><Settings fontSize="small" /></ListItemIcon>
-                            Manage Clinics
-                        </MenuItem>
-                        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/chat'); }}>
-                            <ListItemIcon><ChatIcon fontSize="small" /></ListItemIcon>
-                            Chat with Owners
-                        </MenuItem>
-                        <Divider sx={{ my: 0.5 }} />
-
-                        {/* Appointments */}
-                        <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Appointments</MenuItem>
-                        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/appointments'); }}>
-                            <ListItemIcon><CalendarMonthIcon fontSize="small" /></ListItemIcon>
-                            All Appointments
-                        </MenuItem>
-                        <Divider sx={{ my: 0.5 }} />
-
-                        {/* Pet Management */}
-                        <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Pet Management</MenuItem>
-                        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/pets'); }}>
-                            <ListItemIcon><PetsIcon fontSize="small" /></ListItemIcon>
-                            Registered Pets
-                        </MenuItem>
-                        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/pets?tab=pending'); }}>
-                            <ListItemIcon><HourglassEmptyIcon fontSize="small" /></ListItemIcon>
-                            Pending Registrations
-                        </MenuItem>
-                        <Divider sx={{ my: 0.5 }} />
-
-                        {/* Staff Management */}
-                        <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Staff Management</MenuItem>
-                        <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/staff'); }}>
-                            <ListItemIcon><GroupIcon fontSize="small" /></ListItemIcon>
-                            All Staff
-                        </MenuItem>
-                        <Divider sx={{ my: 1 }} />
-
-                        <MenuItem onClick={handleLogout} sx={{ color: '#ef4444' }}>
-                            <ListItemIcon><ExitToApp fontSize="small" sx={{ color: '#ef4444' }} /></ListItemIcon>
-                            Logout
-                        </MenuItem>
-                    </Menu>
-
-                    {/* Notifications Menu */}
-                    <Menu
-                        anchorEl={notifAnchorEl}
-                        open={Boolean(notifAnchorEl)}
-                        onClose={handleNotifMenuClose}
-                        PaperProps={{
-                            sx: {
-                                mt: 1.5,
-                                width: 350,
-                                maxHeight: 500,
-                                borderRadius: '16px',
-                                boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                                border: '1px solid #e2e8f0',
-                                overflow: 'auto',
-                                zIndex: 9999
-                            }
-                        }}
-                        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-                    >
-                        <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="subtitle1" fontWeight="800">Notifications</Typography>
-                            {loadingNotifs && <CircularProgress size={16} />}
-                        </Box>
-                        <Divider />
-
-                        <List sx={{ p: 0 }}>
-                            {/* Pending Registrations */}
-                            {notifications.pendingRegistrations?.length > 0 && (
-                                <>
-                                    <Box sx={{ px: 2, pt: 1, pb: 0.5 }}>
-                                        <Typography variant="caption" fontWeight="bold" color="warning.main">PENDING REGISTRATIONS</Typography>
-                                    </Box>
-                                    {notifications.pendingRegistrations.map(reg => (
-                                        <MenuItem key={reg._id} onClick={async () => {
-                                            handleNotifMenuClose();
-                                            // Immediately update local state to hide it
-                                            setNotifications(prev => ({
-                                                ...prev,
-                                                pendingRegistrations: prev.pendingRegistrations.filter(r => r._id !== reg._id)
-                                            }));
-
-                                            try {
-                                                await api.patch(`/vets/notifications/registration/${reg._id}/read`);
-                                            } catch (error) {
-                                                console.error('Failed to mark read:', error);
-                                            }
-
-                                            // Then navigate
-                                            navigate('/vet/pets/pending', { state: { highlightId: reg._id } });
-                                        }}>
-                                            <ListItemIcon><HourglassEmptyIcon color="warning" /></ListItemIcon>
-                                            <ListItemText
-                                                primary={reg.name}
-                                                secondary={`From ${reg.ownerId?.firstName} ${reg.ownerId?.lastName || ''}`}
-                                                primaryTypographyProps={{ fontWeight: 700, fontSize: '0.85rem' }}
-                                                secondaryTypographyProps={{ variant: 'caption' }}
-                                            />
-                                        </MenuItem>
-                                    ))}
-                                </>
-                            )}
-
-                            {/* Appointments Today/Tomorrow */}
-                            {notifications.appointments.length > 0 && (
-                                <>
-                                    <Box sx={{ px: 2, pt: 1, pb: 0.5 }}>
-                                        <Typography variant="caption" fontWeight="bold" color="primary">UPCOMING APPOINTMENTS</Typography>
-                                    </Box>
-                                    {notifications.appointments.map(app => (
-                                        <MenuItem key={app._id} onClick={async () => {
-                                            handleNotifMenuClose();
-                                            // Immediately update local state to hide it
-                                            setNotifications(prev => ({
-                                                ...prev,
-                                                appointments: prev.appointments.filter(a => a._id !== app._id)
-                                            }));
-
-                                            try {
-                                                await api.patch(`/vets/notifications/appointment/${app._id}/read`);
-                                            } catch (error) {
-                                                console.error('Failed to mark read:', error);
-                                            }
-
-                                            navigate('/vet/appointments', { state: { highlightId: app._id } });
-                                        }}>
-                                            <ListItemIcon>
-                                                {app.status === 'Booked' ? (
-                                                    <Badge color="warning" variant="dot" overlap="circular">
-                                                        <HourglassEmptyIcon sx={{ color: '#f59e0b' }} />
-                                                    </Badge>
-                                                ) : (
-                                                    <CalendarMonthIcon color="info" />
-                                                )}
-                                            </ListItemIcon>
-                                            <ListItemText
-                                                primary={
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        {app.petId?.name || 'Pet'}
-                                                        {app.status === 'Booked' && (
-                                                            <Typography component="span" sx={{ fontSize: '0.65rem', bgcolor: '#fef3c7', color: '#92400e', px: 0.8, py: 0.2, borderRadius: '4px', fontWeight: 800 }}>REQUEST</Typography>
-                                                        )}
-                                                    </Box>
-                                                }
-                                                secondary={
-                                                    <>
-                                                        <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: app.status === 'Booked' ? '#92400e' : 'inherit' }}>
-                                                            {dayjs(app.dateTime).format('h:mm A')}
-                                                        </Typography>
-                                                        {` | ${dayjs(app.dateTime).format('MMM D')} | ${app.clinicId?.name || 'Clinic'}`}
-                                                    </>
-                                                }
-                                                primaryTypographyProps={{ fontWeight: 600, fontSize: '0.85rem' }}
-                                            />
-                                        </MenuItem>
-                                    ))}
-                                </>
-                            )}
-
-                            {/* Unread Chats */}
-                            {notifications.unreadChats.length > 0 && (
-                                <>
-                                    <Box sx={{ px: 2, pt: 1, pb: 0.5 }}>
-                                        <Typography variant="caption" fontWeight="bold" color="secondary">NEW MESSAGES</Typography>
-                                    </Box>
-                                    {notifications.unreadChats.map(chat => (
-                                        <MenuItem key={chat._id} onClick={async () => {
-                                            handleNotifMenuClose();
-                                            const ownerId = chat.ownerId || chat.senderId;
-                                            const petId = chat.petId?._id || chat.petId;
-
-                                            setNotifications(prev => ({
-                                                ...prev,
-                                                unreadChats: prev.unreadChats.filter(c => c._id !== chat._id)
-                                            }));
-
-                                            try {
-                                                if (petId) {
-                                                    await api.patch('/chat/read', { petId });
-                                                }
-                                            } catch (error) {
-                                                console.error('Failed to mark chat read:', error);
-                                            }
-
-                                            if (ownerId) {
-                                                navigate(`/vet/chat/owner/${ownerId}`, {
-                                                    state: { selectedPetId: petId }
-                                                });
-                                            } else {
-                                                navigate('/vet/chat');
-                                            }
-                                        }}>
-                                            <ListItemIcon><ChatIcon color="secondary" /></ListItemIcon>
-                                            <ListItemText
-                                                primary={`${chat.petId?.name || 'Owner'}`}
-                                                secondary={chat.content.substring(0, 40) + (chat.content.length > 40 ? '...' : '')}
-                                                primaryTypographyProps={{ fontWeight: 600, fontSize: '0.85rem' }}
-                                                secondaryTypographyProps={{ variant: 'caption' }}
-                                            />
-                                        </MenuItem>
-                                    ))}
-                                </>
-                            )}
-
-                            {totalNotifs === 0 && !loadingNotifs && (
-                                <Box sx={{ p: 4, textAlign: 'center' }}>
-                                    <Typography color="textSecondary">No new notifications</Typography>
-                                </Box>
-                            )}
-                        </List>
-                        <Divider />
-                        <Box sx={{ p: 1, textAlign: 'center' }}>
-                            <Typography
-                                variant="caption"
-                                color="primary"
-                                sx={{ cursor: 'pointer', fontWeight: 700 }}
-                                onClick={fetchNotifications}
-                            >
-                                Refresh Notifications
-                            </Typography>
-                            <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 0.5, fontSize: '0.65rem' }}>
-                                Last updated: {dayjs().format('h:mm:ss A')}
-                            </Typography>
-                        </Box>
-                    </Menu>
                 </Toolbar>
             </AppBar>
+
+            {/* Toolbar spacer */}
+            <Toolbar sx={{ minHeight: { xs: '64px', md: '70px' } }} />
+
+            <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleProfileMenuClose}
+                PaperProps={{
+                    sx: {
+                        mt: 1.5,
+                        width: 200,
+                        borderRadius: '16px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                        border: '1px solid #f1f5f9'
+                    }
+                }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            >
+                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/profile'); }}>
+                    <ListItemIcon><Person fontSize="small" color="primary" /></ListItemIcon>
+                    My Profile
+                </MenuItem>
+                <Divider sx={{ my: 1 }} />
+
+                {/* Dashboard */}
+                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Dashboard</MenuItem>
+                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/dashboard'); }}>
+                    <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
+                    Overview
+                </MenuItem>
+                <Divider sx={{ my: 0.5 }} />
+
+                {/* Clinic Management */}
+                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Clinic Management</MenuItem>
+                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/clinic-settings'); }}>
+                    <ListItemIcon><Settings fontSize="small" /></ListItemIcon>
+                    Manage Clinics
+                </MenuItem>
+                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/chat'); }}>
+                    <ListItemIcon><ChatIcon fontSize="small" /></ListItemIcon>
+                    Chat with Owners
+                </MenuItem>
+                <Divider sx={{ my: 0.5 }} />
+
+                {/* Appointments */}
+                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Appointments</MenuItem>
+                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/appointments'); }}>
+                    <ListItemIcon><CalendarMonthIcon fontSize="small" /></ListItemIcon>
+                    All Appointments
+                </MenuItem>
+                <Divider sx={{ my: 0.5 }} />
+
+                {/* Pet Management */}
+                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Pet Management</MenuItem>
+                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/pets'); }}>
+                    <ListItemIcon><PetsIcon fontSize="small" /></ListItemIcon>
+                    Registered Pets
+                </MenuItem>
+                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/pets?tab=pending'); }}>
+                    <ListItemIcon><HourglassEmptyIcon fontSize="small" /></ListItemIcon>
+                    Pending Registrations
+                </MenuItem>
+                <Divider sx={{ my: 0.5 }} />
+
+                {/* Staff Management */}
+                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Staff Management</MenuItem>
+                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/staff'); }}>
+                    <ListItemIcon><GroupIcon fontSize="small" /></ListItemIcon>
+                    All Staff
+                </MenuItem>
+                <Divider sx={{ my: 1 }} />
+
+                <MenuItem onClick={handleLogout} sx={{ color: '#ef4444' }}>
+                    <ListItemIcon><ExitToApp fontSize="small" sx={{ color: '#ef4444' }} /></ListItemIcon>
+                    Logout
+                </MenuItem>
+            </Menu>
+
+            {/* Notifications Menu */}
+            <Menu
+                anchorEl={notifAnchorEl}
+                open={Boolean(notifAnchorEl)}
+                onClose={handleNotifMenuClose}
+                PaperProps={{
+                    sx: {
+                        mt: 1.5,
+                        width: 350,
+                        maxHeight: 500,
+                        borderRadius: '16px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                        border: '1px solid #e2e8f0',
+                        overflow: 'auto',
+                        zIndex: 9999
+                    }
+                }}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+            >
+                <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="subtitle1" fontWeight="800">Notifications</Typography>
+                    {loadingNotifs && <CircularProgress size={16} />}
+                </Box>
+                <Divider />
+
+                <List sx={{ p: 0 }}>
+                    {/* Pending Registrations */}
+                    {notifications.pendingRegistrations?.length > 0 && (
+                        <>
+                            <Box sx={{ px: 2, pt: 1, pb: 0.5 }}>
+                                <Typography variant="caption" fontWeight="bold" color="warning.main">PENDING REGISTRATIONS</Typography>
+                            </Box>
+                            {notifications.pendingRegistrations.map(reg => (
+                                <MenuItem key={reg._id} onClick={async () => {
+                                    handleNotifMenuClose();
+                                    // Immediately update local state to hide it
+                                    setNotifications(prev => ({
+                                        ...prev,
+                                        pendingRegistrations: prev.pendingRegistrations.filter(r => r._id !== reg._id)
+                                    }));
+
+                                    try {
+                                        await api.patch(`/vets/notifications/registration/${reg._id}/read`);
+                                    } catch (error) {
+                                        console.error('Failed to mark read:', error);
+                                    }
+
+                                    // Then navigate
+                                    navigate('/vet/pets/pending', { state: { highlightId: reg._id } });
+                                }}>
+                                    <ListItemIcon><HourglassEmptyIcon color="warning" /></ListItemIcon>
+                                    <ListItemText
+                                        primary={reg.name}
+                                        secondary={`From ${reg.ownerId?.firstName} ${reg.ownerId?.lastName || ''}`}
+                                        primaryTypographyProps={{ fontWeight: 700, fontSize: '0.85rem' }}
+                                        secondaryTypographyProps={{ variant: 'caption' }}
+                                    />
+                                </MenuItem>
+                            ))}
+                        </>
+                    )}
+
+                    {/* Appointments Today/Tomorrow */}
+                    {notifications.appointments.length > 0 && (
+                        <>
+                            <Box sx={{ px: 2, pt: 1, pb: 0.5 }}>
+                                <Typography variant="caption" fontWeight="bold" color="primary">UPCOMING APPOINTMENTS</Typography>
+                            </Box>
+                            {notifications.appointments.map(app => (
+                                <MenuItem key={app._id} onClick={async () => {
+                                    handleNotifMenuClose();
+                                    // Immediately update local state to hide it
+                                    setNotifications(prev => ({
+                                        ...prev,
+                                        appointments: prev.appointments.filter(a => a._id !== app._id)
+                                    }));
+
+                                    try {
+                                        await api.patch(`/vets/notifications/appointment/${app._id}/read`);
+                                    } catch (error) {
+                                        console.error('Failed to mark read:', error);
+                                    }
+
+                                    navigate('/vet/appointments', { state: { highlightId: app._id } });
+                                }}>
+                                    <ListItemIcon>
+                                        {app.status === 'Booked' ? (
+                                            <Badge color="warning" variant="dot" overlap="circular">
+                                                <HourglassEmptyIcon sx={{ color: '#f59e0b' }} />
+                                            </Badge>
+                                        ) : (
+                                            <CalendarMonthIcon color="info" />
+                                        )}
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                {app.petId?.name || 'Pet'}
+                                                {app.status === 'Booked' && (
+                                                    <Typography component="span" sx={{ fontSize: '0.65rem', bgcolor: '#fef3c7', color: '#92400e', px: 0.8, py: 0.2, borderRadius: '4px', fontWeight: 800 }}>REQUEST</Typography>
+                                                )}
+                                            </Box>
+                                        }
+                                        secondary={
+                                            <>
+                                                <Typography component="span" variant="caption" sx={{ fontWeight: 700, color: app.status === 'Booked' ? '#92400e' : 'inherit' }}>
+                                                    {dayjs(app.dateTime).format('h:mm A')}
+                                                </Typography>
+                                                {` | ${dayjs(app.dateTime).format('MMM D')} | ${app.clinicId?.name || 'Clinic'}`}
+                                            </>
+                                        }
+                                        primaryTypographyProps={{ fontWeight: 600, fontSize: '0.85rem' }}
+                                    />
+                                </MenuItem>
+                            ))}
+                        </>
+                    )}
+
+                    {/* Unread Chats */}
+                    {notifications.unreadChats.length > 0 && (
+                        <>
+                            <Box sx={{ px: 2, pt: 1, pb: 0.5 }}>
+                                <Typography variant="caption" fontWeight="bold" color="secondary">NEW MESSAGES</Typography>
+                            </Box>
+                            {notifications.unreadChats.map(chat => (
+                                <MenuItem key={chat._id} onClick={async () => {
+                                    handleNotifMenuClose();
+                                    const ownerId = chat.ownerId || chat.senderId;
+                                    const petId = chat.petId?._id || chat.petId;
+
+                                    setNotifications(prev => ({
+                                        ...prev,
+                                        unreadChats: prev.unreadChats.filter(c => c._id !== chat._id)
+                                    }));
+
+                                    try {
+                                        if (petId) {
+                                            await api.patch('/chat/read', { petId });
+                                        }
+                                    } catch (error) {
+                                        console.error('Failed to mark chat read:', error);
+                                    }
+
+                                    if (ownerId) {
+                                        navigate(`/vet/chat/owner/${ownerId}`, {
+                                            state: { selectedPetId: petId }
+                                        });
+                                    } else {
+                                        navigate('/vet/chat');
+                                    }
+                                }}>
+                                    <ListItemIcon><ChatIcon color="secondary" /></ListItemIcon>
+                                    <ListItemText
+                                        primary={`${chat.petId?.name || 'Owner'}`}
+                                        secondary={chat.content.substring(0, 40) + (chat.content.length > 40 ? '...' : '')}
+                                        primaryTypographyProps={{ fontWeight: 600, fontSize: '0.85rem' }}
+                                        secondaryTypographyProps={{ variant: 'caption' }}
+                                    />
+                                </MenuItem>
+                            ))}
+                        </>
+                    )}
+
+                    {totalNotifs === 0 && !loadingNotifs && (
+                        <Box sx={{ p: 4, textAlign: 'center' }}>
+                            <Typography color="textSecondary">No new notifications</Typography>
+                        </Box>
+                    )}
+                </List>
+                <Divider />
+                <Box sx={{ p: 1, textAlign: 'center' }}>
+                    <Typography
+                        variant="caption"
+                        color="primary"
+                        sx={{ cursor: 'pointer', fontWeight: 700 }}
+                        onClick={fetchNotifications}
+                    >
+                        Refresh Notifications
+                    </Typography>
+                    <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 0.5, fontSize: '0.65rem' }}>
+                        Last updated: {dayjs().format('h:mm:ss A')}
+                    </Typography>
+                </Box>
+            </Menu>
 
             <Drawer
                 anchor="left"

@@ -112,12 +112,12 @@ const VetLogin = () => {
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        p: { xs: 4, md: 8, lg: 10 },
+        p: { xs: 2.5, sm: 4, md: 8, lg: 10 },
         position: 'relative',
         zIndex: 1,
         bgcolor: 'white'
       }}>
-        <Box sx={{ position: 'absolute', top: 40, left: 40, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ position: { xs: 'relative', md: 'absolute' }, top: { xs: 0, md: 40 }, left: { xs: 0, md: 40 }, mb: { xs: 4, md: 0 }, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{
             width: 40, height: 40, bgcolor: mainColor, borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
@@ -129,7 +129,7 @@ const VetLogin = () => {
         </Box>
 
         <Box sx={{ maxWidth: '400px', width: '100%', mx: 'auto' }}>
-          <Typography variant="h3" fontWeight="900" sx={{ mb: 1, color: '#0f172a', letterSpacing: '-1.5px' }}>
+          <Typography variant="h3" fontWeight="900" sx={{ mb: 1, color: '#0f172a', letterSpacing: '-1.5px', fontSize: { xs: '2.25rem', md: '3rem' } }}>
             Welcome back, Doc!
           </Typography>
           <Typography variant="body1" sx={{ mb: 5, color: '#64748b', fontWeight: 500 }}>

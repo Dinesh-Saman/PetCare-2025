@@ -44,6 +44,9 @@ const ContentContainer = styled(Box)(({ theme }) => ({
     padding: '32px',
     display: 'flex',
     flexDirection: 'column',
+    [theme.breakpoints.down('md')]: {
+        padding: '16px',
+    },
 }));
 
 const VetProfile = () => {
@@ -194,12 +197,12 @@ const VetProfile = () => {
                 <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2, minWidth: 0, width: '100%' }}>
                     <ContentContainer>
                         <Box sx={{ mb: 4 }}>
-                            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>
+                            <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', fontSize: isMobile ? '1.75rem' : '2.125rem' }}>
                                 My Profile
                             </Typography>
                         </Box>
 
-                        <Grid container spacing={4} sx={{ width: '100%', m: 0 }}>
+                        <Grid container spacing={isMobile ? 2 : 4} sx={{ width: '100%', m: 0 }}>
                             {/* General Information */}
                             <Grid item xs={12} sx={{ width: '100%' }}>
                                 <GlassCard>
@@ -268,14 +271,15 @@ const VetProfile = () => {
                                                 <Button
                                                     type="submit" variant="contained"
                                                     disabled={saving}
+                                                    fullWidth={isMobile}
                                                     sx={{
                                                         background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
                                                         borderRadius: '12px',
-                                                        px: 6,
+                                                        px: isMobile ? 3 : 6,
                                                         py: 1.5,
                                                         fontWeight: 700,
                                                         textTransform: 'none',
-                                                        fontSize: '1rem',
+                                                        fontSize: isMobile ? '0.9rem' : '1rem',
                                                         boxShadow: '0 10px 25px rgba(142, 36, 170, 0.2)',
                                                         transition: 'all 0.3s ease',
                                                         '&:hover': {

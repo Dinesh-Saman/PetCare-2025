@@ -499,8 +499,8 @@ const VetChatWindow = () => {
                                 <>
                                     {/* Chat header */}
                                     <Box sx={{
-                                        px: 4, py: 3,
-                                        minHeight: '120px',
+                                        px: isMobile ? 2 : 4, py: isMobile ? 2 : 3,
+                                        minHeight: isMobile ? '80px' : '120px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         background: 'white',
@@ -514,12 +514,12 @@ const VetChatWindow = () => {
                                                 <ArrowBackIcon />
                                             </IconButton>
                                         )}
-                                        <Avatar src={selectedPet.photo || ''} sx={{ width: 48, height: 48, borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                                        <Avatar src={selectedPet.photo || ''} sx={{ width: isMobile ? 40 : 48, height: isMobile ? 40 : 48, borderRadius: isMobile ? '12px' : '16px', border: '1px solid #e2e8f0' }}>
                                             {selectedPet.name?.charAt(0)?.toUpperCase()}
                                         </Avatar>
                                         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                                            <Typography variant="h6" fontWeight="800" color="#0f172a">{selectedPet.name}</Typography>
-                                            <Typography variant="body2" color="textSecondary" fontWeight="600">
+                                            <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight="800" color="#0f172a" noWrap>{selectedPet.name}</Typography>
+                                            <Typography variant="body2" color="textSecondary" fontWeight="600" noWrap>
                                                 {selectedPet.species}
                                             </Typography>
                                         </Box>
@@ -529,7 +529,7 @@ const VetChatWindow = () => {
                                     <Box sx={{
                                         flexGrow: 1,
                                         overflowY: 'auto',
-                                        p: 4,
+                                        p: isMobile ? 2 : 4,
                                         display: 'flex',
                                         flexDirection: 'column',
                                         gap: 2,
@@ -602,7 +602,7 @@ const VetChatWindow = () => {
 
                                     {/* Input bar */}
                                     <Box sx={{
-                                        px: 4, py: 3,
+                                        px: isMobile ? 2 : 4, py: isMobile ? 2 : 3,
                                         bgcolor: 'white',
                                         borderTop: '1px solid #e2e8f0',
                                         display: 'flex',
@@ -702,8 +702,8 @@ const VetChatWindow = () => {
                                                 sx={{
                                                     bgcolor: '#49149e',
                                                     color: 'white',
-                                                    width: 52,
-                                                    height: 52,
+                                                    width: isMobile ? 44 : 52,
+                                                    height: isMobile ? 44 : 52,
                                                     '&:hover': { bgcolor: '#3a1080', transform: 'scale(1.05)' },
                                                     '&.Mui-disabled': { bgcolor: '#e2e8f0', color: '#94a3b8' },
                                                     boxShadow: '0 8px 20px rgba(73, 20, 158, 0.2)',

@@ -91,13 +91,13 @@ const VetRegister = () => {
         flex: { xs: '1 1 100%', md: '0 0 600px', lg: '0 0 700px' },
         display: 'flex',
         flexDirection: 'column',
-        p: { xs: 4, md: 6, lg: 8 },
-        overflowY: 'auto',
-        bgcolor: 'white',
+        justifyContent: 'center',
+        p: { xs: 2.5, sm: 4, md: 8, lg: 10 },
         position: 'relative',
-        zIndex: 1
+        zIndex: 1,
+        bgcolor: 'white'
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 6 }}>
+        <Box sx={{ position: isMobile ? 'relative' : 'absolute', top: isMobile ? 0 : 40, left: isMobile ? 0 : 40, mb: isMobile ? 4 : 0, display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{
             width: 40, height: 40, bgcolor: mainColor, borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
@@ -108,8 +108,8 @@ const VetRegister = () => {
           <Typography variant="h6" fontWeight="800" color="#1e293b" letterSpacing="-0.5px">Pawpal Vet</Typography>
         </Box>
 
-        <Box sx={{ maxWidth: '550px', width: '100%', mx: 'auto' }}>
-          <Typography variant="h3" fontWeight="900" sx={{ mb: 1, color: '#0f172a', letterSpacing: '-1.5px' }}>
+        <Box sx={{ maxWidth: '400px', width: '100%', mx: 'auto' }}>
+          <Typography variant="h3" fontWeight="900" sx={{ mb: 1, color: '#0f172a', letterSpacing: '-1.5px', fontSize: { xs: '2.25rem', md: '3rem' } }}>
             Join our Network
           </Typography>
           <Typography variant="body1" sx={{ mb: 5, color: '#64748b', fontWeight: 500 }}>

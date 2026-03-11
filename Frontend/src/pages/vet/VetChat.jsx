@@ -22,6 +22,9 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   padding: '32px',
   display: 'flex',
   flexDirection: 'column',
+  [theme.breakpoints.down('md')]: {
+    padding: '16px',
+  },
 }));
 
 const SearchSection = styled(Box)(({ theme }) => ({
@@ -53,7 +56,7 @@ const TableHeadCell = styled(TableCell)({
   fontSize: '1rem',
 });
 
-const OwnerAvatar = styled('div')({
+const OwnerAvatar = styled('div')(({ theme }) => ({
   width: 60,
   height: 60,
   borderRadius: '50%',
@@ -65,7 +68,12 @@ const OwnerAvatar = styled('div')({
   fontSize: '1.8rem',
   fontWeight: 'bold',
   boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
-});
+  [theme.breakpoints.down('sm')]: {
+    width: 45,
+    height: 45,
+    fontSize: '1.2rem',
+  },
+}));
 
 const ChatButton = styled(IconButton)(({ theme }) => ({
   background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',

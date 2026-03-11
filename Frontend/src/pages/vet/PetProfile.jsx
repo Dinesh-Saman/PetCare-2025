@@ -112,6 +112,10 @@ const PetAvatarLarge = styled(Avatar)(({ theme }) => ({
   height: 140,
   border: '5px solid white',
   boxShadow: '0 8px 25px rgba(0,0,0,0.3)',
+  [theme.breakpoints.down('sm')]: {
+    width: 100,
+    height: 100,
+  },
 }));
 
 const VACCINATION_TYPES = [
@@ -591,7 +595,7 @@ const PetProfile = () => {
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 3 }}>
+        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 3 }}>
           <Paper elevation={6} sx={{ borderRadius: 4, overflow: 'hidden' }}>
             <Box sx={{ bgcolor: '#2e7d32', color: 'white', p: isMobile ? 3 : 6, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 2 : 4 }}>
               <PetAvatarLarge src={pet.photo} alt={pet.name}>
@@ -674,9 +678,9 @@ const PetProfile = () => {
 
               {activeTab === 1 && (
                 <AlignedContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
                     <Typography variant="h5" fontWeight="bold" color="#e08c0eff">Medical Notes</Typography>
-                    <Button variant="contained" color="success" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }}>
+                    <Button variant="contained" color="success" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }} sx={{ width: isMobile ? '100%' : 'auto' }}>
                       Add Medical Note
                     </Button>
                   </Box>
@@ -755,9 +759,9 @@ const PetProfile = () => {
 
               {activeTab === 2 && (
                 <AlignedContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
                     <Typography variant="h5" fontWeight="bold" color="#e08c0eff">Medical Records</Typography>
-                    <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }}>
+                    <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }} sx={{ width: isMobile ? '100%' : 'auto' }}>
                       Upload Record
                     </Button>
                   </Box>

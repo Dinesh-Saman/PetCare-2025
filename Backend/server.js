@@ -114,7 +114,7 @@ app.post('/api/contact', async (req, res) => {
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: 'saman2018al@gmail.com',
+    to: 'pawpal2026@gmail.com',
     subject: `Pawpal Contact Form: ${subject || 'New Inquiry'}`,
     html: `
       <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">

@@ -62,6 +62,9 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   border: '1px solid #e2e8f0',
   width: '100%',
   padding: '32px',
+  [theme.breakpoints.down('md')]: {
+    padding: '16px',
+  },
 }));
 
 const SearchSection = styled(Box)(({ theme }) => ({
@@ -103,6 +106,10 @@ const PetAvatar = styled(Avatar)(({ theme }) => ({
   height: 70,
   border: '3px solid white',
   boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+  [theme.breakpoints.down('sm')]: {
+    width: 50,
+    height: 50,
+  },
 }));
 
 const DetailsCard = styled(Card)(({ theme }) => ({
@@ -313,12 +320,18 @@ const PendingRegistrations = () => {
   const paginatedPets = filteredPets.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
-          <ContentContainer>
+        <Box sx={{
+          flexGrow: 1,
+          p: { xs: 1.5, sm: 2, md: 3 },
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#f8fafc'
+        }}>
+          <ContentContainer sx={{ flexGrow: 1 }}>
             <Box sx={{ mb: 4 }}>
               <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', mb: 1 }}>
                 Pending Registrations
@@ -487,7 +500,7 @@ const PendingRegistrations = () => {
                               <Collapse in={expandedRow === pet._id} timeout="auto" unmountOnExit>
                                 <DetailsCard>
                                   <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
-                                    <Grid item xs={6} sx={{ display: 'flex' }}>
+                                    <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                                       <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
                                         <Typography variant="h6" sx={{ color: '#49149eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                           <PetsIcon /> Pet Information
@@ -512,8 +525,7 @@ const PendingRegistrations = () => {
                                         </Box>
                                       </Box>
                                     </Grid>
-
-                                    <Grid item xs={6} sx={{ display: 'flex' }}>
+                                    <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                                       <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
                                         <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                           <PersonIcon /> Owner & Notes

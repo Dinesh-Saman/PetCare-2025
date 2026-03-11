@@ -40,6 +40,9 @@ const CardHeader = styled(Box)(({ theme }) => ({
   color: 'white',
   padding: theme.spacing(5, 4),
   textAlign: 'center',
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(3, 2),
+  },
 }));
 
 const HeaderTitle = styled(Typography)(({ theme }) => ({
@@ -47,6 +50,9 @@ const HeaderTitle = styled(Typography)(({ theme }) => ({
   fontWeight: 700,
   fontSize: '2.6rem',
   marginBottom: '8px',
+  [theme.breakpoints.down('sm')]: {
+    fontSize: '1.8rem',
+  },
 }));
 
 const HeaderSubtitle = styled(Typography)(({ theme }) => ({
@@ -79,6 +85,12 @@ const SaveButton = styled(Button)(({ theme }) => ({
   textTransform: 'none',
   boxShadow: '0 8px 25px rgba(76, 175, 80, 0.3)',
   minWidth: '280px',
+  [theme.breakpoints.down('sm')]: {
+    minWidth: '100%',
+    width: '100%',
+    fontSize: '1.1rem',
+    padding: '12px 24px',
+  },
   '&:hover': {
     background: 'linear-gradient(90deg, #388e3c, #4caf50)',
     transform: 'translateY(-3px)',
@@ -248,7 +260,7 @@ const ClinicEdit = () => {
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 2 : 4, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 4, display: 'flex', justifyContent: 'center' }}>
           <FormCard>
             <CardHeader>
               <HeaderTitle variant="h4">Edit Clinic</HeaderTitle>

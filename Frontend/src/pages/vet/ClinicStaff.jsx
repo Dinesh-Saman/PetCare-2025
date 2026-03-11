@@ -41,6 +41,9 @@ const ContentContainer = styled(Box)(({ theme }) => ({
   padding: '32px',
   display: 'flex',
   flexDirection: 'column',
+  [theme.breakpoints.down('md')]: {
+    padding: '16px',
+  },
 }));
 
 const PageTitle = styled(Typography)({
@@ -105,6 +108,10 @@ const StaffAvatar = styled(Avatar)(({ theme }) => ({
   backgroundColor: '#8e24aa',
   boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
   border: '3px solid white',
+  [theme.breakpoints.down('sm')]: {
+    width: 60,
+    height: 60,
+  },
 }));
 
 const DetailsCard = styled(Card)(({ theme }) => ({
@@ -154,6 +161,10 @@ const SearchContainer = styled(Box)(({ theme }) => ({
 const SearchField = styled(TextField)(({ theme }) => ({
   flex: 1,
   maxWidth: 400,
+  [theme.breakpoints.down('sm')]: {
+    maxWidth: '100%',
+    width: '100%',
+  },
   '& .MuiOutlinedInput-root': {
     borderRadius: '12px',
     backgroundColor: '#f9f9f9',
@@ -458,15 +469,21 @@ const ClinicStaff = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
       <VetAdminNavbar />
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
-        <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 2 }}>
-          <ContentContainer>
+        <Box sx={{
+          flexGrow: 1,
+          p: { xs: 1.5, sm: 2, md: 3 },
+          display: 'flex',
+          flexDirection: 'column',
+          backgroundColor: '#f8fafc'
+        }}>
+          <ContentContainer sx={{ flexGrow: 1 }}>
             <HeaderContainer>
               <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>Clinic Staff</Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', ml: 'auto' }}>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', ml: { md: 'auto' }, width: isMobile ? '100%' : 'auto' }}>
                 <SearchField
                   variant="outlined"
                   placeholder="Search staff..."
@@ -479,7 +496,7 @@ const ClinicStaff = () => {
                   startIcon={<PersonAddIcon />}
                   onClick={handleOpenAddPopup}
                   size="small"
-                  sx={{ ml: 'auto' }}
+                  sx={{ width: isMobile ? '100%' : 'auto' }}
                 >
                   Add Staff
                 </AddButton>
@@ -525,7 +542,7 @@ const ClinicStaff = () => {
                             <Collapse in={expandedRow === member._id} timeout="auto" unmountOnExit>
                               <DetailsCard>
                                 <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
-                                  <Grid item xs={6} sx={{ display: 'flex' }}>
+                                  <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                                     <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
                                       <Typography variant="h6" sx={{ color: '#49149eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <PersonIcon /> Personal Information
@@ -537,7 +554,7 @@ const ClinicStaff = () => {
                                       </Box>
                                     </Box>
                                   </Grid>
-                                  <Grid item xs={6} sx={{ display: 'flex' }}>
+                                  <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                                     <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
                                       <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <AdminPanelSettingsIcon /> Professional Information
@@ -631,7 +648,7 @@ const ClinicStaff = () => {
           <Typography variant="body2" sx={{ color: '#64748b', mb: 3 }}>
             Expand your clinic team with skilled professionals
           </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
             {/* Row 1: Staff Type + Select Clinic */}
             <FormControl fullWidth>
               <InputLabel>Staff Type</InputLabel>
@@ -712,7 +729,7 @@ const ClinicStaff = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', mt: 1 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px', mt: 1 }}>
               {/* Row 1 */}
               <TextField fullWidth label="First Name" name="firstName" value={editFormData.firstName} onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })} required />
               <TextField fullWidth label="Last Name" name="lastName" value={editFormData.lastName} onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })} required />
