@@ -103,7 +103,7 @@ const VetAdminNavbar = () => {
 
     const handleLogout = () => {
         logout();
-        navigate('/');
+        navigate('/vet-home');
     };
 
     const toggleDrawer = (open) => (event) => {

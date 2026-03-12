@@ -118,6 +118,25 @@ const Banner = () => {
           box-shadow: 0 15px 35px rgba(16, 185, 129, 0.4);
         }
 
+        .banner-button-secondary {
+          padding: 1rem 2.5rem;
+          background: transparent;
+          color: white;
+          text-decoration: none;
+          font-size: 1.1rem;
+          font-weight: 600;
+          border-radius: 12px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .banner-button-secondary:hover {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: white;
+          transform: translateY(-3px);
+        }
+
         .banner-link {
           color: #10b981;
           font-weight: 600;
@@ -310,6 +329,9 @@ const Banner = () => {
             <div className="banner-actions">
               <button onClick={handleClick} className="banner-button">
                 {user ? "Register your pets" : "Login Your Account"}
+              </button>
+              <button onClick={() => navigate('/vet-home')} className="banner-button-secondary">
+                Navigate to Vet Home
               </button>
             </div>
 

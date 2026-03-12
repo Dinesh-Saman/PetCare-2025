@@ -29,8 +29,7 @@ const VetRegister = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', password: '',
-    phoneNumber: '', veterinaryId: '', specialization: '',
-    isPrimaryVet: false
+    phoneNumber: '', veterinaryId: '', specialization: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -232,19 +231,7 @@ const VetRegister = () => {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12}>
-                <Box sx={{
-                  p: 2,
-                  borderRadius: '16px',
-                  bgcolor: alpha(mainColor, 0.04),
-                  border: `1px dashed ${alpha(mainColor, 0.2)}`
-                }}>
-                  <FormControlLabel
-                    control={<Checkbox name="isPrimaryVet" checked={formData.isPrimaryVet} onChange={handleChange} color="secondary" />}
-                    label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>I am a Private Veterinarian</Typography>}
-                  />
-                </Box>
-              </Grid>
+
             </Grid>
 
             <Button

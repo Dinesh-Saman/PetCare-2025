@@ -30,15 +30,16 @@ import Home from './pages/Home';
 import AboutUs from './pages/About';
 import ContactUs from './pages/Contact';
 import MyAppointments from './pages/owner/MyAppointments';
-import ChatWidget from './components/ChatWidget';
-import AuthModal from './components/Auth/AuthModal';
 import VetProfile from './pages/vet/Profile';
 import VetLogin from './pages/vet/VetLogin';
 import VetRegister from './pages/vet/VetRegister';
 import VetTwoFactor from './pages/vet/VetTwoFactor';
 import VetForgotPassword from './pages/vet/VetForgotPassword';
+import VetHome from './pages/vet/VetHome';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
+import AuthModal from './components/Auth/AuthModal';
+import ChatWidget from './components/ChatWidget';
 
 // PetCare Tips Pages
 import VaccinationTips from './pages/tips/Vaccinations';
@@ -49,7 +50,7 @@ function App() {
   const location = useLocation();
 
   // Hide footer on dashboard pages to prevent sidebar clipping
-  const shouldHideFooter = location.pathname.startsWith('/vet');
+  const shouldHideFooter = location.pathname.startsWith('/vet') && location.pathname !== '/vet-home';
 
   return (
     <>
@@ -57,6 +58,7 @@ function App() {
       <AuthModal />
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/vet-home" element={<VetHome />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<ContactUs />} />
         <Route path="/vet/login" element={<VetLogin />} />

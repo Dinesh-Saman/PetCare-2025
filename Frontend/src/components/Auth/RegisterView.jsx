@@ -15,7 +15,7 @@ const RegisterView = () => {
     const { setAuthModalView, authModalRole, login } = useAuth();
     const [formData, setFormData] = useState({
         firstName: '', lastName: '', email: '', password: '', phoneNumber: '', address: '',
-        veterinaryId: '', specialization: '', isPrimaryVet: false
+        veterinaryId: '', specialization: ''
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -148,12 +148,7 @@ const RegisterView = () => {
                                                 {specializations.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
                                             </TextField>
                                         </Box>
-                                        <Box sx={{ gridColumn: 'span 2', bgcolor: alpha(primaryColor, 0.05), p: 1.5, borderRadius: '16px', border: `1px dashed ${alpha(primaryColor, 0.2)}` }}>
-                                            <FormControlLabel
-                                                control={<Checkbox name="isPrimaryVet" checked={formData.isPrimaryVet} onChange={handleChange} sx={{ color: primaryColor, '&.Mui-checked': { color: primaryColor } }} />}
-                                                label={<Typography variant="body2" sx={{ fontWeight: 600, color: textMain }}>I am a Private Veterinarian</Typography>}
-                                            />
-                                        </Box>
+
                                     </>
                                 ) : (
                                     <Box sx={{ gridColumn: 'span 2' }}>

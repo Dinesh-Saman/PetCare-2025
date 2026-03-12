@@ -33,7 +33,7 @@ const HowItWorks = () => {
         <>
             <style>{`
         .how-it-works-section {
-          padding: 100px 20px;
+          padding: 60px 20px;
           background-color: #f8fafc;
           position: relative;
           overflow: hidden;
