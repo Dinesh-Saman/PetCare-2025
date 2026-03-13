@@ -12,16 +12,25 @@ import api from '../../services/api';
 
 const RegisterView = () => {
     const navigate = useNavigate();
-    const { setAuthModalView, authModalRole, login } = useAuth();
+    const { setAuthModalView, authModalRole, login, vetUser, updateUser, closeAuthModal } = useAuth();
+    const isVet = authModalRole === 'vet';
+    const isCompleteProfileMode = isVet && vetUser && !vetUser.address;
+
     const [formData, setFormData] = useState({
-        firstName: '', lastName: '', email: '', password: '', phoneNumber: '', address: '',
-        veterinaryId: '', specialization: ''
+        firstName: (isVet && vetUser?.firstName) || '',
+        lastName: (isVet && vetUser?.lastName) || '',
+        email: (isVet && vetUser?.email) || '',
+        password: '',
+        confirmPassword: '',
+        phoneNumber: (isVet && vetUser?.phoneNumber) || '',
+        address: (isVet && vetUser?.address) || '',
+        veterinaryId: (isVet && vetUser?.veterinaryId) || '',
+        specialization: (isVet && vetUser?.specialization) || ''
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [submitted, setSubmitted] = useState(false);
 
-    const isVet = authModalRole === 'vet';
     const primaryColor = isVet ? '#7c3aed' : '#3B59FE';
     const textMain = '#1e293b';
     const textMuted = '#64748b';
@@ -43,9 +52,7 @@ const RegisterView = () => {
         e.preventDefault();
         setSubmitted(true);
 
-        const requiredFields = isVet
-            ? ['firstName', 'lastName', 'email', 'password', 'phoneNumber', 'veterinaryId']
-            : ['firstName', 'lastName', 'email', 'password', 'phoneNumber', 'address'];
+        const requiredFields = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'phoneNumber', 'address'];
 
         const invalid = requiredFields.some(field => !formData[field]?.trim());
 
@@ -54,9 +61,23 @@ const RegisterView = () => {
             return;
         }
 
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+
         setLoading(true);
         setError('');
         try {
+            if (isCompleteProfileMode) {
+                // Update existing vet profile
+                const { data } = await api.put(`/vets/${vetUser.id}`, { ...formData, accessLevel: 'Enhanced' });
+                updateUser(data.vet);
+                closeAuthModal();
+                navigate('/vet/dashboard');
+                return;
+            }
+
             const registerEndpoint = isVet ? '/vets/register' : '/owners/register';
             await api.post(registerEndpoint, formData);
 
@@ -87,10 +108,12 @@ const RegisterView = () => {
                         </Box>
 
                         <Typography variant="h5" fontWeight="900" sx={{ mb: 0.5, color: textMain, letterSpacing: '-0.5px' }}>
-                            {isVet ? 'Join Professional Network' : 'Create Account'}
+                            {isVet ? 'Complete Your Vet Profile' : 'Create Account'}
                         </Typography>
                         <Typography variant="caption" sx={{ mb: 2, opacity: 0.9, color: textMuted, fontWeight: 500, fontSize: '0.8rem', display: 'block' }}>
-                            {isVet ? 'Register your medical practice with Sri Lanka\'s leading pet care platform.' : 'Join Pawpal to manage your pet\'s health records.'}
+                            {isVet 
+                                ? 'Please provide your professional details to activate your vet account and access the dashboard.' 
+                                : 'Join Pawpal to manage your pet\'s health records.'}
                         </Typography>
 
                         <form onSubmit={handleSubmit} noValidate>
@@ -122,33 +145,51 @@ const RegisterView = () => {
                                         sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
                                 </Box>
                                 <Box>
-                                    <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Phone</Typography>
-                                    <TextField fullWidth size="small" name="phoneNumber" placeholder="Phone" value={formData.phoneNumber} onChange={handleChange} required error={isFieldInvalid('phoneNumber')}
+                                    <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Contact Number</Typography>
+                                    <TextField fullWidth size="small" name="phoneNumber" placeholder="Contact Number" value={formData.phoneNumber} onChange={handleChange} required error={isFieldInvalid('phoneNumber')}
                                         sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
                                 </Box>
 
-                                <Box sx={{ gridColumn: isVet ? 'span 1' : 'span 2' }}>
+                                <Box>
                                     <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Password</Typography>
                                     <TextField fullWidth size="small" name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} required error={isFieldInvalid('password')}
+                                        sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
+                                </Box>
+                                <Box>
+                                    <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Confirm Password</Typography>
+                                    <TextField fullWidth size="small" name="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} required error={isFieldInvalid('confirmPassword')}
                                         sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
                                 </Box>
 
                                 {isVet ? (
                                     <>
                                         <Box>
-                                            <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>License ID</Typography>
-                                            <TextField fullWidth size="small" name="veterinaryId" placeholder="VET-XXXXX" value={formData.veterinaryId} onChange={handleChange} required error={isFieldInvalid('veterinaryId')}
+                                            <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Address</Typography>
+                                            <TextField fullWidth size="small" name="address" placeholder="Address" value={formData.address} onChange={handleChange} required error={isFieldInvalid('address')}
                                                 sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
                                         </Box>
-                                        <Box sx={{ gridColumn: 'span 2' }}>
+                                        <Box>
                                             <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Specialization</Typography>
-                                            <TextField fullWidth size="small" name="specialization" select value={formData.specialization} onChange={handleChange}
-                                                sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }}>
+                                            <TextField 
+                                                fullWidth 
+                                                size="small" 
+                                                name="specialization" 
+                                                select 
+                                                value={formData.specialization} 
+                                                onChange={handleChange}
+                                                SelectProps={{
+                                                    displayEmpty: true,
+                                                    renderValue: (viewValue) => {
+                                                        if (!viewValue) return <Typography sx={{ color: '#94a3b8', fontSize: '0.9rem', opacity: 0.7 }}>Select Specialization</Typography>;
+                                                        return viewValue;
+                                                    }
+                                                }}
+                                                sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }}
+                                            >
                                                 <MenuItem value="" disabled>Select Specialization</MenuItem>
                                                 {specializations.map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
                                             </TextField>
                                         </Box>
-
                                     </>
                                 ) : (
                                     <Box sx={{ gridColumn: 'span 2' }}>
@@ -162,7 +203,7 @@ const RegisterView = () => {
                             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 1 }}>
                                 <Button type="submit" variant="contained" disabled={loading}
                                     sx={{ width: { xs: '100%', sm: '320px' }, bgcolor: primaryColor, color: 'white', py: 1.25, borderRadius: '50px', fontSize: '0.95rem', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: alpha(primaryColor, 0.9) } }}>
-                                    {loading ? <CircularProgress size={20} color="inherit" /> : `Create ${isVet ? 'Professional' : ''} Account`}
+                                    {loading ? <CircularProgress size={20} color="inherit" /> : (isCompleteProfileMode ? 'Complete Profile & Continue' : `Create ${isVet ? 'Professional' : ''} Account`)}
                                 </Button>
                             </Box>
                         </form>

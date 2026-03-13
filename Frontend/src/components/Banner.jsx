@@ -327,9 +327,6 @@ const Banner = () => {
             </p>
 
             <div className="banner-actions">
-              <button onClick={handleClick} className="banner-button">
-                {user ? "Register your pets" : "Login Your Account"}
-              </button>
               <button onClick={() => navigate('/vet-home')} className="banner-button-secondary">
                 Navigate to Vet Home
               </button>

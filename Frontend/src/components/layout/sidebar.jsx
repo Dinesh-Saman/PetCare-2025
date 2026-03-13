@@ -150,7 +150,7 @@ const Sidebar = ({ computedHeight, mobileView, onClose }) => {
     e.preventDefault();
     logout();
     if (mobileView && onClose) onClose();
-    navigate('/');
+    navigate('/vet-home');
   };
 
   const isEnhanced = user?.accessLevel === 'Enhanced';
@@ -215,10 +215,6 @@ const Sidebar = ({ computedHeight, mobileView, onClose }) => {
           <FaTimes />
         </div>
       )}
-      <LogoContainer>
-        <LogoImage src="https://i.imgur.com/RHsVvXq.jpeg" alt="PawPal" />
-        <ClinicName>Pawpal Clinic</ClinicName>
-      </LogoContainer>
 
       <Menu>
         {categories.map((cat, idx) => (
@@ -251,7 +247,7 @@ const Sidebar = ({ computedHeight, mobileView, onClose }) => {
       </Menu>
 
       <SignOutContainer>
-        <MenuItem to="/" onClick={handleLogout}>
+        <MenuItem to="/vet-home" onClick={handleLogout}>
           <Icon><FaSignOutAlt /></Icon>
           Sign Out
         </MenuItem>

@@ -68,7 +68,7 @@ router.put('/:id', async (req, res) => {
     const requesterId = req.user.id;
     const targetId = req.params.id;
 
-    if (requesterId === targetId) {
+    if (requesterId.toString() === targetId.toString()) {
       return updateVet(req, res);
     }
 

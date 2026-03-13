@@ -40,6 +40,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 import AuthModal from './components/Auth/AuthModal';
 import ChatWidget from './components/ChatWidget';
+import VetProtectedRoute from './components/Auth/VetProtectedRoute';
 
 // PetCare Tips Pages
 import VaccinationTips from './pages/tips/Vaccinations';
@@ -71,19 +72,19 @@ function App() {
         <Route path="/tips/signs-of-illness" element={<IllnessTips />} />
         <Route path="/tips/toxic-foods" element={<ToxicFoodsTips />} />
 
-        <Route path="vet/dashboard" element={<DashboardHome />} />
-        <Route path="vet/appointments" element={<AppointmentsList />} />
-        <Route path="vet/appointments/today" element={<TodayAppointments />} />
-        <Route path="vet/pets" element={<RegisteredPets />} />
-        <Route path="vet/pets/pending" element={<PendingRegistrations />} />
-        <Route path="vet/chat" element={<ChatWithOwners />} />
-        <Route path="vet/chat/owner/:ownerId" element={<VetChatWindow />} />
-        <Route path="/vet/chat" element={<ChatWithOwners />} />
-        <Route path="/vet/chat/owner/:ownerId" element={<VetChatWindow />} />
-        <Route path="vet/staff" element={<VetStaff />} />
-        <Route path="vet/clinic-settings" element={<ClinicSettings />} />
-        <Route path="/vet/pets/profile/:petId" element={<PetProfileAdmin />} />
-        <Route path="/vet/profile" element={<VetProfile />} />
+        <Route path="vet/dashboard" element={<VetProtectedRoute><DashboardHome /></VetProtectedRoute>} />
+        <Route path="vet/appointments" element={<VetProtectedRoute><AppointmentsList /></VetProtectedRoute>} />
+        <Route path="vet/appointments/today" element={<VetProtectedRoute><TodayAppointments /></VetProtectedRoute>} />
+        <Route path="vet/pets" element={<VetProtectedRoute><RegisteredPets /></VetProtectedRoute>} />
+        <Route path="vet/pets/pending" element={<VetProtectedRoute><PendingRegistrations /></VetProtectedRoute>} />
+        <Route path="vet/chat" element={<VetProtectedRoute><ChatWithOwners /></VetProtectedRoute>} />
+        <Route path="vet/chat/owner/:ownerId" element={<VetProtectedRoute><VetChatWindow /></VetProtectedRoute>} />
+        <Route path="/vet/chat" element={<VetProtectedRoute><ChatWithOwners /></VetProtectedRoute>} />
+        <Route path="/vet/chat/owner/:ownerId" element={<VetProtectedRoute><VetChatWindow /></VetProtectedRoute>} />
+        <Route path="vet/staff" element={<VetProtectedRoute><VetStaff /></VetProtectedRoute>} />
+        <Route path="vet/clinic-settings" element={<VetProtectedRoute><ClinicSettings /></VetProtectedRoute>} />
+        <Route path="/vet/pets/profile/:petId" element={<VetProtectedRoute><PetProfileAdmin /></VetProtectedRoute>} />
+        <Route path="/vet/profile" element={<VetProtectedRoute><VetProfile /></VetProtectedRoute>} />
 
         <Route path="/owner/profile" element={<OwnerDashboard />} />
         <Route path="/owner/pets/new" element={<AddPet />} />

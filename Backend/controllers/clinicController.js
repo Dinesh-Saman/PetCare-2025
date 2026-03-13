@@ -435,27 +435,17 @@ exports.addClinicStaff = async (req, res) => {
 
     // === 4. Add Veterinarian Sub-Account ===
     if (normalizedStaffType === 'veterinarian') {
-      if (!veterinaryId?.trim()) {
-        return res.status(400).json({
-          message: 'Veterinary License ID is required for veterinarians'
-        });
+      // Check for duplicate email or license (if provided) or phone number
+      const existingVetEmail = await Veterinarian.findOne({ email: normalizedEmail });
+      if (existingVetEmail) {
+        return res.status(409).json({ message: 'Email address is already in use' });
       }
 
-      // Prevent creating another Enhanced Vet via this endpoint if needed (optional)
-      // For now, we allow it if the creator is Enhanced.
-
-      // Check for duplicate email or license
-      const existingVet = await Veterinarian.findOne({
-        $or: [
-          { email: normalizedEmail },
-          { veterinaryId: veterinaryId.trim() }
-        ]
-      });
-
-      if (existingVet) {
-        return res.status(409).json({
-          message: 'A veterinarian with this email or license ID already exists'
-        });
+      if (phoneNumber?.trim()) {
+        const existingVetPhone = await Veterinarian.findOne({ phoneNumber: phoneNumber.trim() });
+        if (existingVetPhone) {
+          return res.status(409).json({ message: 'Phone number is already in use' });
+        }
       }
 
       const salt = await bcrypt.genSalt(12);
@@ -467,12 +457,15 @@ exports.addClinicStaff = async (req, res) => {
         email: normalizedEmail,
         passwordHash,
         phoneNumber: phoneNumber?.trim() || '',
-        veterinaryId: veterinaryId.trim(),
         specialization: specialization?.trim() || '',
         accessLevel: accessLevel || 'Basic',
         createdByVetId: creator._id,
         status: 'Active'
       };
+
+      if (veterinaryId?.trim()) {
+        newVetData.veterinaryId = veterinaryId.trim();
+      }
 
       if (clinicId) {
         newVetData.currentActiveClinicId = clinicId;

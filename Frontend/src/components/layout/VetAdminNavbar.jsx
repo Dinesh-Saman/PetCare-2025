@@ -18,7 +18,8 @@ import {
     List,
     ListItem,
     ListItemText,
-    CircularProgress
+    CircularProgress,
+    Button
 } from '@mui/material';
 import api from '../../services/api';
 import dayjs from 'dayjs';
@@ -35,9 +36,12 @@ import {
     Pets as PetsIcon,
     HourglassEmpty as HourglassEmptyIcon,
     Group as GroupIcon,
-    PersonAdd as PersonAddIcon
+    PersonAdd as PersonAddIcon,
+    Home as HomeIcon,
+    Info as InfoIcon,
+    Mail as MailIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import Sidebar from './sidebar';
 import { useAuth } from '../../context/AuthContext';
 
@@ -55,6 +59,13 @@ const VetAdminNavbar = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const menuItems = [
+        { path: "/vet-home", icon: <HomeIcon />, label: "Home" },
+        { path: "/about", icon: <InfoIcon />, label: "About Us" },
+        { path: "/contact", icon: <MailIcon />, label: "Contact Us" },
+    ];
 
     useEffect(() => {
         fetchNotifications();
@@ -127,11 +138,14 @@ const VetAdminNavbar = () => {
                 }}
             >
                 <Toolbar sx={{
-                    justifyContent: 'space-between',
-                    minHeight: { xs: '64px', md: '70px' },
-                    px: { xs: 1.5, sm: 2, md: 3 }
+                    maxWidth: '1400px',
+                    width: '100%',
+                    mx: 'auto',
+                    px: { xs: 2, md: 4 },
+                    minHeight: 80,
+                    '@media (min-width:600px)': { minHeight: 96 }
                 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mr: 'auto' }}>
                         {isMobile && (
                             <IconButton
                                 color="inherit"
@@ -158,12 +172,44 @@ const VetAdminNavbar = () => {
                                     fontSize: { xs: '0.9rem', sm: '1.25rem' }
                                 }}
                             >
-                                PAWPAL {!isMobile && <span style={{ fontWeight: 400, opacity: 0.8 }}>VET ADMIN</span>}
+                                PAWPAL {!isMobile && <span style={{ fontWeight: 400, opacity: 0.8, fontSize: '0.9rem' }}>VET PORTAL</span>}
                             </Typography>
                         </Box>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
+                    {/* Desktop Navigation */}
+                    <Box sx={{ flex: 1, display: { xs: 'none', md: 'flex' }, justifyContent: 'center', gap: 4 }}>
+                        {menuItems.map((item) => (
+                            <Button
+                                key={item.path}
+                                component={Link}
+                                to={item.path}
+                                startIcon={item.icon}
+                                sx={{
+                                    color: 'white',
+                                    fontSize: '1rem',
+                                    fontWeight: location.pathname === item.path ? 700 : 500,
+                                    textTransform: 'none',
+                                    position: 'relative',
+                                    '&::after': {
+                                        content: '""',
+                                        position: 'absolute',
+                                        bottom: -4,
+                                        left: 0,
+                                        width: location.pathname === item.path ? '100%' : '0%',
+                                        height: '2px',
+                                        backgroundColor: 'white',
+                                        transition: 'width 0.3s',
+                                    },
+                                    '&:hover::after': { width: '100%' },
+                                }}
+                            >
+                                {item.label}
+                            </Button>
+                        ))}
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 }, ml: 'auto' }}>
                         <IconButton color="inherit" onClick={handleNotifMenuOpen} size={isMobile ? "small" : "medium"}>
                             <Badge badgeContent={totalNotifs} color="error" sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', height: 16, minWidth: 16 } }}>
                                 <NotificationsIcon fontSize={isMobile ? "small" : "medium"} />
@@ -206,7 +252,10 @@ const VetAdminNavbar = () => {
             </AppBar>
 
             {/* Toolbar spacer */}
-            <Toolbar sx={{ minHeight: { xs: '64px', md: '70px' } }} />
+            <Toolbar sx={{ 
+                minHeight: 80,
+                '@media (min-width:600px)': { minHeight: 96 }
+            }} />
 
             <Menu
                 anchorEl={anchorEl}

@@ -104,7 +104,7 @@ export const AuthProvider = ({ children }) => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
-    const login = (userData, token) => {
+    const login = (userData, token, stayOpen = false) => {
         if (userData.role === 'vet') {
             setVetUser(userData);
             localStorage.setItem('vet_token', token);
@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('owner_user', JSON.stringify(userData));
         }
         // No longer setting global default as interceptor handles it per-path
-        setAuthModalOpen(false);
+        if (!stayOpen) setAuthModalOpen(false);
     };
 
     const logout = (roleOverride) => {

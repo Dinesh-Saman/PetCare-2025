@@ -596,15 +596,15 @@ const PetProfile = () => {
       <Box sx={{ display: 'flex', flexGrow: 1 }}>
         {!isMobile && <Sidebar />}
         <Box sx={{ flexGrow: 1, p: isMobile ? 1 : 3 }}>
-          <Paper elevation={6} sx={{ borderRadius: 4, overflow: 'hidden' }}>
-            <Box sx={{ bgcolor: '#2e7d32', color: 'white', p: isMobile ? 3 : 6, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 2 : 4 }}>
+          <Paper elevation={2} sx={{ borderRadius: 4, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+            <Box sx={{ bgcolor: '#ffffff', color: '#1e293b', p: isMobile ? 3 : 6, display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: 'center', gap: isMobile ? 2 : 4, borderBottom: '1px solid #e2e8f0' }}>
               <PetAvatarLarge src={pet.photo} alt={pet.name}>
                 {pet.name?.[0]?.toUpperCase() || 'P'}
               </PetAvatarLarge>
               <Box sx={{ textAlign: isMobile ? 'center' : 'left' }}>
                 <Typography variant={isMobile ? 'h4' : 'h3'} fontWeight="bold">{pet.name}</Typography>
-                <Typography variant="h6">{pet.species} • {pet.breed || 'Mixed'}</Typography>
-                <Typography variant="body1" sx={{ mt: 1 }}>
+                <Typography variant="h6" sx={{ color: '#64748b', fontWeight: 500 }}>{pet.species} • {pet.breed || 'Mixed'}</Typography>
+                <Typography variant="body1" sx={{ mt: 1, color: '#64748b' }}>
                   Age: {calculateAge(pet.dateOfBirth)} • Gender: {pet.gender || 'Unknown'}
                 </Typography>
 
@@ -615,13 +615,14 @@ const PetProfile = () => {
                     onClick={() => navigate(`/vet/chat/owner/${pet.ownerId._id}`, { state: { selectedPetId: pet._id } })}
                     sx={{
                       mt: 2,
-                      bgcolor: 'white',
-                      color: '#2e7d32',
+                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                      color: 'white',
                       fontWeight: 'bold',
                       textTransform: 'none',
-                      borderRadius: '20px',
+                      borderRadius: '12px',
+                      px: 3,
                       '&:hover': {
-                        bgcolor: '#f1f8e9',
+                        opacity: 0.9,
                       }
                     }}
                   >
@@ -644,8 +645,8 @@ const PetProfile = () => {
                 <AlignedContent>
                   <Grid container spacing={4}>
                     <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-                      <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden', width: '100%', height: '100%' }}>
-                        <Box sx={{ bgcolor: '#2e7d32', color: 'white', p: 2 }}>
+                      <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', width: '100%', height: '100%' }}>
+                        <Box sx={{ bgcolor: '#e08c0eff', color: 'white', p: 2, borderBottom: '1px solid #e2e8f0' }}>
                           <Typography variant="h6" fontWeight="bold">Pet Details</Typography>
                         </Box>
                         <Box sx={{ p: 3 }}>
@@ -658,8 +659,8 @@ const PetProfile = () => {
                       </Paper>
                     </Grid>
                     <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-                      <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden', width: '100%', height: '100%' }}>
-                        <Box sx={{ bgcolor: '#1976d2', color: 'white', p: 2 }}>
+                      <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', width: '100%', height: '100%' }}>
+                        <Box sx={{ bgcolor: '#e08c0eff', color: 'white', p: 2, borderBottom: '1px solid #e2e8f0' }}>
                           <Typography variant="h6" fontWeight="bold">Owner Details</Typography>
                         </Box>
                         <Box sx={{ p: 3 }}>

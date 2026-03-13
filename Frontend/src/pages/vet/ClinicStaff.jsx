@@ -30,6 +30,12 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import BusinessIcon from '@mui/icons-material/Business';
 
+const specializations = [
+  'General Practice', 'Surgery', 'Dermatology', 'Internal Medicine', 'Cardiology',
+  'Oncology', 'Neurology', 'Ophthalmology', 'Dentistry', 'Emergency Care',
+  'Radiology', 'Anesthesiology', 'Exotic Animals', 'Equine Medicine'
+];
+
 // Styled Components
 const ContentContainer = styled(Box)(({ theme }) => ({
   backgroundColor: 'white',
@@ -192,62 +198,59 @@ const ClinicStaff = () => {
   const navigate = useNavigate();
 
   const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
-    staffType: 'receptionist',
+    staffType: 'veterinarian',
     firstName: '',
     lastName: '',
     email: '',
     password: '',
+    confirmPassword: '',
     phoneNumber: '',
-    veterinaryId: '',
     specialization: '',
     accessLevel: 'Basic',
-    role: 'Receptionist',
+    role: 'Veterinarian',
     clinicId: ''
   });
 
   const handleOpenAddPopup = () => setIsAddPopupOpen(true);
   const handleCloseAddPopup = () => {
     setIsAddPopupOpen(false);
+    setErrors({});
     setFormData({
-      staffType: 'receptionist',
+      staffType: 'veterinarian',
       firstName: '',
       lastName: '',
       email: '',
       password: '',
+      confirmPassword: '',
       phoneNumber: '',
-      veterinaryId: '',
       specialization: '',
       accessLevel: 'Basic',
-      role: 'Receptionist',
+      role: 'Veterinarian',
       clinicId: ''
     });
   };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'staffType') {
-      let role = '';
-      if (value === 'receptionist') role = 'Receptionist';
-      if (value === 'vetTech') role = 'Vet Tech';
-      if (value === 'assistant') role = 'Assistant';
-      if (value === 'manager') role = 'Manager';
-      if (value === 'nurse') role = 'Nurse';
-      if (value === 'kennelStaff') role = 'Kennel Staff';
-      if (value === 'veterinarian') role = 'Veterinarian';
-      setFormData(prev => ({ ...prev, staffType: value, role: role }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
   const handleAddStaffSubmit = async () => {
-    const required = ['firstName', 'lastName', 'email', 'password', 'phoneNumber'];
-    if (formData.staffType === 'veterinarian') required.push('veterinaryId');
+    const required = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'phoneNumber', 'specialization'];
 
     const missing = required.filter(field => !formData[field]?.trim());
     if (missing.length > 0) {
       Swal.fire('Missing Fields', 'Please fill all required fields', 'warning');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setErrors(prev => ({ ...prev, confirmPassword: 'Passwords do not match' }));
       return;
     }
 
@@ -264,7 +267,14 @@ const ClinicStaff = () => {
       const response = await api.get('/vets/clinics/staff');
       setStaff(response.data.staff || []);
     } catch (error) {
-      Swal.fire('Error!', error.response?.data?.message || 'Failed to add staff', 'error');
+      const errorMsg = error.response?.data?.message || 'Failed to add staff';
+      if (errorMsg.toLowerCase().includes('email')) {
+        setErrors(prev => ({ ...prev, email: errorMsg }));
+      } else if (errorMsg.toLowerCase().includes('phone')) {
+        setErrors(prev => ({ ...prev, phoneNumber: errorMsg }));
+      } else {
+        Swal.fire('Error!', errorMsg, 'error');
+      }
     }
   };
 
@@ -498,7 +508,7 @@ const ClinicStaff = () => {
                   size="small"
                   sx={{ width: isMobile ? '100%' : 'auto' }}
                 >
-                  Add Staff
+                  Add Veterinarian
                 </AddButton>
               </Box>
             </HeaderContainer>
@@ -642,40 +652,19 @@ const ClinicStaff = () => {
           px: 4,
           pt: 4
         }}>
-          Add Staff Member
+          Add Veterinarian
         </DialogTitle>
         <DialogContent sx={{ p: 4, pt: 1, bgcolor: '#fbfcfd' }}>
           <Typography variant="body2" sx={{ color: '#64748b', mb: 3 }}>
-            Expand your clinic team with skilled professionals
+            Expand your clinic team with skilled veterinarians
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
-            {/* Row 1: Staff Type + Select Clinic */}
-            <FormControl fullWidth>
-              <InputLabel>Staff Type</InputLabel>
-              <Select name="staffType" value={formData.staffType} onChange={handleFormChange} label="Staff Type">
-                <MenuItem value="veterinarian">Veterinarian</MenuItem>
-                <MenuItem value="receptionist">Receptionist</MenuItem>
-                <MenuItem value="vetTech">Vet Technician</MenuItem>
-                <MenuItem value="assistant">Assistant</MenuItem>
-                <MenuItem value="manager">Manager</MenuItem>
-                <MenuItem value="nurse">Nurse</MenuItem>
-                <MenuItem value="kennelStaff">Kennel Staff</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Select Clinic (Optional)</InputLabel>
-              <Select name="clinicId" value={formData.clinicId} onChange={handleFormChange} label="Select Clinic (Optional)">
-                <MenuItem value=""><em>None selected</em></MenuItem>
-                {clinics.map(c => <MenuItem key={c._id} value={c._id}>{c.name}</MenuItem>)}
-              </Select>
-            </FormControl>
-
-            {/* Row 2: First Name + Last Name */}
-            <TextField fullWidth label="First Name" name="firstName" value={formData.firstName} onChange={handleFormChange} />
-            <TextField fullWidth label="Last Name" name="lastName" value={formData.lastName} onChange={handleFormChange} />
+            {/* Row 1: First Name + Last Name */}
+            <TextField fullWidth label="First Name" name="firstName" value={formData.firstName} onChange={handleFormChange} required />
+            <TextField fullWidth label="Last Name" name="lastName" value={formData.lastName} onChange={handleFormChange} required />
 
             {/* Row 3: Phone Number + Access Level */}
-            <TextField fullWidth label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleFormChange} />
+            <TextField fullWidth label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleFormChange} error={!!errors.phoneNumber} helperText={errors.phoneNumber} />
             <FormControl fullWidth>
               <InputLabel>Access Level</InputLabel>
               <Select name="accessLevel" value={formData.accessLevel} onChange={handleFormChange} label="Access Level">
@@ -684,16 +673,26 @@ const ClinicStaff = () => {
               </Select>
             </FormControl>
 
-            {/* Row 4: Email + Password */}
-            <TextField fullWidth label="Email" name="email" value={formData.email} onChange={handleFormChange} />
-            <TextField fullWidth label="Password" name="password" type="password" value={formData.password} onChange={handleFormChange} />
+            {/* Row 4: Email + Specialization */}
+            <TextField fullWidth label="Email" name="email" value={formData.email} onChange={handleFormChange} required error={!!errors.email} helperText={errors.email} />
+            <FormControl fullWidth required>
+              <InputLabel>Specialization</InputLabel>
+              <Select
+                name="specialization"
+                value={formData.specialization}
+                onChange={handleFormChange}
+                label="Specialization"
+              >
+                <MenuItem value="" disabled>Select Specialization</MenuItem>
+                {specializations.map((spec) => (
+                  <MenuItem key={spec} value={spec}>{spec}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-            {/* Row 5: Veterinary License ID (vet only, full width) */}
-            {formData.staffType === 'veterinarian' && (
-              <Box sx={{ gridColumn: '1 / -1' }}>
-                <TextField fullWidth label="Veterinary License ID" name="veterinaryId" value={formData.veterinaryId} onChange={handleFormChange} />
-              </Box>
-            )}
+            {/* Row 4: Password + Confirm Password */}
+            <TextField fullWidth label="Password" name="password" type="password" value={formData.password} onChange={handleFormChange} required />
+            <TextField fullWidth label="Confirm Password" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleFormChange} required error={!!errors.confirmPassword} helperText={errors.confirmPassword} />
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 4, pb: 4, pt: 0, bgcolor: '#fbfcfd' }}>
@@ -712,7 +711,7 @@ const ClinicStaff = () => {
               '&:hover': { bgcolor: '#3a1080' }
             }}
           >
-            Add Staff Member
+            Add Veterinarian
           </Button>
         </DialogActions>
       </Dialog>
@@ -767,7 +766,20 @@ const ClinicStaff = () => {
               {/* Row 4: Full-width — Specialization (vet) or Assigned Clinics (staff Basic) */}
               {editFormData.staffType === 'veterinarian' && (
                 <Box sx={{ gridColumn: '1 / -1' }}>
-                  <TextField fullWidth label="Specialization" name="specialization" value={editFormData.specialization} onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })} />
+                  <FormControl fullWidth>
+                    <InputLabel>Specialization</InputLabel>
+                    <Select
+                      name="specialization"
+                      value={editFormData.specialization || ''}
+                      onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })}
+                      label="Specialization"
+                    >
+                      <MenuItem value="" disabled>Select Specialization</MenuItem>
+                      {specializations.map((spec) => (
+                        <MenuItem key={spec} value={spec}>{spec}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </Box>
               )}
               {editFormData.staffType !== 'veterinarian' && editFormData.accessLevel === 'Basic' && (

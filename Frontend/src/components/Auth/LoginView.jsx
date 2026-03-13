@@ -70,8 +70,13 @@ const LoginView = () => {
                 sessionStorage.setItem('temp_2fa_userId', data.userId);
                 sessionStorage.setItem('temp_2fa_role', data.role);
             } else {
-                login(data.user, data.token);
-                if (data.user.role === 'vet') navigate('/vet/dashboard');
+                if (data.user.role === 'vet' && !data.user.veterinaryId) {
+                    login(data.user, data.token, true); // Stay open to complete profile
+                    setAuthModalView('register');
+                } else {
+                    login(data.user, data.token);
+                    if (data.user.role === 'vet') navigate('/vet/dashboard');
+                }
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid email or password');
@@ -96,8 +101,13 @@ const LoginView = () => {
                 sessionStorage.setItem('temp_2fa_userId', data.userId);
                 sessionStorage.setItem('temp_2fa_role', data.role);
             } else {
-                login(data.user, data.token);
-                if (data.user.role === 'vet') navigate('/vet/dashboard');
+                if (data.user.role === 'vet' && !data.user.veterinaryId) {
+                    login(data.user, data.token, true); // Stay open to complete profile
+                    setAuthModalView('register');
+                } else {
+                    login(data.user, data.token);
+                    if (data.user.role === 'vet') navigate('/vet/dashboard');
+                }
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Google authentication failed');

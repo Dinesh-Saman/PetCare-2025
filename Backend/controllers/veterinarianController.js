@@ -18,13 +18,14 @@ const registerVet = async (req, res) => {
       phoneNumber,
       veterinaryId,
       specialization,
+      address,
       isPrimaryVet = false
     } = req.body;
 
     // Required fields
-    if (!firstName || !lastName || !email || !password || !veterinaryId || !phoneNumber) {
+    if (!firstName || !lastName || !email || !password || !phoneNumber || !address) {
       return res.status(400).json({
-        message: 'firstName, lastName, email, password, phoneNumber, and veterinaryId are required'
+        message: 'firstName, lastName, email, password, phoneNumber, and address are required'
       });
     }
 
@@ -46,7 +47,7 @@ const registerVet = async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    let accessLevel = 'Basic';
+    let accessLevel = 'Enhanced'; // Default to Enhanced as requested
     let ownedClinics = [];
     let currentActiveClinicId = null;
 
@@ -57,19 +58,25 @@ const registerVet = async (req, res) => {
     }
 
     // Create the vet
-    const vet = new Veterinarian({
+    const vetData = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.toLowerCase().trim(),
       passwordHash,
       phoneNumber: phoneNumber.trim(),
-      veterinaryId: veterinaryId.trim(),
       specialization: specialization?.trim() || '',
+      address: address?.trim() || '',
       accessLevel,
       ownedClinics,
       currentActiveClinicId,
       status: 'Active'
-    });
+    };
+
+    if (veterinaryId?.trim()) {
+      vetData.veterinaryId = veterinaryId.trim();
+    }
+
+    const vet = new Veterinarian(vetData);
 
     await vet.save();
 
@@ -158,20 +165,24 @@ const createSubAccount = async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // For sub-accounts, they only work at one clinic
-    const subVet = new Veterinarian({
+    const subVetData = {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: email.toLowerCase().trim(),
       passwordHash,
       phoneNumber: phoneNumber?.trim() || '',
-      veterinaryId: veterinaryId.trim(),
       specialization: specialization?.trim() || '',
       currentActiveClinicId: req.body.clinicId,
       accessLevel,
       createdByVetId: creatorVetId,
       status: 'Active'
-    });
+    };
+
+    if (veterinaryId?.trim()) {
+      subVetData.veterinaryId = veterinaryId.trim();
+    }
+
+    const subVet = new Veterinarian(subVetData);
 
     await subVet.save();
 
@@ -278,7 +289,7 @@ const updateVet = async (req, res) => {
     const requesterId = req.user?.id;
 
     // Handle ClinicStaff trying to update their own profile
-    if (req.user?.staffRole && requesterId === id) {
+    if (req.user?.staffRole && requesterId.toString() === id.toString()) {
       const ClinicStaff = require('../models/ClinicStaff');
       const staffToUpdate = await ClinicStaff.findById(id);
       if (!staffToUpdate) return res.status(404).json({ message: 'Staff member not found' });
@@ -300,9 +311,20 @@ const updateVet = async (req, res) => {
         id, cleanUpdates, { new: true, runValidators: true }
       ).select('-passwordHash');
 
+      const responseUser = {
+        id: updatedStaff._id,
+        firstName: updatedStaff.firstName,
+        lastName: updatedStaff.lastName,
+        email: updatedStaff.email,
+        phoneNumber: updatedStaff.phoneNumber || null,
+        role: 'vet',
+        staffRole: updatedStaff.role || null,
+        clinicId: updatedStaff.clinicId || null
+      };
+
       return res.status(200).json({
         message: 'Staff updated successfully',
-        vet: updatedStaff
+        vet: responseUser
       });
     }
 
@@ -320,7 +342,7 @@ const updateVet = async (req, res) => {
     // Authorization:
     // 1. Self-update
     // 2. Enhanced update of sub-accounts
-    const isSelf = requesterId === id;
+    const isSelf = requesterId.toString() === id.toString();
     const isAuthorized = isSelf || requester.accessLevel === 'Enhanced';
 
     if (!isAuthorized) {
@@ -329,15 +351,29 @@ const updateVet = async (req, res) => {
 
     // Critical field protection
     const cleanUpdates = { ...updates };
-    const restricted = ['ownedClinics', 'createdByVetId', 'googleId', 'passwordHash'];
+    const restricted = ['ownedClinics', 'createdByVetId', 'googleId'];
+
+    // Handle password update
+    if (cleanUpdates.password) {
+      const salt = await bcrypt.genSalt(12);
+      cleanUpdates.passwordHash = await bcrypt.hash(cleanUpdates.password, salt);
+      delete cleanUpdates.password;
+    } else {
+      restricted.push('passwordHash');
+    }
 
     // If not Enhanced, cannot change accessLevel or status of others
     if (requester.accessLevel !== 'Enhanced') {
       restricted.push('accessLevel', 'status');
     }
 
-    // Even Enhanced cannot change their own accessLevel or another Enhanced's level
-    if (isSelf || vetToUpdate.accessLevel === 'Enhanced') {
+    // Even Enhanced cannot change another Enhanced's level
+    if (isSelf) {
+      // Allow self-set to Enhanced if desired
+      if (cleanUpdates.accessLevel !== 'Enhanced') {
+        delete cleanUpdates.accessLevel;
+      }
+    } else if (vetToUpdate.accessLevel === 'Enhanced') {
       delete cleanUpdates.accessLevel;
     }
 
@@ -377,6 +413,7 @@ const updateVet = async (req, res) => {
     if (cleanUpdates.phoneNumber) cleanUpdates.phoneNumber = cleanUpdates.phoneNumber.trim();
     if (cleanUpdates.veterinaryId) cleanUpdates.veterinaryId = cleanUpdates.veterinaryId.trim();
     if (cleanUpdates.specialization) cleanUpdates.specialization = cleanUpdates.specialization.trim();
+    if (cleanUpdates.address) cleanUpdates.address = cleanUpdates.address.trim();
 
     // Update the veterinarian
     const updatedVet = await Veterinarian.findByIdAndUpdate(
@@ -385,9 +422,24 @@ const updateVet = async (req, res) => {
       { new: true, runValidators: true }
     ).select('-passwordHash');
 
+    const responseUser = {
+      id: updatedVet._id,
+      firstName: updatedVet.firstName,
+      lastName: updatedVet.lastName,
+      email: updatedVet.email,
+      phoneNumber: updatedVet.phoneNumber || null,
+      address: updatedVet.address || null,
+      role: 'vet',
+      accessLevel: updatedVet.accessLevel,
+      veterinaryId: updatedVet.veterinaryId,
+      specialization: updatedVet.specialization,
+      ownedClinics: updatedVet.ownedClinics || [],
+      currentActiveClinicId: updatedVet.currentActiveClinicId || null
+    };
+
     res.status(200).json({
       message: 'Veterinarian updated successfully',
-      vet: updatedVet
+      vet: responseUser
     });
 
   } catch (error) {
@@ -921,18 +973,10 @@ const deleteVet = async (req, res) => {
     console.log('Access level:', vetToDelete.accessLevel);
     console.log('Current clinic ID:', vetToDelete.currentActiveClinicId);
 
-    // Check if requester is a Primary veterinarian
-    if (primaryVet.accessLevel !== 'Primary') {
-      return res.status(403).json({
-        message: 'Only Primary veterinarians can delete accounts'
-      });
-    }
-
-
     // Check if this is a primary vet (shouldn't happen due to earlier check, but just in case)
     if (vetToDelete.accessLevel === 'Enhanced') {
       return res.status(403).json({
-        message: 'Cannot delete another Primary veterinarian account'
+        message: 'Cannot delete another Enhanced veterinarian account'
       });
     }
 
