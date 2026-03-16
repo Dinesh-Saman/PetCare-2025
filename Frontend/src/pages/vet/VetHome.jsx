@@ -4,8 +4,8 @@ import VetNavbar from "../../components/VetNavbar";
 import VetHeroSection from "../../components/VetHeroSection";
 import VetFunctionalities from "../../components/VetFunctionalities";
 import VetPurposeSection from "../../components/VetPurposeSection";
-import HowItWorks from "../../components/HowItWorks";
-import Footer from "../../components/Footer";
+
+
 
 const VetHome = () => {
   return (
@@ -17,11 +17,9 @@ const VetHome = () => {
 
       <VetFunctionalities />
       
-      <div style={{ borderTop: '1px solid #f0f0f0' }}>
-        <HowItWorks />
-      </div>
 
-      <Footer />
+
+
     </div>
   );
 };

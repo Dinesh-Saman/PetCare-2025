@@ -18,9 +18,9 @@ import {
     List,
     ListItem,
     ListItemText,
-    CircularProgress,
-    Button
+    CircularProgress
 } from '@mui/material';
+import Button from '@mui/material/Button';
 import api from '../../services/api';
 import dayjs from 'dayjs';
 import {
@@ -172,7 +172,7 @@ const VetAdminNavbar = () => {
                                     fontSize: { xs: '0.9rem', sm: '1.25rem' }
                                 }}
                             >
-                                PAWPAL {!isMobile && <span style={{ fontWeight: 400, opacity: 0.8, fontSize: '0.9rem' }}>VET PORTAL</span>}
+                                PawPal {!isMobile && <span style={{ fontWeight: 400, opacity: 0.8, fontSize: '0.9rem' }}>VET PORTAL</span>}
                             </Typography>
                         </Box>
                     </Box>
@@ -184,6 +184,7 @@ const VetAdminNavbar = () => {
                                 key={item.path}
                                 component={Link}
                                 to={item.path}
+                                state={{ fromVet: true }}
                                 startIcon={item.icon}
                                 sx={{
                                     color: 'white',
@@ -252,7 +253,7 @@ const VetAdminNavbar = () => {
             </AppBar>
 
             {/* Toolbar spacer */}
-            <Toolbar sx={{ 
+            <Toolbar sx={{
                 minHeight: 80,
                 '@media (min-width:600px)': { minHeight: 96 }
             }} />
@@ -276,54 +277,6 @@ const VetAdminNavbar = () => {
                 <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/profile'); }}>
                     <ListItemIcon><Person fontSize="small" color="primary" /></ListItemIcon>
                     My Profile
-                </MenuItem>
-                <Divider sx={{ my: 1 }} />
-
-                {/* Dashboard */}
-                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Dashboard</MenuItem>
-                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/dashboard'); }}>
-                    <ListItemIcon><DashboardIcon fontSize="small" /></ListItemIcon>
-                    Overview
-                </MenuItem>
-                <Divider sx={{ my: 0.5 }} />
-
-                {/* Clinic Management */}
-                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Clinic Management</MenuItem>
-                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/clinic-settings'); }}>
-                    <ListItemIcon><Settings fontSize="small" /></ListItemIcon>
-                    Manage Clinics
-                </MenuItem>
-                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/chat'); }}>
-                    <ListItemIcon><ChatIcon fontSize="small" /></ListItemIcon>
-                    Chat with Owners
-                </MenuItem>
-                <Divider sx={{ my: 0.5 }} />
-
-                {/* Appointments */}
-                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Appointments</MenuItem>
-                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/appointments'); }}>
-                    <ListItemIcon><CalendarMonthIcon fontSize="small" /></ListItemIcon>
-                    All Appointments
-                </MenuItem>
-                <Divider sx={{ my: 0.5 }} />
-
-                {/* Pet Management */}
-                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Pet Management</MenuItem>
-                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/pets'); }}>
-                    <ListItemIcon><PetsIcon fontSize="small" /></ListItemIcon>
-                    Registered Pets
-                </MenuItem>
-                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/pets?tab=pending'); }}>
-                    <ListItemIcon><HourglassEmptyIcon fontSize="small" /></ListItemIcon>
-                    Pending Registrations
-                </MenuItem>
-                <Divider sx={{ my: 0.5 }} />
-
-                {/* Staff Management */}
-                <MenuItem disabled sx={{ opacity: 0.5, fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Staff Management</MenuItem>
-                <MenuItem onClick={() => { handleProfileMenuClose(); navigate('/vet/staff'); }}>
-                    <ListItemIcon><GroupIcon fontSize="small" /></ListItemIcon>
-                    All Staff
                 </MenuItem>
                 <Divider sx={{ my: 1 }} />
 

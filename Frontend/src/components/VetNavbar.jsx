@@ -24,6 +24,7 @@ import {
   Mail as MailIcon,
   Close as CloseIcon,
   Login as LoginIcon,
+  Dashboard as DashboardIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 
@@ -32,7 +33,8 @@ const VetNavbar = () => {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { openAuthModal } = useAuth();
+  const { openAuthModal, vetUser } = useAuth();
+  const isVetLoggedIn = !!vetUser;
 
   const toggleDrawer = (open) => () => setDrawerOpen(open);
 
@@ -79,6 +81,7 @@ const VetNavbar = () => {
             key={item.path}
             component={Link}
             to={item.path}
+            state={{ fromVet: true }}
             onClick={toggleDrawer(false)}
             sx={{
               color: 'white',
@@ -103,20 +106,56 @@ const VetNavbar = () => {
       </List>
 
       <Box sx={{ p: 3, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-        <Button
-          fullWidth
-          variant="contained"
-          onClick={() => { toggleDrawer(false)(); openAuthModal('login', 'vet'); }}
-          startIcon={<LoginIcon />}
-          sx={{
-            py: 1.5,
-            background: 'rgba(255,255,255,0.25)',
-            color: 'white',
-            '&:hover': { background: 'rgba(255,255,255,0.35)' },
-          }}
-        >
-          Vet Login
-        </Button>
+        {isVetLoggedIn ? (
+          <Button
+            fullWidth
+            variant="contained"
+            component={Link}
+            to="/vet/dashboard"
+            onClick={toggleDrawer(false)}
+            startIcon={<DashboardIcon />}
+            sx={{
+              py: 1.5,
+              background: 'rgba(255,255,255,0.25)',
+              color: 'white',
+              '&:hover': { background: 'rgba(255,255,255,0.35)' },
+            }}
+          >
+            Go to Dashboard
+          </Button>
+        ) : (
+          <>
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => { toggleDrawer(false)(); openAuthModal('login', 'vet'); }}
+              startIcon={<LoginIcon />}
+              sx={{
+                mb: 2,
+                py: 1.5,
+                background: 'rgba(255,255,255,0.15)',
+                color: 'white',
+                '&:hover': { background: 'rgba(255,255,255,0.25)' },
+              }}
+            >
+              Vet Login
+            </Button>
+            <Button
+              fullWidth
+              variant="contained"
+              onClick={() => { toggleDrawer(false)(); openAuthModal('register', 'vet'); }}
+              startIcon={<InfoIcon />} // Using InfoIcon as a placeholder
+              sx={{
+                py: 1.5,
+                background: 'rgba(255,255,255,0.25)',
+                color: 'white',
+                '&:hover': { background: 'rgba(255,255,255,0.35)' },
+              }}
+            >
+              Vet Register
+            </Button>
+          </>
+        )}
       </Box>
     </Box>
   );
@@ -178,6 +217,7 @@ const VetNavbar = () => {
                 key={item.path}
                 component={Link}
                 to={item.path}
+                state={{ fromVet: true }}
                 startIcon={item.icon}
                 sx={{
                   color: 'white',
@@ -204,19 +244,49 @@ const VetNavbar = () => {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
-            <Button
-              onClick={() => openAuthModal('login', 'vet')}
-              variant="contained"
-              sx={{
-                background: 'rgba(255,255,255,0.25)',
-                color: 'white',
-                textTransform: 'none',
-                display: { xs: 'none', md: 'flex' },
-                '&:hover': { background: 'rgba(255,255,255,0.35)' },
-              }}
-            >
-              Vet Login
-            </Button>
+            {isVetLoggedIn ? (
+              <Button
+                component={Link}
+                to="/vet/dashboard"
+                variant="contained"
+                startIcon={<DashboardIcon />}
+                sx={{
+                  background: 'rgba(255,255,255,0.25)',
+                  color: 'white',
+                  textTransform: 'none',
+                  display: { xs: 'none', md: 'flex' },
+                  '&:hover': { background: 'rgba(255,255,255,0.35)' },
+                }}
+              >
+                Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button
+                  onClick={() => openAuthModal('login', 'vet')}
+                  sx={{
+                    color: 'white',
+                    textTransform: 'none',
+                    display: { xs: 'none', md: 'flex' },
+                  }}
+                >
+                  Vet Login
+                </Button>
+                <Button
+                  onClick={() => openAuthModal('register', 'vet')}
+                  variant="contained"
+                  sx={{
+                    background: 'rgba(255,255,255,0.25)',
+                    color: 'white',
+                    textTransform: 'none',
+                    display: { xs: 'none', md: 'flex' },
+                    '&:hover': { background: 'rgba(255,255,255,0.35)' },
+                  }}
+                >
+                  Vet Register
+                </Button>
+              </>
+            )}
             <IconButton
               color="inherit"
               edge="end"

@@ -18,6 +18,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import ImageIcon from '@mui/icons-material/Image';
 import DownloadIcon from '@mui/icons-material/Download';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
 
@@ -27,7 +28,7 @@ const SOCKET_URL = 'http://localhost:5000';
 const PageContainer = styled(Box)({
   display: 'flex',
   flexDirection: 'column',
-  minHeight: '100vh',
+  height: '100vh',
   background: '#f8fafc', // Light slate background
   overflow: 'hidden',
 });
@@ -231,14 +232,15 @@ const OwnerChat = () => {
       try {
         setLoading(true);
         const res = await api.get('/pets/my');
-        const pets = res.data?.pets || res.data || [];
+        const allPets = res.data?.pets || res.data || [];
+        // Only allow approved pets to chat
+        const pets = allPets.filter(p => p.registrationStatus === 'Approved');
         setMyPets(pets);
 
         if (initialPetId) {
           const match = pets.find(p => p._id === initialPetId);
           if (match) {
             setSelectedPet(match);
-            navigate('/owner/chat', { replace: true });
           } else if (pets.length > 0) {
             setSelectedPet(pets[0]);
           }
@@ -467,12 +469,20 @@ const OwnerChat = () => {
       <Navbar />
       <MainContent>
         <ContentCard elevation={0}>
-          {/* Pet List */}
           <PetListPanel>
             <PetListHeader>
-              <Typography variant="h6" fontWeight="800">Chat with Your Vet</Typography>
-              <Typography variant="caption" sx={{ opacity: 0.85, fontWeight: 600 }}>
-                {myPets.length} pet{myPets.length !== 1 ? 's' : ''} registered
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                <IconButton 
+                  onClick={() => navigate(-1)} 
+                  sx={{ color: 'white', p: 0.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' } }}
+                  title="Go Back"
+                >
+                  <ArrowBackIcon />
+                </IconButton>
+                <Typography variant="h6" fontWeight="800">Chat with Your Vet</Typography>
+              </Box>
+              <Typography variant="caption" sx={{ opacity: 0.85, fontWeight: 600, ml: 4 }}>
+                {myPets.length} approved pet{myPets.length !== 1 ? 's' : ''}
               </Typography>
             </PetListHeader>
 
@@ -480,7 +490,8 @@ const OwnerChat = () => {
               {myPets.length === 0 ? (
                 <Box sx={{ p: 4, textAlign: 'center', color: '#64748b' }}>
                   <PetsIcon sx={{ fontSize: 56, mb: 2, opacity: 0.2 }} />
-                  <Typography variant="body2" fontWeight="600">No pets registered yet</Typography>
+                  <Typography variant="body2" fontWeight="600">No approved pets available for chat</Typography>
+                  <Typography variant="caption">Only pets with an 'Approved' registration status can chat with veterinarians.</Typography>
                 </Box>
               ) : (
                 myPets.map((pet, idx) => (

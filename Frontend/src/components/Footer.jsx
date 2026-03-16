@@ -728,12 +728,6 @@ const Footer = () => {
               <p className="pawpal-copyright">
                 © {currentYear} PawPal Pet Care. Made with <Heart className="pawpal-heart-icon" size={14} fill="#f472b6" /> for pets worldwide
               </p>
-              <div className="pawpal-bottom-links">
-                <a href="#" className="pawpal-bottom-link">Terms & Conditions</a>
-                <a href="#" className="pawpal-bottom-link">Privacy Policy</a>
-                <a href="#" className="pawpal-bottom-link">Cookie Policy</a>
-                <a href="#" className="pawpal-bottom-link">Accessibility</a>
-              </div>
             </div>
           </div>
         </footer>

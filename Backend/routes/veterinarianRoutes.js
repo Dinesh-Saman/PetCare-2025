@@ -150,16 +150,8 @@ router.patch('/:id/deactivate', authorizeVetAccess('Enhanced'), async (req, res)
   let hasPermission = false;
 
   if (requester.accessLevel === 'Enhanced') {
-    // Enhanced vets can deactivate vets from clinics they own OR their current clinic
-    const isTargetInOwnedClinic = targetVet.currentActiveClinicId && requester.ownedClinics &&
-      requester.ownedClinics.some(clinicId =>
-        clinicId.toString() === targetVet.currentActiveClinicId.toString()
-      );
-
-    const isTargetInCurrentClinic = targetVet.currentActiveClinicId && requester.currentActiveClinicId &&
-      targetVet.currentActiveClinicId.toString() === requester.currentActiveClinicId.toString();
-
-    hasPermission = isTargetInOwnedClinic || isTargetInCurrentClinic;
+    // Enhanced vets have system-wide access and can deactivate any vet
+    hasPermission = true;
   }
 
   if (!hasPermission) {

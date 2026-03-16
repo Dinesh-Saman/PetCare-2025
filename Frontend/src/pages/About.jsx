@@ -9,12 +9,17 @@ import {
   Award,
   TrendingUp
 } from "lucide-react";
-import Navbar from "../components/Navbar"; // Adjust the path based on your project structure
+import { useLocation } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import VetNavbar from "../components/VetNavbar";
 
 const AboutUs = () => {
+  const location = useLocation();
+  const isFromVet = location.state?.fromVet;
+
   return (
     <>
-      <Navbar />
+      {isFromVet ? <VetNavbar /> : <Navbar />}
 
       <style>{`
         .about-page {
@@ -102,38 +107,23 @@ const AboutUs = () => {
 
         .mission-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1fr;
           gap: 4rem;
           align-items: center;
+          max-width: 800px;
+          margin: 0 auto;
         }
 
         .mission-content h2 {
           font-size: 2.5rem;
           font-weight: 700;
-          color: #0f172a;
+          color: black;
           margin-bottom: 1.5rem;
           line-height: 1.2;
         }
 
-        .mission-highlight {
-          color: #10b981;
-          position: relative;
-          display: inline-block;
-        }
-
-        .mission-highlight::after {
-          content: '';
-          position: absolute;
-          bottom: -4px;
-          left: 0;
-          width: 100%;
-          height: 3px;
-          background: linear-gradient(to right, #10b981, #3b82f6);
-          border-radius: 2px;
-        }
-
         .mission-text {
-          color: #475569;
+          color: black;
           font-size: 1.1rem;
           line-height: 1.8;
           margin-bottom: 2rem;
@@ -698,20 +688,14 @@ const AboutUs = () => {
             <h1 className="hero-title">
               Revolutionizing Pet Care in Sri Lanka
             </h1>
-            <p className="hero-subtitle">
-              PawPal is Sri Lanka's premier digital platform connecting pet owners with veterinary care,
-              combining cutting-edge technology with compassionate pet health management.
-            </p>
           </div>
         </section>
 
-        {/* Mission & Vision */}
+        {/* Our Mission */}
         <section className="mission-section">
           <div className="mission-grid">
             <div className="mission-content">
-              <h2>
-                Our <span className="mission-highlight">Mission</span> & Vision
-              </h2>
+              <h2>Our Mission</h2>
               <p className="mission-text">
                 At PawPal, we're on a mission to transform pet healthcare in Sri Lanka by making
                 veterinary services accessible, affordable, and comprehensive for every pet owner.
@@ -785,26 +769,6 @@ const AboutUs = () => {
               </div>
               <h3>Community First</h3>
               <p>Building a supportive network where pet owners and vets can collaborate effectively.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="cta-section">
-          <div className="cta-overlay"></div>
-          <div className="cta-container">
-            <h2 className="cta-title">Join Our Pet Care Revolution</h2>
-            <p className="cta-subtitle">
-              Whether you're a pet owner looking for better care or a veterinarian wanting to
-              modernize your practice, PawPal has something for you.
-            </p>
-            <div className="cta-buttons">
-              <a href="/register" className="cta-button primary">
-                Register Your Pet
-              </a>
-              <a href="/partner" className="cta-button secondary">
-                Partner With Us
-              </a>
             </div>
           </div>
         </section>

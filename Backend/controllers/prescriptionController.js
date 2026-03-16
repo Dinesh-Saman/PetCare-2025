@@ -414,7 +414,7 @@ exports.generatePrescriptionPDF = async (req, res) => {
     doc.fillColor('#ffffff')
       .fontSize(26)
       .font('Helvetica-Bold')
-      .text(isVaccinationReport ? 'PAWPAL - VACCINATION REPORT' : 'PAWPAL - PRESCRIPTION REPORT', 50, 45);
+      .text(isVaccinationReport ? 'PawPal - VACCINATION REPORT' : 'PawPal - PRESCRIPTION REPORT', 50, 45);
 
     doc.fontSize(10)
       .font('Helvetica')

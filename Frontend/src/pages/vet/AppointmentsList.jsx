@@ -317,9 +317,10 @@ const VetAppointmentsList = () => {
 
   const handleConfirm = async (id) => {
     try {
-      await api.patch(`/appointments/${id}/confirm`);
+      const response = await api.patch(`/appointments/${id}/confirm`);
+      const updatedApp = response.data.appointment;
       setAppointments(appointments.map(app =>
-        app._id === id ? { ...app, status: 'Confirmed' } : app
+        app._id === id ? updatedApp : app
       ));
       Swal.fire({
         title: 'Confirmed!',
@@ -334,20 +335,34 @@ const VetAppointmentsList = () => {
   };
 
   const handleCancel = async (id) => {
-    try {
-      await api.patch(`/appointments/${id}/cancel`);
-      setAppointments(appointments.map(app =>
-        app._id === id ? { ...app, status: 'Canceled' } : app
-      ));
-      Swal.fire({
-        title: 'Canceled!',
-        text: 'Appointment has been canceled.',
-        icon: 'success',
-        timer: 3000,
-        showConfirmButton: false
-      });
-    } catch (error) {
-      Swal.fire('Error!', error.response?.data?.message || 'Could not cancel appointment', 'error');
+    const result = await Swal.fire({
+      title: 'Cancel Appointment?',
+      text: 'This action cannot be undone and will notify the owner.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, cancel it!',
+      cancelButtonText: 'No, keep it'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await api.patch(`/appointments/${id}/cancel`);
+        const updatedApp = response.data.appointment;
+        setAppointments(appointments.map(app =>
+          app._id === id ? updatedApp : app
+        ));
+        Swal.fire({
+          title: 'Canceled!',
+          text: 'Appointment has been canceled.',
+          icon: 'success',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        Swal.fire('Error!', error.response?.data?.message || 'Could not cancel appointment', 'error');
+      }
     }
   };
 
@@ -586,13 +601,26 @@ const VetAppointmentsList = () => {
                             Manage
                           </StyledButton>
                         )}
-                        {isVeterinarian && (app.status === 'Confirmed' || app.status === 'Completed') && (
+                        {isVeterinarian && app.status === 'Confirmed' && (
                           <StyledButton
                             size="small"
                             onClick={() => handleOpenManage(app)}
                           >
                             Manage
                           </StyledButton>
+                        )}
+                        {isVeterinarian && (app.status === 'Booked' || app.status === 'Confirmed') && (
+                          <IconButton
+                            color="error"
+                            size="small"
+                            onClick={() => handleCancel(app._id)}
+                            sx={{
+                              bgcolor: alpha('#f44336', 0.1),
+                              '&:hover': { bgcolor: alpha('#f44336', 0.2) }
+                            }}
+                          >
+                            <CancelIcon />
+                          </IconButton>
                         )}
                       </Box>
                     </TableCell>
@@ -602,21 +630,8 @@ const VetAppointmentsList = () => {
                     <TableCell style={{ padding: 0 }} colSpan={6}>
                       <Collapse in={expandedRow === app._id} timeout="auto" unmountOnExit>
                         <DetailsCard sx={{ m: 2 }}>
-                          <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
-                            <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-                              <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                                <Typography variant="h6" sx={{ color: '#49149eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <LocationOnIcon /> Clinic Information
-                                </Typography>
-                                <Box sx={{ px: 1, flexGrow: 1 }}>
-                                  <InfoRow><LocationOnIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Name:</InfoLabel><Typography variant="body2">{app.clinicId?.name || 'N/A'}</Typography></InfoRow>
-                                  <InfoRow><LocationOnIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Address:</InfoLabel><Typography variant="body2">{app.clinicId?.address || 'N/A'}</Typography></InfoRow>
-                                  <InfoRow><PhoneIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Phone:</InfoLabel><Typography variant="body2">{app.clinicId?.phoneNumber || 'N/A'}</Typography></InfoRow>
-                                </Box>
-                              </Box>
-                            </Grid>
-
-                            <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
+                          <Grid container spacing={3} sx={{ p: 2 }}>
+                            <Grid item xs={12}>
                               <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
                                 <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <CalendarTodayIcon /> Appointment Details
@@ -760,7 +775,7 @@ const VetAppointmentsList = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
               <CheckCircleOutlineIcon sx={{ color: '#2196f3', fontSize: 24, mr: 1 }} />
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
-                Medical Documents
+                Medical Documents {selectedApp?.petId?.name ? `- ${selectedApp.petId.name}` : ''}
               </Typography>
             </Box>
 
@@ -792,32 +807,6 @@ const VetAppointmentsList = () => {
                 </Box>
               </Box>
 
-              <Box sx={{ flex: 1 }}>
-                <Box
-                  component="label"
-                  sx={{
-                    border: '2px dashed #e0e0e0',
-                    borderRadius: 3,
-                    p: 3,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    '&:hover': { borderColor: '#4caf50', backgroundColor: '#f1f8e9' },
-                    transition: 'all 0.2s',
-                    height: '100%'
-                  }}
-                >
-                  <Box sx={{ width: 45, height: 45, borderRadius: '50%', backgroundColor: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
-                    <MedicationIcon sx={{ color: '#4caf50', fontSize: 24 }} />
-                  </Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5, color: '#333' }}>Prescriptions</Typography>
-                  <Typography variant="caption" color="textSecondary" sx={{ mb: 1 }}>Upload medication list</Typography>
-                  <input type="file" hidden onChange={(e) => setRxFile(e.target.files[0])} />
-                  {rxFile && <Typography variant="caption" sx={{ mt: 1, color: '#4caf50', fontWeight: 'bold', wordBreak: 'break-all' }}>{rxFile.name}</Typography>}
-                </Box>
-              </Box>
             </Box>
 
             {(selectedApp?.medicalRecordUrl || selectedApp?.prescriptionUrl) && (
@@ -883,10 +872,38 @@ const VetAppointmentsList = () => {
             {/* Structured Prescriptions Section */}
             <Box sx={{ mt: 3, border: '1px solid #e0e0e0', borderRadius: 2, p: 2, bgcolor: '#f8fafc' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#333' }}>Medications</Typography>
-                <Button startIcon={<AddIcon />} size="small" variant="outlined" onClick={handleAddPresRow} sx={{ textTransform: 'none' }}>Add Medication</Button>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#333' }}>Prescriptions</Typography>
+                <Button startIcon={<AddIcon />} size="small" variant="outlined" onClick={handleAddPresRow} sx={{ textTransform: 'none' }}>Add Prescription</Button>
               </Box>
               <Divider sx={{ mb: 2 }} />
+
+              {/* Upload Prescription File Card moved here */}
+              <Box sx={{ mb: 3 }}>
+                <Box
+                  component="label"
+                  sx={{
+                    border: '2px dashed #e0e0e0',
+                    borderRadius: 3,
+                    p: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    bgcolor: 'white',
+                    '&:hover': { borderColor: '#4caf50', backgroundColor: '#f1f8e9' },
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Box sx={{ width: 40, height: 40, borderRadius: '50%', backgroundColor: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                    <MedicationIcon sx={{ color: '#4caf50', fontSize: 20 }} />
+                  </Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 0.5, color: '#333' }}>Upload Prescription File</Typography>
+                  <Typography variant="caption" color="textSecondary" sx={{ mb: 1 }}>Optional: Upload digital/scanned prescription</Typography>
+                  <input type="file" hidden onChange={(e) => setRxFile(e.target.files[0])} />
+                  {rxFile && <Typography variant="caption" sx={{ mt: 1, color: '#4caf50', fontWeight: 'bold', wordBreak: 'break-all' }}>{rxFile.name}</Typography>}
+                </Box>
+              </Box>
               {prescriptionsRows.length === 0 ? (
                 <Typography variant="caption" color="textSecondary" align="center" display="block" py={2}>No medications added.</Typography>
               ) : (
@@ -898,7 +915,7 @@ const VetAppointmentsList = () => {
                           <TextField
                             size="small"
                             fullWidth
-                            label="Medication Name"
+                            label="Prescription"
                             placeholder="e.g. Amoxicillin"
                             value={pres.medicationName}
                             onChange={(e) => handlePresFieldChange(idx, 'medicationName', e.target.value)}
@@ -941,9 +958,7 @@ const VetAppointmentsList = () => {
           <Button onClick={handleCloseManage} color="inherit" sx={{ borderRadius: 2, px: 3, textTransform: 'none', fontWeight: 'bold' }}>
             Cancel
           </Button>
-          <Button onClick={() => handleUpdateConfirmedApp(false)} variant="contained" color="primary" sx={{ borderRadius: 2, px: 3, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}>
-            Save Updates
-          </Button>
+
           <Button onClick={() => handleUpdateConfirmedApp(true)} variant="contained" color="success" sx={{ borderRadius: 2, px: 3, textTransform: 'none', fontWeight: 'bold', boxShadow: 'none' }}>
             Mark Completed
           </Button>

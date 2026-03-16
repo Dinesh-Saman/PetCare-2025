@@ -171,7 +171,6 @@ const ClinicList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage] = useState(10);
-  const [viewMode, setViewMode] = useState('list');
   const [expandedRow, setExpandedRow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
@@ -383,30 +382,7 @@ const ClinicList = () => {
             <SearchSection>
               <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', width: isMobile ? '100%' : 'auto' }}>My Clinics</Typography>
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-end' }}>
-                <ToggleButtonGroup
-                  value={viewMode}
-                  exclusive
-                  onChange={(e, newMode) => {
-                    if (newMode !== null) setViewMode(newMode);
-                  }}
-                  size="small"
-                  sx={{
-                    bgcolor: 'white',
-                    height: 40,
-                    '& .MuiToggleButton-root': {
-                      color: '#64748b',
-                      border: '1px solid #e2e8f0',
-                      '&.Mui-selected': {
-                        bgcolor: alpha('#49149e', 0.1),
-                        color: '#49149e',
-                        '&:hover': { bgcolor: alpha('#49149e', 0.15) }
-                      }
-                    }
-                  }}
-                >
-                  <ToggleButton value="list"><ViewListIcon /></ToggleButton>
-                  <ToggleButton value="card"><ViewModuleIcon /></ToggleButton>
-                </ToggleButtonGroup>
+
                 <TextField
                   size="small"
                   placeholder="Search clinics..."
@@ -425,236 +401,119 @@ const ClinicList = () => {
               </Box>
             </SearchSection>
 
-            {viewMode === 'list' ? (
-              <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3 }}>
-                <Table>
-                  <TableHead>
-                    <TableHeadRow>
-                      <TableCell />
-                      <TableHeadCell>Name</TableHeadCell>
-                      <TableHeadCell>Address</TableHeadCell>
-                      <TableHeadCell>Phone</TableHeadCell>
-                      <TableHeadCell>Actions</TableHeadCell>
-                    </TableHeadRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginatedClinics.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ py: 8 }}>No clinics found</TableCell>
-                      </TableRow>
-                    ) : (
-                      paginatedClinics.map((clinic) => (
-                        <React.Fragment key={clinic._id}>
-                          <TableRowStyled>
-                            <TableCell>
-                              <IconButton onClick={() => handleExpandRow(clinic._id)}>
-                                <ExpandMoreIcon sx={{ transform: expandedRow === clinic._id ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} />
-                              </IconButton>
-                            </TableCell>
-                            <TableCell><Typography fontWeight="bold">{clinic.name}</Typography></TableCell>
-                            <TableCell>{clinic.address}</TableCell>
-                            <TableCell>{clinic.phoneNumber}</TableCell>
-                            <TableCell>
-                              <Box display="flex" gap={1}>
-                                <Button size="small" variant="outlined" startIcon={<FaPaw />} onClick={() => handleViewPets(clinic._id)} sx={{ borderRadius: '8px', textTransform: 'none', color: '#8e24aa', borderColor: '#8e24aa' }}>
-                                  View Pets
-                                </Button>
-                                <IconButton color="primary" onClick={() => handleEditOpen(clinic)}><EditIcon /></IconButton>
-                              </Box>
-                            </TableCell>
-                          </TableRowStyled>
-                          <TableRow>
-                            <TableCell colSpan={5} sx={{ p: 0 }}>
-                              <Collapse in={expandedRow === clinic._id}>
-                                <DetailsCard>
-                                  <Grid container spacing={3} sx={{ p: 2 }} alignItems="stretch">
-                                    {/* Left panel: Clinic Info */}
-                                    <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-                                      <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                                        <Typography variant="h6" sx={{ color: '#49149e', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <BusinessIcon /> Clinic Information
-                                        </Typography>
-                                        <Box sx={{ px: 1, flexGrow: 1 }}>
-                                          <InfoRow>
-                                            <LocationOnIcon />
-                                            <InfoLabel sx={{ minWidth: 105 }}>Address:</InfoLabel>
-                                            <InfoValue>{clinic.address || 'N/A'}</InfoValue>
-                                          </InfoRow>
-                                          <InfoRow>
-                                            <PhoneIcon />
-                                            <InfoLabel sx={{ minWidth: 105 }}>Phone:</InfoLabel>
-                                            <InfoValue>{clinic.phoneNumber || 'N/A'}</InfoValue>
-                                          </InfoRow>
-                                          <InfoRow>
-                                            <DescriptionIcon />
-                                            <InfoLabel sx={{ minWidth: 105 }}>Description:</InfoLabel>
-                                            <InfoValue sx={{ fontStyle: clinic.description ? 'normal' : 'italic', color: clinic.description ? 'inherit' : '#94a3b8' }}>
-                                              {clinic.description || 'No description provided.'}
-                                            </InfoValue>
-                                          </InfoRow>
-                                        </Box>
-                                      </Box>
-                                    </Grid>
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+              gap: 3,
+              mb: 3
+            }}>
+              {paginatedClinics.length === 0 ? (
+                <Box sx={{ gridColumn: '1 / -1' }}>
+                  <Typography variant="body1" align="center" sx={{ py: 8, color: '#64748b' }}>No clinics found</Typography>
+                </Box>
+              ) : (
+                paginatedClinics.map((clinic) => (
+                  <Box key={clinic._id} sx={{ height: '100%' }}>
+                    <Card sx={{
+                      borderRadius: '16px',
+                      boxShadow: 'none',
+                      border: '1px solid #e2e8f0',
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'transform 0.2s',
+                      '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }
+                    }}>
+                      <CardContent sx={{ flexGrow: 1, p: 3, pb: 2 }}>
+                        <Typography variant="h6" fontWeight="800" sx={{ color: '#1e293b', mb: 2 }}>{clinic.name}</Typography>
 
-                                    {/* Right panel: Schedule */}
-                                    <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
-                                      <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                                        <Typography variant="h6" sx={{ color: '#e08c0e', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                          <CalendarIcon /> Operating Schedule
-                                        </Typography>
-                                        <Box sx={{ px: 1, flexGrow: 1 }}>
-                                          <InfoRow>
-                                            <CalendarIcon />
-                                            <InfoLabel sx={{ minWidth: 60 }}>Days:</InfoLabel>
-                                            <InfoValue>
-                                              {clinic.operatingDays?.length > 1
-                                                ? `${clinic.operatingDays[0]} – ${clinic.operatingDays[clinic.operatingDays.length - 1]}`
-                                                : clinic.operatingDays?.[0] || 'N/A'}
-                                            </InfoValue>
-                                          </InfoRow>
-                                          <InfoRow>
-                                            <AccessTimeIcon />
-                                            <InfoLabel sx={{ minWidth: 60 }}>Hours:</InfoLabel>
-                                            <InfoValue>{clinic.operatingHours || 'N/A'}</InfoValue>
-                                          </InfoRow>
-                                          <Divider sx={{ my: 1.5 }} />
-                                          <Box sx={{ p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, borderLeft: '4px solid #e08c0e' }}>
-                                            <Typography variant="body2" fontWeight="700" color="#64748b" sx={{ mb: 0.5 }}>Operating Days</Typography>
-                                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                                              {(clinic.operatingDays || []).map(day => (
-                                                <DayChip key={day} active={true}>{day.slice(0, 3)}</DayChip>
-                                              ))}
-                                            </Box>
-                                          </Box>
-                                        </Box>
-                                      </Box>
-                                    </Grid>
-                                  </Grid>
-                                </DetailsCard>
-                              </Collapse>
-                            </TableCell>
-                          </TableRow>
-                        </React.Fragment>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Box sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-                gap: 3,
-                mb: 3
-              }}>
-                {paginatedClinics.length === 0 ? (
-                  <Box sx={{ gridColumn: '1 / -1' }}>
-                    <Typography variant="body1" align="center" sx={{ py: 8, color: '#64748b' }}>No clinics found</Typography>
-                  </Box>
-                ) : (
-                  paginatedClinics.map((clinic) => (
-                    <Box key={clinic._id} sx={{ height: '100%' }}>
-                      <Card sx={{
-                        borderRadius: '16px',
-                        boxShadow: 'none',
-                        border: '1px solid #e2e8f0',
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        transition: 'transform 0.2s',
-                        '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }
-                      }}>
-                        <CardContent sx={{ flexGrow: 1, p: 3, pb: 2 }}>
-                          <Typography variant="h6" fontWeight="800" sx={{ color: '#1e293b', mb: 2 }}>{clinic.name}</Typography>
-
-                          <Stack spacing={1.5} mb={3}>
-                            <Box display="flex" alignItems="flex-start" gap={1}>
-                              <LocationOnOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18, mt: 0.2 }} />
-                              <Typography variant="body2" color="#64748b">{clinic.address}</Typography>
-                            </Box>
-                            <Box display="flex" alignItems="center" gap={1.5}>
-                              <PhoneOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18 }} />
-                              <Typography variant="body2" color="#475569" fontWeight="500">{clinic.phoneNumber}</Typography>
-                            </Box>
-                            <Box display="flex" alignItems="flex-start" gap={1.5}>
-                              <AccessTimeOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18, mt: 0.2 }} />
-                              <Box>
-                                <Typography variant="body2" color="#475569" fontWeight="500">
-                                  {clinic.operatingDays?.length > 1 ? `${clinic.operatingDays[0]} - ${clinic.operatingDays[clinic.operatingDays.length - 1]}` : clinic.operatingDays?.[0]}
-                                </Typography>
-                                <Typography variant="body2" color="#64748b" sx={{ mt: 0.5 }}>
-                                  {clinic.operatingHours}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </Stack>
-
-                          <Box sx={{ p: 2, bgcolor: alpha('#49149e', 0.05), borderRadius: '12px', mb: 1 }}>
-                            <Box display="flex" alignItems="center" gap={1} mb={0.5}>
-                              <FaPaw size={14} style={{ color: '#49149e' }} />
-                              <Typography variant="body2" fontWeight="700" sx={{ color: '#49149e' }}>Pets</Typography>
-                            </Box>
-                            <Typography variant="h4" fontWeight="800" sx={{ color: '#49149e' }}>
-                              {clinic.petsCount || 0}
-                            </Typography>
+                        <Stack spacing={1.5} mb={3}>
+                          <Box display="flex" alignItems="flex-start" gap={1}>
+                            <LocationOnOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18, mt: 0.2 }} />
+                            <Typography variant="body2" color="#64748b">{clinic.address}</Typography>
                           </Box>
-                        </CardContent>
-
-                        <Box sx={{ p: 3, pt: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                          <Button
-                            variant="contained"
-                            onClick={() => handleViewPets(clinic._id)}
-                            fullWidth
-                            sx={{
-                              borderRadius: '12px',
-                              textTransform: 'none',
-                              background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
-                              color: 'white',
-                              fontWeight: 700,
-                              py: 1.2,
-                              justifyContent: 'space-between',
-                              px: 3,
-                              boxShadow: '0 10px 25px rgba(142, 36, 170, 0.15)',
-                              transition: 'all 0.3s ease',
-                              '&:hover': {
-                                background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
-                                transform: 'translateY(-2px)',
-                                boxShadow: '0 15px 30px rgba(142, 36, 170, 0.25)'
-                              },
-                              '&:active': { transform: 'translateY(0)' }
-                            }}
-                          >
-                            <Box display="flex" alignItems="center" gap={1.5}>
-                              <FaPaw size={16} />
-                              <Typography fontWeight="700">View Pets</Typography>
+                          <Box display="flex" alignItems="center" gap={1.5}>
+                            <PhoneOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18 }} />
+                            <Typography variant="body2" color="#475569" fontWeight="500">{clinic.phoneNumber}</Typography>
+                          </Box>
+                          <Box display="flex" alignItems="flex-start" gap={1.5}>
+                            <AccessTimeOutlinedIcon sx={{ color: '#94a3b8', fontSize: 18, mt: 0.2 }} />
+                            <Box>
+                              <Typography variant="body2" color="#475569" fontWeight="500">
+                                {clinic.operatingDays?.length > 1 ? `${clinic.operatingDays[0]} - ${clinic.operatingDays[clinic.operatingDays.length - 1]}` : clinic.operatingDays?.[0]}
+                              </Typography>
+                              <Typography variant="body2" color="#64748b" sx={{ mt: 0.5 }}>
+                                {clinic.operatingHours?.includes('|') ? clinic.operatingHours.split('|')[1].trim() : clinic.operatingHours}
+                              </Typography>
                             </Box>
-                            <ChevronRightIcon fontSize="small" />
-                          </Button>
+                          </Box>
+                        </Stack>
 
-                          <Button
-                            variant="outlined"
-                            onClick={() => handleEditOpen(clinic)}
-                            startIcon={<EditOutlinedIcon />}
-                            fullWidth
-                            sx={{
-                              borderRadius: '12px',
-                              textTransform: 'none',
-                              color: '#64748b',
-                              borderColor: '#e2e8f0',
-                              fontWeight: 600,
-                              py: 0.8,
-                              '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }
-                            }}
-                          >
-                            Edit
-                          </Button>
+                        <Box sx={{ p: 2, bgcolor: alpha('#49149e', 0.05), borderRadius: '12px', mb: 1 }}>
+                          <Box display="flex" alignItems="center" gap={1} mb={0.5}>
+                            <FaPaw size={14} style={{ color: '#49149e' }} />
+                            <Typography variant="body2" fontWeight="700" sx={{ color: '#49149e' }}>Pets</Typography>
+                          </Box>
+                          <Typography variant="h4" fontWeight="800" sx={{ color: '#49149e' }}>
+                            {clinic.petsCount || 0}
+                          </Typography>
                         </Box>
-                      </Card>
-                    </Box>
-                  ))
-                )}
-              </Box>
-            )}
+                      </CardContent>
+
+                      <Box sx={{ p: 3, pt: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        <Button
+                          variant="contained"
+                          onClick={() => handleViewPets(clinic._id)}
+                          fullWidth
+                          sx={{
+                            borderRadius: '12px',
+                            textTransform: 'none',
+                            background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
+                            color: 'white',
+                            fontWeight: 700,
+                            py: 1.2,
+                            justifyContent: 'space-between',
+                            px: 3,
+                            boxShadow: '0 10px 25px rgba(142, 36, 170, 0.15)',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                              background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 15px 30px rgba(142, 36, 170, 0.25)'
+                            },
+                            '&:active': { transform: 'translateY(0)' }
+                          }}
+                        >
+                          <Box display="flex" alignItems="center" gap={1.5}>
+                            <FaPaw size={16} />
+                            <Typography fontWeight="700">View Pets</Typography>
+                          </Box>
+                          <ChevronRightIcon fontSize="small" />
+                        </Button>
+
+                        <Button
+                          variant="outlined"
+                          onClick={() => handleEditOpen(clinic)}
+                          startIcon={<EditOutlinedIcon />}
+                          fullWidth
+                          sx={{
+                            borderRadius: '12px',
+                            textTransform: 'none',
+                            color: '#64748b',
+                            borderColor: '#e2e8f0',
+                            fontWeight: 600,
+                            py: 0.8,
+                            '&:hover': { bgcolor: '#f8fafc', borderColor: '#cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </Box>
+                    </Card>
+                  </Box>
+                ))
+              )}
+            </Box>
             <CustomPagination count={filteredClinics.length} page={page} rowsPerPage={rowsPerPage} onPageChange={(_, p) => setPage(p)} />
           </ContentContainer>
         </Box>

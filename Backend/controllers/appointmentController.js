@@ -227,7 +227,15 @@ exports.cancelAppointment = async (req, res) => {
       id,
       updateData,
       { new: true }
-    ).populate('petId vetId clinicId ownerId');
+    ).populate([
+      {
+        path: 'petId',
+        populate: { path: 'ownerId', select: 'firstName lastName phoneNumber' }
+      },
+      'vetId',
+      'clinicId',
+      'ownerId'
+    ]);
 
     res.status(200).json({
       message: 'Appointment canceled successfully',
@@ -288,7 +296,15 @@ exports.confirmAppointment = async (req, res) => {
       id,
       { status: 'Confirmed' },
       { new: true }
-    ).populate('petId vetId clinicId ownerId');
+    ).populate([
+      {
+        path: 'petId',
+        populate: { path: 'ownerId', select: 'firstName lastName phoneNumber' }
+      },
+      'vetId',
+      'clinicId',
+      'ownerId'
+    ]);
 
     res.status(200).json({
       message: 'Appointment confirmed',
@@ -684,6 +700,96 @@ exports.getMyAppointments = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching your appointments',
+      error: error.message
+    });
+  }
+};
+
+// Reschedule appointment (Owner only)
+exports.rescheduleAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { dateTime } = req.body;
+
+    if (!dateTime) {
+      return res.status(400).json({ message: 'New date and time are required' });
+    }
+
+    const appointment = await Appointment.findById(id);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    // Security check: Only the owner can reschedule
+    const ownerId = appointment.ownerId || (appointment.petId && appointment.petId.ownerId);
+    if (ownerId && ownerId.toString() !== req.user.id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to reschedule this appointment' });
+    }
+
+    // Only BOOKED or CONFIRMED can be rescheduled
+    if (!['Booked', 'Confirmed'].includes(appointment.status)) {
+      return res.status(400).json({
+        message: `Cannot reschedule an appointment that is ${appointment.status.toLowerCase()}`
+      });
+    }
+
+    // Check for conflicting appointments for the same vet at the new time
+    const conflicting = await Appointment.findOne({
+      _id: { $ne: id },
+      vetId: appointment.vetId,
+      dateTime: new Date(dateTime),
+      status: { $nin: ['Canceled', 'Completed'] }
+    });
+
+    if (conflicting) {
+      return res.status(409).json({
+        message: 'The veterinarian is not available at the selected time slot'
+      });
+    }
+
+    // Update the appointment
+    appointment.dateTime = new Date(dateTime);
+    
+    await appointment.save();
+
+    const updated = await Appointment.findById(id)
+      .populate([
+        {
+          path: 'petId',
+          populate: { path: 'ownerId', select: 'firstName lastName phoneNumber' }
+        },
+        'vetId',
+        'clinicId',
+        'ownerId'
+      ]);
+
+    res.status(200).json({
+      message: 'Appointment rescheduled successfully',
+      appointment: updated
+    });
+
+    // Notify the related parties via socket
+    try {
+      const io = req.app.get('socketio');
+      if (io && updated) {
+        const vetId = updated.vetId?._id?.toString() || updated.vetId?.toString();
+        const ownerId = updated.ownerId?._id?.toString() || updated.ownerId?.toString();
+
+        if (vetId) {
+          io.to(vetId).emit('appointmentStatusChanged', updated);
+        }
+        if (ownerId) {
+          io.to(ownerId).emit('appointmentStatusChanged', updated);
+        }
+      }
+    } catch (socketErr) {
+      console.error('Socket notification failed for rescheduling:', socketErr.message);
+    }
+
+  } catch (error) {
+    console.error('Error rescheduling appointment:', error);
+    res.status(500).json({
+      message: 'Error rescheduling appointment',
       error: error.message
     });
   }

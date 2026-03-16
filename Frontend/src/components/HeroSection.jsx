@@ -220,7 +220,7 @@ const HeroSection = () => {
               chat with veterinarians, track vaccinations & medications, and get instant AI-powered pet care advice.
             </p>
             <button onClick={handleGetStarted} className="hero-button">
-              {user ? "Get Started -Add Your Pet Today" : "Login Your Account"}
+              {user ? "Get Started - Add Your Pet Today" : "Login Your Account"}
             </button>
           </div>
         </div>

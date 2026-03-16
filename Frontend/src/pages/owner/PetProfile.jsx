@@ -33,7 +33,9 @@ import {
   Medication as MedicineIcon,
   Vaccines as VaccineIcon,
   MedicalServices as VetIcon,
-  Person as UserIcon
+  Person as UserIcon,
+  Delete as DeleteIcon,
+  Description as FileIcon
 } from '@mui/icons-material';
 import Navbar from '../../components/Navbar';
 
@@ -230,19 +232,70 @@ const PetProfile = () => {
     setVaccPage(1);
   };
 
-  const downloadPrescription = async (presId, name, reportType = 'prescription') => {
+  const handleDownload = async (url, fileName) => {
+    if (!url) return;
+    
     try {
-      const response = await api.get(`/prescriptions/${presId}/pdf?reportType=${reportType}`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Ensure fileName has an extension if not present
+      let finalFileName = fileName;
+      if (!fileName.includes('.')) {
+        const extension = url.split('.').pop().split('?')[0];
+        if (extension && extension.length <= 4) {
+          finalFileName = `${fileName}.${extension}`;
+        }
+      }
+
+      // If it's a Cloudinary URL, we can force download by adding fl_attachment
+      let downloadUrl = url;
+      if (url.includes('cloudinary.com')) {
+        downloadUrl = url.replace('/upload/', '/upload/fl_attachment/');
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = finalFileName;
+        link.target = '_self';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        return;
+      }
+
+      // For other URLs, try the blob approach
+      const response = await axios.get(url, { responseType: 'blob' });
+      const blob = new Blob([response.data]);
+      const blobUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${reportType === 'vaccination' ? 'Vaccination' : 'Prescription'}_${name}.pdf`);
+      link.href = blobUrl;
+      link.setAttribute('download', finalFileName);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Download error:', error);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
+  };
+
+  const downloadPrescription = async (presId, name, reportType = 'prescription') => {
+    try {
+      const response = await api.get(`/prescriptions/${presId}/pdf?reportType=${reportType}`, { responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const fileName = `${reportType === 'vaccination' ? 'Vaccination' : 'Prescription'}_${name}.pdf`;
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
       console.error('PDF Download error:', error);
-      Swal.fire('Error', 'Failed to generate PDF', 'error');
+      Swal.fire('Error', 'Failed to download PDF', 'error');
     }
   };
 
@@ -266,13 +319,49 @@ const PetProfile = () => {
     try {
       const response = await api.put(`/pets/${pet._id}`, editPetForm);
       setPet(response.data.pet || response.data);
-      Swal.fire({ title: 'Updated!', text: 'Pet has been updated successfully.', icon: 'success', toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
+      Swal.fire({
+        title: 'Updated!',
+        text: 'Pet has been updated successfully.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false
+      });
       setOpenEditPet(false);
     } catch (error) {
       console.error('Error updating pet:', error);
       Swal.fire('Error', 'Failed to update pet details', 'error');
     } finally {
       setSavingPet(false);
+    }
+  };
+
+  const handleDeletePet = async () => {
+    const result = await Swal.fire({
+      title: `Delete ${pet.name}'s Profile?`,
+      text: "This will permanently remove all medical records and history. This action cannot be undone.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Yes, Delete Profile',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await api.delete(`/pets/${id}`);
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Pet profile has been removed.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        navigate('/owner/profile');
+      } catch (error) {
+        console.error('Error deleting pet:', error);
+        Swal.fire('Error', 'Failed to delete pet profile', 'error');
+      }
     }
   };
 
@@ -318,9 +407,8 @@ const PetProfile = () => {
 
         const updatedPersonalRecords = [...(pet.personalRecords || []), newRecord];
 
-        await api.put(`/pets/${pet._id}`, { personalRecords: updatedPersonalRecords });
-
-        setPet(prev => ({ ...prev, personalRecords: updatedPersonalRecords }));
+        const response = await api.put(`/pets/${pet._id}`, { personalRecords: updatedPersonalRecords });
+        setPet(response.data.pet || response.data);
 
         Swal.fire({
           title: 'Success!',
@@ -333,6 +421,36 @@ const PetProfile = () => {
     } catch (error) {
       console.error('Upload error:', error);
       Swal.fire('Error', 'Failed to upload document. Please check your connection.', 'error');
+    }
+  };
+ 
+  const handleDeletePersonalRecord = async (recordId, recordName) => {
+    const result = await Swal.fire({
+      title: 'Remove Record?',
+      text: `Are you sure you want to delete "${recordName}"? This action cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await api.delete(`/pets/${pet._id}/personal-records/${recordId}`);
+        setPet(response.data.pet || response.data);
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'The record has been removed.',
+          icon: 'success',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        console.error('Error deleting record:', error);
+        Swal.fire('Error', 'Failed to delete record', 'error');
+      }
     }
   };
 
@@ -367,7 +485,9 @@ const PetProfile = () => {
               variant="outlined"
               startIcon={<ChatIcon />}
               onClick={() => navigate(`/owner/chat?petId=${pet._id}`)}
+              disabled={pet.registrationStatus !== 'Approved'}
               sx={{ borderRadius: '12px', fontWeight: 600, px: 3 }}
+              title={pet.registrationStatus !== 'Approved' ? "Chat is only available for approved pets" : ""}
             >
               Chat with Vet
             </Button>
@@ -384,6 +504,21 @@ const PetProfile = () => {
             >
               Edit Profile
             </Button>
+            <IconButton
+              onClick={handleDeletePet}
+              sx={{
+                color: '#ef4444',
+                bgcolor: 'rgba(239, 68, 68, 0.05)',
+                '&:hover': {
+                  bgcolor: 'rgba(239, 68, 68, 0.1)',
+                  color: '#b91c1c'
+                },
+                borderRadius: '12px',
+                p: 1.5
+              }}
+            >
+              <DeleteIcon />
+            </IconButton>
           </Stack>
         </Box>
 
@@ -538,7 +673,12 @@ const PetProfile = () => {
                 );
 
                 if (allVetAttachments.length === 0) {
-                  return <Typography color="textSecondary" sx={{ py: 4, textAlign: 'center' }}>No veterinarian records found.</Typography>;
+                  return (
+                    <Paper sx={{ p: 8, textAlign: 'center', borderRadius: '32px', border: '2px dashed #e2e8f0', bgcolor: alpha('#f1f5f9', 0.5) }}>
+                      <VetIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
+                      <Typography color="#64748b" variant="h6" fontWeight="800">No veterinarian records found.</Typography>
+                    </Paper>
+                  );
                 }
 
                 return (
@@ -546,25 +686,31 @@ const PetProfile = () => {
                     {displayedVetRecords.map((item, idx) => {
                       const { record, url } = item;
                       const isPdf = url.toLowerCase().endsWith('.pdf');
+                      const isText = url.toLowerCase().endsWith('.txt');
+                      const fileColor = isPdf ? '#ef4444' : isText ? '#64748b' : '#3b82f6';
+                      const FileIconComponent = isPdf ? <PdfIcon /> : isText ? <FileIcon /> : <ImageIcon />;
                       return (
                         <RecordCard key={`${record._id}-${idx}`} elevation={0}>
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <FileIconBox color={isPdf ? '#ef4444' : '#3b82f6'}>
-                              {isPdf ? <PdfIcon /> : <ImageIcon />}
+                            <FileIconBox color={fileColor}>
+                              {FileIconComponent}
                             </FileIconBox>
                             <Box>
                               <Typography variant="body1" fontWeight="800" sx={{ color: '#1e293b', mb: 0.5 }}>
                                 {record.diagnosis}
                               </Typography>
                               <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block' }}>
-                                {new Date(record.date).toLocaleDateString()} • {isPdf ? 'PDF' : 'IMAGE'}
+                                {new Date(record.date).toLocaleDateString()} • {isPdf ? 'PDF' : isText ? 'TEXT' : 'IMAGE'}
                               </Typography>
                               <Typography variant="body2" sx={{ color: '#94a3b8', mt: 0.5, fontWeight: 500 }}>
                                 Dr. {record.vetId?.firstName} {record.vetId?.lastName}
                               </Typography>
                             </Box>
                           </Box>
-                          <IconButton onClick={() => window.open(url)} sx={{ color: '#64748b' }}>
+                          <IconButton 
+                            onClick={() => handleDownload(url, `MedicalRecord_${record.diagnosis}_${new Date(record.date).toLocaleDateString()}.pdf`)} 
+                            sx={{ color: '#64748b' }}
+                          >
                             <DownloadIcon fontSize="small" />
                           </IconButton>
                         </RecordCard>
@@ -617,7 +763,12 @@ const PetProfile = () => {
                 );
 
                 if (allPersonal.length === 0) {
-                  return <Typography color="textSecondary" sx={{ py: 4, textAlign: 'center' }}>No personal uploads found.</Typography>;
+                  return (
+                    <Paper sx={{ p: 8, textAlign: 'center', borderRadius: '32px', border: '2px dashed #e2e8f0', bgcolor: alpha('#f1f5f9', 0.5) }}>
+                      <UserIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
+                      <Typography color="#64748b" variant="h6" fontWeight="800">No personal uploads found.</Typography>
+                    </Paper>
+                  );
                 }
 
                 return (
@@ -625,27 +776,46 @@ const PetProfile = () => {
                     <Stack spacing={2}>
                       {displayedPersonal.map((record, index) => {
                         const isPdf = record.url?.toLowerCase().endsWith('.pdf');
+                        const isText = record.url?.toLowerCase().endsWith('.txt');
+                        const fileColor = isPdf ? '#ef4444' : isText ? '#64748b' : '#3b82f6';
+                        const FileIconComponent = isPdf ? <PdfIcon /> : isText ? <FileIcon /> : <ImageIcon />;
                         return (
                           <RecordCard key={index} elevation={0}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <FileIconBox color={isPdf ? '#ef4444' : '#3b82f6'}>
-                                {isPdf ? <PdfIcon /> : <ImageIcon />}
+                              <FileIconBox color={fileColor}>
+                                {FileIconComponent}
                               </FileIconBox>
                               <Box>
                                 <Typography variant="body1" fontWeight="800" sx={{ color: '#1e293b', mb: 0.5 }}>
                                   {record.name}
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block' }}>
-                                  {record.date ? new Date(record.date).toLocaleDateString() : 'N/A'} • {isPdf ? 'PDF' : 'IMAGE'}
+                                  {record.date ? new Date(record.date).toLocaleDateString() : 'N/A'} • {isPdf ? 'PDF' : isText ? 'TEXT' : 'IMAGE'}
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: '#94a3b8', mt: 0.5, fontWeight: 500 }}>
                                   {record.type}
                                 </Typography>
                               </Box>
                             </Box>
-                            <IconButton onClick={() => window.open(record.url)} sx={{ color: '#64748b' }}>
-                              <DownloadIcon fontSize="small" />
-                            </IconButton>
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                              <IconButton 
+                                onClick={() => handleDownload(record.url, record.name || 'PersonalRecord')} 
+                                sx={{ color: '#64748b' }}
+                              >
+                                <DownloadIcon fontSize="small" />
+                              </IconButton>
+                              {record._id && (
+                                <IconButton
+                                  onClick={() => handleDeletePersonalRecord(record._id, record.name)}
+                                  sx={{
+                                    color: '#ef4444',
+                                    '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.05)' }
+                                  }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              )}
+                            </Box>
                           </RecordCard>
                         );
                       })}
@@ -883,7 +1053,6 @@ const PetProfile = () => {
                               {pres.dueDate ? new Date(pres.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
                             </span>
                           </InstructionBox>
-
                           <Button
                             variant="outlined"
                             startIcon={<DownloadIcon />}
@@ -898,7 +1067,7 @@ const PetProfile = () => {
                               '&:hover': { borderColor: '#cbd5e1', bgcolor: '#f8fafc' }
                             }}
                           >
-                            Download Vaccination Report
+                            Download Certificate
                           </Button>
                         </Paper>
                       ))}

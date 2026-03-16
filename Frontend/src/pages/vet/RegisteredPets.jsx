@@ -29,6 +29,7 @@ import {
   Person as PersonIcon,
   Male as MaleIcon,
   Female as FemaleIcon,
+  Chat as ChatIcon
 } from '@mui/icons-material';
 import dayjs from 'dayjs';
 
@@ -387,28 +388,55 @@ const RegisteredPets = () => {
                                 </Box>
                               </TableCell>
                               <TableCell align="center">
-                                <Button
-                                  variant="contained"
-                                  size="small"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRowClick(pet._id);
-                                  }}
-                                  sx={{
-                                    textTransform: 'none',
-                                    borderRadius: '12px',
-                                    background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
-                                    fontWeight: 700,
-                                    px: 3,
-                                    '&:hover': {
-                                      background:
-                                        'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
-                                      transform: 'translateY(-1px)',
-                                    },
-                                  }}
-                                >
-                                  View
-                                </Button>
+                                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                  <Button
+                                    variant="contained"
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRowClick(pet._id);
+                                    }}
+                                    sx={{
+                                      textTransform: 'none',
+                                      borderRadius: '12px',
+                                      background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
+                                      fontWeight: 700,
+                                      px: 3,
+                                      '&:hover': {
+                                        background:
+                                          'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                                        transform: 'translateY(-1px)',
+                                      },
+                                    }}
+                                  >
+                                    View
+                                  </Button>
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<ChatIcon />}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const ownerId = pet.ownerId?._id || pet.ownerId;
+                                      if (ownerId) navigate(`/vet/chat/owner/${ownerId}`);
+                                    }}
+                                    sx={{
+                                      textTransform: 'none',
+                                      borderRadius: '12px',
+                                      borderColor: '#8e24aa',
+                                      color: '#8e24aa',
+                                      fontWeight: 700,
+                                      px: 2,
+                                      '&:hover': {
+                                        borderColor: '#7b1fa2',
+                                        bgcolor: 'rgba(142, 36, 170, 0.04)',
+                                        transform: 'translateY(-1px)',
+                                      },
+                                    }}
+                                  >
+                                    Chat
+                                  </Button>
+                                </Box>
                               </TableCell>
                             </TableRowStyled>
                           ))}

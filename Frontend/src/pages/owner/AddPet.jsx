@@ -182,7 +182,13 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
                   const data = await r.json();
                   console.log('Photo upload result:', data);
                   setFormData({ ...formData, photo: data.secure_url });
-                  Swal.fire({ title: 'Uploaded!', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+                  Swal.fire({
+                    title: 'Success!',
+                    text: 'Pet image uploaded successfully',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                  });
                 } catch { Swal.fire('Error', 'Upload failed', 'error'); }
               }}
             />

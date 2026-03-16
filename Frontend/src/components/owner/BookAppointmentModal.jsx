@@ -64,26 +64,26 @@ const SubmitButton = styled(Button)(({ theme }) => ({
 }));
 
 const TimeSlotButton = styled(Button, {
-    shouldForwardProp: (prop) => prop !== 'isSelected' && prop !== 'isBooked',
-})(({ theme, isSelected, isBooked }) => ({
+    shouldForwardProp: (prop) => prop !== 'isSelected' && prop !== 'isBooked' && prop !== 'isPast',
+})(({ theme, isSelected, isBooked, isPast }) => ({
     padding: '10px',
     borderRadius: '12px',
     border: '1.5px solid',
-    borderColor: isBooked ? '#f1f5f9' : isSelected ? '#4f46e5' : '#e2e8f0',
-    backgroundColor: isBooked ? '#f8fafc' : isSelected ? alpha('#4f46e5', 0.1) : 'white',
-    color: isBooked ? '#cbd5e1' : isSelected ? '#4f46e5' : '#475569',
+    borderColor: (isBooked || isPast) ? '#f1f5f9' : isSelected ? '#4f46e5' : '#e2e8f0',
+    backgroundColor: (isBooked || isPast) ? '#f8fafc' : isSelected ? alpha('#4f46e5', 0.1) : 'white',
+    color: (isBooked || isPast) ? '#cbd5e1' : isSelected ? '#4f46e5' : '#475569',
     fontWeight: '700',
     textTransform: 'none',
-    cursor: isBooked ? 'not-allowed' : 'pointer',
+    cursor: (isBooked || isPast) ? 'not-allowed' : 'pointer',
     transition: 'all 0.2s ease',
     '&:hover': {
-        borderColor: isBooked ? '#f1f5f9' : '#4f46e5',
-        backgroundColor: isBooked ? '#f8fafc' : alpha('#4f46e5', 0.05),
+        borderColor: (isBooked || isPast) ? '#f1f5f9' : '#4f46e5',
+        backgroundColor: (isBooked || isPast) ? '#f8fafc' : alpha('#4f46e5', 0.05),
     },
     '&.Mui-disabled': {
-        borderColor: isBooked ? '#f1f5f9' : '#e2e8f0',
-        backgroundColor: isBooked ? '#f8fafc' : '#f8fafc',
-        color: isBooked ? '#cbd5e1' : '#cbd5e1',
+        borderColor: (isBooked || isPast) ? '#f1f5f9' : '#e2e8f0',
+        backgroundColor: (isBooked || isPast) ? '#f8fafc' : '#f8fafc',
+        color: (isBooked || isPast) ? '#cbd5e1' : '#cbd5e1',
     }
 }));
 
@@ -192,12 +192,30 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
         setFormData(prev => ({
             ...prev,
             [name]: value,
-            ...(name === 'date' || name === 'vetId' || name === 'clinicId' ? { time: '' } : {})
+            ...(name === 'date' || name === 'vetId' || name === 'clinicId' || name === 'petId' ? { time: '' } : {}),
+            ...(name === 'petId' ? { clinicId: '', vetId: '' } : {})
         }));
     };
 
+    const isPastTime = (slotTime) => {
+        if (!formData.date) return false;
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const localToday = `${year}-${month}-${day}`;
+
+        if (formData.date !== localToday) return false;
+
+        const [hours, minutes] = slotTime.split(':').map(Number);
+        const slotDate = new Date(now);
+        slotDate.setHours(hours, minutes, 0, 0);
+
+        return slotDate < now;
+    };
+
     const handleSlotSelect = (time) => {
-        if (bookedSlots.includes(time)) return;
+        if (bookedSlots.includes(time) || isPastTime(time)) return;
         setFormData(prev => ({ ...prev, time }));
     };
 
@@ -292,7 +310,7 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                                     </Box>
                                 )}
 
-                                <FormControl fullWidth required>
+                                <FormControl fullWidth required disabled={!formData.petId}>
                                     <InputLabel shrink>Clinic</InputLabel>
                                     <StyledSelect
                                         name="clinicId"
@@ -301,16 +319,22 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                                         onChange={handleChange}
                                         displayEmpty
                                         renderValue={(selected) => {
-                                            if (!selected) return <Typography sx={{ color: '#94a3b8' }}>Select Clinic...</Typography>;
+                                            if (!selected) return <Typography sx={{ color: '#94a3b8' }}>{formData.petId ? 'Select Clinic...' : 'Select a pet first'}</Typography>;
                                             const clinic = clinics.find(c => c._id === selected);
                                             return clinic ? clinic.name : selected;
                                         }}
                                         startAdornment={<InputAdornment position="start"><LocationOnIcon sx={{ color: '#4f46e5', mr: 1 }} /></InputAdornment>}
                                     >
                                         <MenuItem value="" disabled><em>Select Clinic...</em></MenuItem>
-                                        {clinics.map(clinic => (
-                                            <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
-                                        ))}
+                                        {formData.petId && (() => {
+                                            const selectedPet = pets.find(p => p._id === formData.petId);
+                                            const petClinicId = selectedPet?.registeredClinicId?._id || selectedPet?.registeredClinicId;
+                                            return clinics
+                                                .filter(clinic => clinic._id === petClinicId)
+                                                .map(clinic => (
+                                                    <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
+                                                ));
+                                        })()}
                                     </StyledSelect>
                                 </FormControl>
 
@@ -346,7 +370,10 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                                     required
                                     InputLabelProps={{ shrink: true }}
                                     inputProps={{
-                                        min: new Date().toISOString().split('T')[0]
+                                        min: (() => {
+                                            const now = new Date();
+                                            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                                        })()
                                     }}
                                     InputProps={{
                                         endAdornment: (
@@ -394,17 +421,22 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                                         </Box>
                                     ) : (
                                         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 1 }}>
-                                            {timeSlots.map((time) => (
-                                                <TimeSlotButton
-                                                    key={time}
-                                                    isBooked={bookedSlots.includes(time)}
-                                                    isSelected={formData.time === time}
-                                                    onClick={() => handleSlotSelect(time)}
-                                                    disabled={bookedSlots.includes(time)}
-                                                >
-                                                    {time}
-                                                </TimeSlotButton>
-                                            ))}
+                                            {timeSlots.map((time) => {
+                                                const isPast = isPastTime(time);
+                                                const isBooked = bookedSlots.includes(time);
+                                                return (
+                                                    <TimeSlotButton
+                                                        key={time}
+                                                        isBooked={isBooked}
+                                                        isPast={isPast}
+                                                        isSelected={formData.time === time}
+                                                        onClick={() => handleSlotSelect(time)}
+                                                        disabled={isBooked || isPast}
+                                                    >
+                                                        {time}
+                                                    </TimeSlotButton>
+                                                );
+                                            })}
                                         </Box>
                                     )}
                                 </Box>

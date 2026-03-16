@@ -80,8 +80,16 @@ const registerVet = async (req, res) => {
 
     await vet.save();
 
-    const vetResponse = vet.toObject();
-    delete vetResponse.passwordHash;
+    const vetResponse = {
+      id: vet._id,
+      firstName: vet.firstName,
+      lastName: vet.lastName,
+      email: vet.email,
+      phoneNumber: vet.phoneNumber,
+      accessLevel: vet.accessLevel,
+      status: vet.status,
+      role: 'vet'
+    };
 
     res.status(201).json({
       message: 'Veterinarian registered successfully',
@@ -186,12 +194,20 @@ const createSubAccount = async (req, res) => {
 
     await subVet.save();
 
-    const response = subVet.toObject();
-    delete response.passwordHash;
+    const subVetResponse = {
+      id: subVet._id,
+      firstName: subVet.firstName,
+      lastName: subVet.lastName,
+      email: subVet.email,
+      phoneNumber: subVet.phoneNumber,
+      accessLevel: subVet.accessLevel,
+      status: subVet.status,
+      role: 'vet'
+    };
 
     res.status(201).json({
       message: 'Sub-account created successfully',
-      vet: response
+      vet: subVetResponse
     });
   } catch (error) {
     res.status(400).json({

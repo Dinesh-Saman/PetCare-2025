@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Typography, TextField, Button, CircularProgress,
   Alert, Link, Grid, InputAdornment, alpha, Divider,
-  FormControl, InputLabel, Select, MenuItem, Checkbox, FormControlLabel
+  FormControl, InputLabel, Select, MenuItem, Checkbox, FormControlLabel,
+  useMediaQuery, useTheme
 } from '@mui/material';
 import {
   Pets as PetsIcon,
@@ -27,6 +28,8 @@ const specializations = [
 
 const VetRegister = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', password: '',
     phoneNumber: '', veterinaryId: '', specialization: ''

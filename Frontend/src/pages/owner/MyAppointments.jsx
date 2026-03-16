@@ -56,6 +56,7 @@ import {
 import Navbar from '../../components/Navbar';
 import socket, { connectSocket, disconnectSocket } from '../../services/socket';
 import BookAppointmentModal from '../../components/owner/BookAppointmentModal';
+import RescheduleAppointmentModal from '../../components/owner/RescheduleAppointmentModal';
 
 const AppointmentsContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -265,6 +266,7 @@ const MyAppointments = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [bookModalOpen, setBookModalOpen] = useState(false);
+  const [rescheduleModal, setRescheduleModal] = useState({ open: false, appointment: null });
 
   const fetchAppointments = async (showLoading = true) => {
     try {
@@ -588,8 +590,18 @@ const MyAppointments = () => {
                               </IconButton>
                               {(app.status === 'Booked' || app.status === 'Confirmed') && new Date(app.dateTime) > new Date() && (
                                 <IconButton
+                                  onClick={() => setRescheduleModal({ open: true, appointment: app })}
+                                  sx={{ color: '#f59e0b', bgcolor: alpha('#f59e0b', 0.05), '&:hover': { bgcolor: alpha('#f59e0b', 0.1) } }}
+                                  title="Reschedule"
+                                >
+                                  <RefreshCcw size={18} />
+                                </IconButton>
+                              )}
+                              {app.status === 'Booked' && new Date(app.dateTime) > new Date() && (
+                                <IconButton
                                   onClick={() => setCancelDialog({ open: true, appointment: app, reason: '' })}
                                   sx={{ color: '#ef4444', bgcolor: alpha('#ef4444', 0.05), '&:hover': { bgcolor: alpha('#ef4444', 0.1) } }}
+                                  title="Cancel"
                                 >
                                   <Trash2 size={18} />
                                 </IconButton>
@@ -796,6 +808,13 @@ const MyAppointments = () => {
             <BookAppointmentModal
               open={bookModalOpen}
               onClose={() => setBookModalOpen(false)}
+              onSuccess={() => fetchAppointments()}
+            />
+
+            <RescheduleAppointmentModal
+              open={rescheduleModal.open}
+              appointment={rescheduleModal.appointment}
+              onClose={() => setRescheduleModal({ open: false, appointment: null })}
               onSuccess={() => fetchAppointments()}
             />
           </MainCard>

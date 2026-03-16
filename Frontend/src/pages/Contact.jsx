@@ -8,11 +8,16 @@ import {
   Phone,
   User as UserIcon
 } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import VetNavbar from "../components/VetNavbar";
 import api from "../services/api"; // Added API service
 import Swal from 'sweetalert2'; // Added for professional alerts
 
 const ContactUs = () => {
+  const location = useLocation();
+  const isFromVet = location.state?.fromVet;
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -63,7 +68,7 @@ const ContactUs = () => {
 
   return (
     <>
-      <Navbar />
+      {isFromVet ? <VetNavbar /> : <Navbar />}
 
       <style>{`
         .contact-page {

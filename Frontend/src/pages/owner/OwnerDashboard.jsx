@@ -62,8 +62,9 @@ import { useAuth } from '../../context/AuthContext';
 // ────────────────────────────────────────────────
 const DashboardContainer = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
-  background: '#f5f7fa',
+  background: '#f8fafc',
   padding: '100px 24px 80px',
+  fontFamily: "'Inter', sans-serif",
   [theme.breakpoints.up('md')]: {
     padding: '120px 40px 100px',
   },
@@ -80,35 +81,46 @@ const ContentContainer = styled(Paper)(({ theme }) => ({
   boxSizing: 'border-box'
 }));
 
-const StatsCard = styled(Card)(({ theme, color }) => ({
-  padding: '20px 24px',
+const StatsCard = styled(Box)(({ theme, color = '#4f46e5' }) => ({
+  background: '#f8fafc',
   borderRadius: '16px',
-  border: '1px solid #e2e8f0',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
-  position: 'relative',
+  padding: '24px',
+  border: '1px solid #f1f5f9',
   display: 'flex',
   alignItems: 'center',
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '6px',
-    height: '100%',
-    background: color || '#4f46e5',
-  },
+  gap: '16px',
+  transition: 'transform 0.3s ease',
+  height: '100%',
+  '&:hover': {
+    transform: 'translateY(-5px)',
+    border: `1px solid ${alpha(color, 0.2)}`,
+  }
+}));
+
+const IconWrapper = styled(Box)(({ theme, color }) => ({
+  width: '52px',
+  height: '52px',
+  borderRadius: '16px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: alpha(color, 0.1),
+  color: color,
 }));
 
 const PetCard = styled(Card)(({ theme }) => ({
   height: '100%',
-  borderRadius: '16px',
+  borderRadius: '20px',
   border: '1px solid #e2e8f0',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+  boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
-  transition: 'transform 0.2s',
-  '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-6px)',
+    boxShadow: '0 20px 45px rgba(0,0,0,0.15)',
+  }
 }));
 
 const StatusBadge = styled(Box)(({ theme, status }) => ({
@@ -289,10 +301,22 @@ const OwnerDashboard = () => {
   const handleUpdateProfile = async () => {
     try {
       const response = await api.put(`/owners/${owner._id || owner.id}`, editForm);
-      setOwner(response.data);
-      updateUser(response.data); // Synchronize with AuthContext
+      const updatedOwner = response.data.owner;
+      
+      // Ensure we preserve the role for AuthContext and Navbar logic
+      const ownerWithRole = { ...updatedOwner, role: 'owner' };
+      
+      setOwner(ownerWithRole);
+      updateUser(ownerWithRole); // Synchronize with AuthContext
       setOpenEditProfile(false);
-      Swal.fire('Success', 'Profile updated successfully', 'success');
+      
+      Swal.fire({
+        title: 'Success',
+        text: 'Profile updated successfully',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false
+      });
     } catch (error) {
       console.error('Update profile error:', error);
       Swal.fire('Error', error.response?.data?.message || 'Failed to update profile', 'error');
@@ -385,18 +409,18 @@ const OwnerDashboard = () => {
             {/* Header Section */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
               <Box>
-                <Typography variant="h4" fontWeight="800" sx={{ color: '#1e293b', mb: 1 }}>
+                <Typography variant="h3" fontWeight="800" sx={{ color: '#1e293b', mb: 1 }}>
                   Welcome back, {owner?.firstName}
                 </Typography>
-                <Typography variant="body1" sx={{ color: '#64748b' }}>
+                <Typography variant="body1" sx={{ color: '#64748b', fontSize: '1.1rem' }}>
                   Here's an overview of your registered pets and their status
                 </Typography>
               </Box>
               <Stack direction="row" spacing={2} flexWrap="wrap">
-                <Button variant="outlined" onClick={() => setOpenEditProfile(true)} sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}>
+                <Button variant="outlined" onClick={() => setOpenEditProfile(true)} sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700 }}>
                   Manage Profile
                 </Button>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenAddPet(true)} sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600, background: '#49149e', '&:hover': { background: '#3b0c82' } }}>
+                <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenAddPet(true)} sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 700, background: '#49149e', '&:hover': { background: '#3b0c82' } }}>
                   Add Pet
                 </Button>
               </Stack>
@@ -411,44 +435,51 @@ const OwnerDashboard = () => {
               gap: 3,
               mb: 6
             }}>
-              <StatsCard>
+              <StatsCard color="#4f46e5">
+                <IconWrapper color="#4f46e5">
+                  <PetsIcon />
+                </IconWrapper>
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Total Pets</Typography>
-                  <Typography variant="h3" fontWeight="800" color="#667eea" sx={{ mt: 1 }}>
+                  <Typography variant="h4" fontWeight="800" sx={{ color: '#0f172a' }}>
                     {stats.totalPets}
                   </Typography>
+                  <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>Total Pets</Typography>
                 </Box>
               </StatsCard>
 
-              <StatsCard color="#10B981">
+              <StatsCard color="#10b981">
+                <IconWrapper color="#10b981">
+                  <CheckCircleIcon />
+                </IconWrapper>
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Approved</Typography>
-                  <Typography variant="h3" fontWeight="800" color="#10B981" sx={{ mt: 0.5, mb: 0.5 }}>
+                  <Typography variant="h4" fontWeight="800" sx={{ color: '#0f172a' }}>
                     {stats.approvedPets}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {stats.totalPets > 0 ? `${((stats.approvedPets / stats.totalPets) * 100).toFixed(0)}%` : '0%'}
-                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>Approved</Typography>
                 </Box>
               </StatsCard>
 
               <StatsCard color="#F59E0B">
+                <IconWrapper color="#F59E0B">
+                  <PendingIcon />
+                </IconWrapper>
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Pending</Typography>
-                  <Typography variant="h3" fontWeight="800" color="#F59E0B" sx={{ mt: 0.5, mb: 0.5 }}>
+                  <Typography variant="h4" fontWeight="800" sx={{ color: '#0f172a' }}>
                     {stats.pendingPets}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">Awaiting approval</Typography>
+                  <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>Pending</Typography>
                 </Box>
               </StatsCard>
 
               <StatsCard color="#EF4444">
+                <IconWrapper color="#EF4444">
+                  <WarningIcon />
+                </IconWrapper>
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary">Rejected</Typography>
-                  <Typography variant="h3" fontWeight="800" color="#EF4444" sx={{ mt: 0.5, mb: 0.5 }}>
+                  <Typography variant="h4" fontWeight="800" sx={{ color: '#0f172a' }}>
                     {stats.rejectedPets}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">Requires attention</Typography>
+                  <Typography variant="body2" sx={{ color: '#64748b', fontWeight: 600 }}>Rejected</Typography>
                 </Box>
               </StatsCard>
             </Box>
@@ -456,7 +487,7 @@ const OwnerDashboard = () => {
             {/* My Pets Section */}
             <Box sx={{ mb: 6 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5, flexWrap: 'wrap', gap: 3 }}>
-                <Typography variant="h4" fontWeight="800" sx={{ color: '#1e293b' }}>
+                <Typography variant="h3" fontWeight="800" sx={{ color: '#1e293b' }}>
                   Your Pets <PetsIcon sx={{ verticalAlign: 'middle', ml: 1, color: '#4f46e5' }} />
                 </Typography>
               </Box>
@@ -508,7 +539,24 @@ const OwnerDashboard = () => {
                 }}>
                   {pets.map((pet) => (
                     <Box key={pet._id} sx={{ height: '100%' }}>
-                      <PetCard>
+                      <PetCard sx={{ position: 'relative' }}>
+                        <IconButton
+                          onClick={() => handleDeletePet(pet._id, pet.name)}
+                          sx={{
+                            position: 'absolute',
+                            top: 12,
+                            right: 12,
+                            color: '#ef4444',
+                            bgcolor: 'rgba(239, 68, 68, 0.05)',
+                            '&:hover': {
+                              bgcolor: 'rgba(239, 68, 68, 0.1)',
+                              color: '#b91c1c'
+                            }
+                          }}
+                          size="small"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
                         <CardContent sx={{ p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2, gap: 1.5 }}>
                             <Avatar
@@ -880,7 +928,13 @@ const OwnerDashboard = () => {
                             });
                             const data = await response.json();
                             setEditPetForm({ ...editPetForm, photo: data.secure_url });
-                            Swal.fire({ title: 'Image Uploaded', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+                            Swal.fire({
+                              title: 'Success!',
+                              text: 'Pet image uploaded successfully',
+                              icon: 'success',
+                              timer: 1500,
+                              showConfirmButton: false
+                            });
                           } catch (error) {
                             Swal.fire('Error', 'Failed to upload image', 'error');
                           }

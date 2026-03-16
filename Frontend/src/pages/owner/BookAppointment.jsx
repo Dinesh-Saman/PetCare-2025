@@ -112,22 +112,22 @@ const SubmitButton = styled(Button)(({ theme }) => ({
 }));
 
 const TimeSlotButton = styled(Button, {
-    shouldForwardProp: (prop) => prop !== 'isSelected' && prop !== 'isBooked',
-})(({ theme, isSelected, isBooked }) => ({
+    shouldForwardProp: (prop) => prop !== 'isSelected' && prop !== 'isBooked' && prop !== 'isPast',
+})(({ theme, isSelected, isBooked, isPast }) => ({
     padding: '12px',
     borderRadius: '14px',
     border: '1.5px solid',
-    borderColor: isBooked ? '#f1f5f9' : isSelected ? '#4f46e5' : '#e2e8f0',
-    backgroundColor: isBooked ? '#f8fafc' : isSelected ? alpha('#4f46e5', 0.1) : 'white',
-    color: isBooked ? '#cbd5e1' : isSelected ? '#4f46e5' : '#475569',
+    borderColor: (isBooked || isPast) ? '#f1f5f9' : isSelected ? '#4f46e5' : '#e2e8f0',
+    backgroundColor: (isBooked || isPast) ? '#f8fafc' : isSelected ? alpha('#4f46e5', 0.1) : 'white',
+    color: (isBooked || isPast) ? '#cbd5e1' : isSelected ? '#4f46e5' : '#475569',
     fontWeight: '700',
     textTransform: 'none',
-    cursor: isBooked ? 'not-allowed' : 'pointer',
+    cursor: (isBooked || isPast) ? 'not-allowed' : 'pointer',
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     '&:hover': {
-        borderColor: isBooked ? '#f1f5f9' : '#4f46e5',
-        backgroundColor: isBooked ? '#f8fafc' : alpha('#4f46e5', 0.05),
-        transform: isBooked ? 'none' : 'translateY(-2px)',
+        borderColor: (isBooked || isPast) ? '#f1f5f9' : '#4f46e5',
+        backgroundColor: (isBooked || isPast) ? '#f8fafc' : alpha('#4f46e5', 0.05),
+        transform: (isBooked || isPast) ? 'none' : 'translateY(-2px)',
     },
 }));
 
@@ -245,11 +245,33 @@ const BookAppointment = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value, ...(name === 'date' || name === 'vetId' ? { time: '' } : {}) }));
+        setFormData(prev => ({
+            ...prev,
+            [name]: value,
+            ...(name === 'date' || name === 'vetId' || name === 'clinicId' || name === 'petId' ? { time: '' } : {}),
+            ...(name === 'petId' ? { clinicId: '', vetId: '' } : {})
+        }));
+    };
+
+    const isPastTime = (slotTime) => {
+        if (!formData.date) return false;
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const localToday = `${year}-${month}-${day}`;
+
+        if (formData.date !== localToday) return false;
+
+        const [hours, minutes] = slotTime.split(':').map(Number);
+        const slotDate = new Date(now);
+        slotDate.setHours(hours, minutes, 0, 0);
+
+        return slotDate < now;
     };
 
     const handleSlotSelect = (time) => {
-        if (bookedSlots.includes(time)) return;
+        if (bookedSlots.includes(time) || isPastTime(time)) return;
         setFormData(prev => ({ ...prev, time }));
     };
 
@@ -363,7 +385,7 @@ const BookAppointment = () => {
                                 </div>
 
                                 <div className="col-md-6">
-                                    <FormControl fullWidth required>
+                                    <FormControl fullWidth required disabled={!formData.petId}>
                                         <InputLabel id="clinic-select-label">Clinic</InputLabel>
                                         <StyledSelect
                                             name="clinicId"
@@ -373,16 +395,22 @@ const BookAppointment = () => {
                                             onChange={handleChange}
                                             displayEmpty
                                             renderValue={(selected) => {
-                                                if (!selected) return <Box component="span" sx={{ color: 'text.secondary' }}>Select Clinic...</Box>;
+                                                if (!selected) return <Box component="span" sx={{ color: 'text.secondary' }}>{formData.petId ? 'Select Clinic...' : 'Select a pet first'}</Box>;
                                                 const clinic = clinics.find(c => c._id === selected);
                                                 return clinic ? clinic.name : selected;
                                             }}
                                             startAdornment={<InputAdornment position="start"><LocationOnIcon sx={{ color: '#4f46e5', mr: 1 }} /></InputAdornment>}
                                         >
                                             <MenuItem value="" disabled><em>Select Clinic...</em></MenuItem>
-                                            {clinics.map(clinic => (
-                                                <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
-                                            ))}
+                                            {formData.petId && (() => {
+                                                const selectedPet = pets.find(p => p._id === formData.petId);
+                                                const petClinicId = selectedPet?.registeredClinicId?._id || selectedPet?.registeredClinicId;
+                                                return clinics
+                                                    .filter(clinic => clinic._id === petClinicId)
+                                                    .map(clinic => (
+                                                        <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
+                                                    ));
+                                            })()}
                                         </StyledSelect>
                                     </FormControl>
                                 </div>
@@ -430,8 +458,11 @@ const BookAppointment = () => {
                                         onChange={handleChange}
                                         required
                                         InputLabelProps={{ shrink: true }}
-                                        InputProps={{
-                                            startAdornment: <InputAdornment position="start"><CalendarTodayIcon sx={{ color: '#4f46e5' }} /></InputAdornment>,
+                                        inputProps={{
+                                            min: (() => {
+                                                const now = new Date();
+                                                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                                            })()
                                         }}
                                     />
                                 </div>
@@ -448,18 +479,23 @@ const BookAppointment = () => {
                                             </Box>
                                         ) : (
                                             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1.5 }}>
-                                                {timeSlots.map((time) => (
-                                                    <TimeSlotButton
-                                                        key={time}
-                                                        variant="outlined"
-                                                        isBooked={bookedSlots.includes(time)}
-                                                        isSelected={formData.time === time}
-                                                        onClick={() => handleSlotSelect(time)}
-                                                        disabled={bookedSlots.includes(time)}
-                                                    >
-                                                        {time}
-                                                    </TimeSlotButton>
-                                                ))}
+                                                {timeSlots.map((time) => {
+                                                    const isPast = isPastTime(time);
+                                                    const isBooked = bookedSlots.includes(time);
+                                                    return (
+                                                        <TimeSlotButton
+                                                            key={time}
+                                                            variant="outlined"
+                                                            isBooked={isBooked}
+                                                            isPast={isPast}
+                                                            isSelected={formData.time === time}
+                                                            onClick={() => handleSlotSelect(time)}
+                                                            disabled={isBooked || isPast}
+                                                        >
+                                                            {time}
+                                                        </TimeSlotButton>
+                                                    );
+                                                })}
                                             </Box>
                                         )}
                                     </div>

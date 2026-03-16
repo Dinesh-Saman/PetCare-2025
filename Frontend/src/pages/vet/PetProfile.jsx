@@ -401,9 +401,9 @@ const PetProfile = () => {
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
-    const validFiles = files.filter(file => ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'].includes(file.type));
+    const validFiles = files.filter(file => ['image/jpeg', 'image/png', 'application/pdf'].includes(file.type));
     if (validFiles.length < files.length) {
-      Swal.fire('Invalid Files', 'Only images (JPG, PNG, GIF) and PDFs are allowed.', 'warning');
+      Swal.fire('Invalid Files', 'Only images (JPG, PNG) and PDFs are allowed (GIFs are not supported).', 'warning');
     }
     setSelectedFiles(prev => [...prev, ...validFiles]);
   };
@@ -579,6 +579,17 @@ const PetProfile = () => {
     }
   };
 
+  const handleDownload = (url, fileName = 'attachment') => {
+    if (!url) return;
+    const downloadUrl = url.includes('cloudinary.com') ? url.replace('/upload/', '/upload/fl_attachment/') : url;
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   if (!pet) {
     return (
       <PageContainer>
@@ -613,6 +624,7 @@ const PetProfile = () => {
                     variant="contained"
                     startIcon={<ChatIcon />}
                     onClick={() => navigate(`/vet/chat/owner/${pet.ownerId._id}`, { state: { selectedPetId: pet._id } })}
+                    disabled={pet.registrationStatus !== 'Approved'}
                     sx={{
                       mt: 2,
                       background: 'linear-gradient(135deg, #667eea, #764ba2)',
@@ -623,8 +635,13 @@ const PetProfile = () => {
                       px: 3,
                       '&:hover': {
                         opacity: 0.9,
+                      },
+                      '&.Mui-disabled': {
+                        background: '#e2e8f0',
+                        color: '#94a3b8'
                       }
                     }}
+                    title={pet.registrationStatus !== 'Approved' ? "Chat is only available for approved pets" : ""}
                   >
                     Chat with Owner
                   </Button>
@@ -636,7 +653,7 @@ const PetProfile = () => {
               <Tab label="Pet Info" />
               <Tab label="Medical Notes" />
               <Tab label="Medical Records" />
-              <Tab label="Appointments & Prescs" />
+              <Tab label="APPOINTMENTS & PRESCRIPTIONS" />
               <Tab label="Vaccinations" />
             </Tabs>
 
@@ -890,10 +907,7 @@ const PetProfile = () => {
                                                     size="small"
                                                     startIcon={url.endsWith('.pdf') ? <PictureAsPdfIcon /> : <ImageIcon />}
                                                     endIcon={<DownloadIcon />}
-                                                    component="a"
-                                                    href={url}
-                                                    target="_blank"
-                                                    download
+                                                    onClick={() => handleDownload(url, record.recordType === 'owner' ? (record.diagnosis || `File ${i + 1}`) : `File ${i + 1}`)}
                                                     sx={{
                                                       textTransform: 'none',
                                                       borderRadius: '8px',
@@ -930,7 +944,7 @@ const PetProfile = () => {
 
               {activeTab === 3 && (
                 <AlignedContent>
-                  <Typography variant="h5" fontWeight="bold" color="#e08c0eff" mb={3}>Appointments & Prescriptions</Typography>
+                  <Typography variant="h5" fontWeight="bold" color="#e08c0eff" mb={3}>APPOINTMENTS & PRESCRIPTIONS</Typography>
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
@@ -1038,25 +1052,25 @@ const PetProfile = () => {
                                             </IconButton>
                                           </Tooltip>
                                         )}
-                                        {appt.prescriptionUrl && (
-                                          <Tooltip title="Download Uploaded Prescription File">
-                                            <IconButton
-                                              size="small"
-                                              onClick={() => window.open(appt.prescriptionUrl, '_blank')}
-                                              sx={{
-                                                color: '#1976d2',
-                                                bgcolor: alpha('#1976d2', 0.08),
-                                                border: '1px solid',
-                                                borderColor: alpha('#1976d2', 0.2),
-                                                borderRadius: 1.5,
-                                                '&:hover': { bgcolor: alpha('#1976d2', 0.16) },
-                                                p: 0.7
-                                              }}
-                                            >
-                                              <AttachFileIcon fontSize="small" />
-                                            </IconButton>
-                                          </Tooltip>
-                                        )}
+                                          {appt.prescriptionUrl && (
+                                            <Tooltip title="Download Uploaded Prescription File">
+                                              <IconButton
+                                                size="small"
+                                                onClick={() => handleDownload(appt.prescriptionUrl, `Prescription_${appt._id}`)}
+                                                sx={{
+                                                  color: '#1976d2',
+                                                  bgcolor: alpha('#1976d2', 0.08),
+                                                  border: '1px solid',
+                                                  borderColor: alpha('#1976d2', 0.2),
+                                                  borderRadius: 1.5,
+                                                  '&:hover': { bgcolor: alpha('#1976d2', 0.16) },
+                                                  p: 0.7
+                                                }}
+                                              >
+                                                <AttachFileIcon fontSize="small" />
+                                              </IconButton>
+                                            </Tooltip>
+                                          )}
                                       </Box>
                                     );
                                   })()}
@@ -1254,8 +1268,8 @@ const PetProfile = () => {
                             startIcon={<AttachFileIcon />}
                             sx={{ borderRadius: 2, textTransform: 'none', bgcolor: '#1e293b', '&:hover': { bgcolor: '#334155' } }}
                           >
-                            Upload Files (Existing Prescription)
-                            <input type="file" hidden multiple accept="image/*,.pdf" onChange={handleFileSelect} />
+                            Upload Files
+                            <input type="file" hidden multiple accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileSelect} />
                           </Button>
                         </Box>
                         <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mt: 2 }}>
@@ -1280,7 +1294,7 @@ const PetProfile = () => {
                           ))}
                         </Stack>
                         <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                          Supported formats: JPG, PNG, GIF, PDF. Max 10MB per file.
+                          Supported formats: JPG, PNG, PDF. Max 10MB per file.
                         </Typography>
                       </Box>
                     </Grid>
@@ -1383,7 +1397,7 @@ const PetProfile = () => {
                           <Box sx={{ display: 'flex', gap: 1 }}>
                             <Button size="small" variant="contained" color="secondary" component="a" href={selectedAppt.prescriptionUrl} target="_blank">View</Button>
                             <Tooltip title="Download">
-                              <IconButton size="small" color="secondary" component="a" href={selectedAppt.prescriptionUrl.includes('cloudinary.com') ? selectedAppt.prescriptionUrl.replace('/upload/', '/upload/fl_attachment/') : selectedAppt.prescriptionUrl} download>
+                              <IconButton size="small" color="secondary" onClick={() => handleDownload(selectedAppt.prescriptionUrl, `Prescription_${selectedAppt._id}`)}>
                                 <DownloadIcon />
                               </IconButton>
                             </Tooltip>

@@ -11,7 +11,8 @@ const {
   manageAppointment,
   getAppointmentById,
   getTodayAppointmentsCountByVet,
-  getMyAppointments
+  getMyAppointments,
+  rescheduleAppointment
 } = require('../controllers/appointmentController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -75,5 +76,8 @@ router.patch('/:id/cancel', protect, allowCancel, cancelAppointment);
 
 // Then add this route (place it after the '/book' route):
 router.get('/owner/my-appointments', protect, authorize('owner'), getMyAppointments);
+
+// Reschedule appointment (owner only)
+router.patch('/:id/reschedule', protect, authorize('owner'), rescheduleAppointment);
 
 module.exports = router;

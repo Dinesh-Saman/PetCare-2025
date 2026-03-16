@@ -153,9 +153,12 @@ const VetChatWindow = () => {
 
             const clinicIds = vetClinics.map(id => (typeof id === 'object' ? id._id : id)?.toString());
 
+            // Only show approved pets for chat
+            const approvedPets = allOwnerPets.filter(p => p.registrationStatus === 'Approved');
+
             const visiblePets = currentVet.accessLevel === 'Enhanced'
-                ? allOwnerPets
-                : allOwnerPets.filter(p => {
+                ? approvedPets
+                : approvedPets.filter(p => {
                     const petClinicId = (p.registeredClinicId?._id || p.registeredClinicId)?.toString();
                     return clinicIds.includes(petClinicId);
                 });
@@ -172,10 +175,6 @@ const VetChatWindow = () => {
                     : visiblePets[0];
 
                 setSelectedPet(initialPet);
-
-                if (targetPetId) {
-                    window.history.replaceState({}, document.title);
-                }
             } else {
                 setOwner({ _id: ownerId, firstName: 'Owner', lastName: '' });
                 setPets([]);

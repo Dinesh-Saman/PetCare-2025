@@ -337,7 +337,7 @@ const ClinicStaff = () => {
         setStaff(prev => prev.map(s => s._id === id ? { ...s, status: 'Inactive' } : s));
         Swal.fire('Deactivated!', `${name} has been deactivated.`, 'success');
       } catch (error) {
-        Swal.fire('Error!', 'Could not deactivate member', 'error');
+        Swal.fire('Error!', error.response?.data?.message || 'Could not deactivate member', 'error');
       }
     }
   };
@@ -587,9 +587,7 @@ const ClinicStaff = () => {
                                           </InfoValue>
                                         </InfoRow>
 
-                                        {member.veterinaryId && (
-                                          <InfoRow><BadgeIcon /><InfoLabel>License ID:</InfoLabel><InfoValue>{member.veterinaryId}</InfoValue></InfoRow>
-                                        )}
+
                                         {member.specialization && (
                                           <InfoRow><BadgeIcon /><InfoLabel>Specialization:</InfoLabel><InfoValue>{member.specialization}</InfoValue></InfoRow>
                                         )}
@@ -747,7 +745,20 @@ const ClinicStaff = () => {
               </FormControl>
 
               {editFormData.staffType === 'veterinarian' ? (
-                <TextField fullWidth label="Veterinary Registration ID" name="veterinaryId" value={editFormData.veterinaryId} onChange={(e) => setEditFormData({ ...editFormData, veterinaryId: e.target.value })} required />
+                <FormControl fullWidth>
+                  <InputLabel>Specialization</InputLabel>
+                  <Select
+                    name="specialization"
+                    value={editFormData.specialization || ''}
+                    onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })}
+                    label="Specialization"
+                  >
+                    <MenuItem value="" disabled>Select Specialization</MenuItem>
+                    {specializations.map((spec) => (
+                      <MenuItem key={spec} value={spec}>{spec}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               ) : (
                 <FormControl fullWidth>
                   <InputLabel>Role</InputLabel>
@@ -761,26 +772,6 @@ const ClinicStaff = () => {
                     <MenuItem value="Other">Other</MenuItem>
                   </Select>
                 </FormControl>
-              )}
-
-              {/* Row 4: Full-width — Specialization (vet) or Assigned Clinics (staff Basic) */}
-              {editFormData.staffType === 'veterinarian' && (
-                <Box sx={{ gridColumn: '1 / -1' }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Specialization</InputLabel>
-                    <Select
-                      name="specialization"
-                      value={editFormData.specialization || ''}
-                      onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })}
-                      label="Specialization"
-                    >
-                      <MenuItem value="" disabled>Select Specialization</MenuItem>
-                      {specializations.map((spec) => (
-                        <MenuItem key={spec} value={spec}>{spec}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
               )}
               {editFormData.staffType !== 'veterinarian' && editFormData.accessLevel === 'Basic' && (
                 <Box sx={{ gridColumn: '1 / -1' }}>

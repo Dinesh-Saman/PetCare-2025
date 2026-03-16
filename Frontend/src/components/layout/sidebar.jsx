@@ -166,7 +166,6 @@ const Sidebar = ({ computedHeight, mobileView, onClose }) => {
       title: "Clinic Management",
       items: [
         { to: "/vet/clinic-settings", icon: <FaCog />, label: "Manage Clinics", requireEnhanced: true },
-        { to: "/vet/chat", icon: <FaComments />, label: "Chat with Owners", requireEnhanced: true },
       ]
     },
     {
@@ -181,6 +180,7 @@ const Sidebar = ({ computedHeight, mobileView, onClose }) => {
       items: [
         { to: "/vet/pets", icon: <FaPaw />, label: "Registered Pets" },
         { to: "/vet/pets/pending", icon: <FaHourglassHalf />, label: "Pending Registrations" },
+        { to: "/vet/chat", icon: <FaComments />, label: "Chat with Owners" },
       ]
     },
     {
