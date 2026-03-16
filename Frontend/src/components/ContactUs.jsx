@@ -36,7 +36,7 @@ const ContactUs = () => {
     {
       icon: <Mail size={22} />,
       label: "Email",
-      value: "hello@pawpal.lk",
+      value: "hello@PawPal.lk",
     },
     {
       icon: <Clock size={22} />,
@@ -255,7 +255,7 @@ const ContactUs = () => {
         <div className="contact-container">
           <h2 className="contact-title">Get in Touch</h2>
           <p className="contact-subtitle">
-            Have questions about Pawpal, your pet’s care, appointments, or just want to share feedback?  
+            Have questions about PawPal, your pet’s care, appointments, or just want to share feedback?
             We're happy to hear from you!
           </p>
 

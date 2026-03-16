@@ -693,13 +693,13 @@ const AboutUs = () => {
           <div className="hero-content">
             <div className="hero-badge">
               <Heart className="icon" size={20} />
-              <span>About Pawpal</span>
+              <span>About PawPal</span>
             </div>
             <h1 className="hero-title">
               Revolutionizing Pet Care in Sri Lanka
             </h1>
             <p className="hero-subtitle">
-              Pawpal is Sri Lanka's premier digital platform connecting pet owners with veterinary care,
+              PawPal is Sri Lanka's premier digital platform connecting pet owners with veterinary care,
               combining cutting-edge technology with compassionate pet health management.
             </p>
           </div>
@@ -713,7 +713,7 @@ const AboutUs = () => {
                 Our <span className="mission-highlight">Mission</span> & Vision
               </h2>
               <p className="mission-text">
-                At Pawpal, we're on a mission to transform pet healthcare in Sri Lanka by making
+                At PawPal, we're on a mission to transform pet healthcare in Sri Lanka by making
                 veterinary services accessible, affordable, and comprehensive for every pet owner.
               </p>
               <div className="mission-points">
@@ -754,7 +754,7 @@ const AboutUs = () => {
           <div className="section-header">
             <h2>Our Core Values</h2>
             <p className="section-subtitle">
-              The principles that guide every decision we make at Pawpal
+              The principles that guide every decision we make at PawPal
             </p>
           </div>
           <div className="values-grid">
@@ -796,7 +796,7 @@ const AboutUs = () => {
             <h2 className="cta-title">Join Our Pet Care Revolution</h2>
             <p className="cta-subtitle">
               Whether you're a pet owner looking for better care or a veterinarian wanting to
-              modernize your practice, Pawpal has something for you.
+              modernize your practice, PawPal has something for you.
             </p>
             <div className="cta-buttons">
               <a href="/register" className="cta-button primary">

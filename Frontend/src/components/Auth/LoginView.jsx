@@ -132,7 +132,7 @@ const LoginView = () => {
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <PetsIcon sx={{ fontSize: 22 }} />
-                        <Typography variant="body1" fontWeight="bold">Pawpal {isVet ? 'Vet' : ''}</Typography>
+                        <Typography variant="body1" fontWeight="bold">PawPal {isVet ? 'Vet' : ''}</Typography>
                     </Box>
 
                     <Typography variant="h5" fontWeight="900" sx={{ mb: 2, letterSpacing: '-0.5px' }}>
@@ -182,7 +182,7 @@ const LoginView = () => {
                             size="small"
                             name="email"
                             type="email"
-                            placeholder={isVet ? "doctor@pawpal.com" : "Type your email"}
+                            placeholder={isVet ? "doctor@PawPal.com" : "Type your email"}
                             value={formData.email}
                             onChange={handleChange}
                             variant="outlined"

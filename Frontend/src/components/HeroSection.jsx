@@ -214,13 +214,13 @@ const HeroSection = () => {
         {/* Main Content */}
         <div className="hero-content-wrapper">
           <div className="hero-content">
-            <h1>Pawpal</h1>
+            <h1>PawPal</h1>
             <p>
               Your all-in-one platform for pet health management in Sri Lanka. register pets, book vet appointments,
               chat with veterinarians, track vaccinations & medications, and get instant AI-powered pet care advice.
             </p>
             <button onClick={handleGetStarted} className="hero-button">
-              {user ? "Get Started — Add Your Pet Today" : "Login Your Account"}
+              {user ? "Get Started -Add Your Pet Today" : "Login Your Account"}
             </button>
           </div>
         </div>

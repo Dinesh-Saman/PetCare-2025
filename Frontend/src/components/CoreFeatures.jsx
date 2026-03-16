@@ -237,7 +237,7 @@ const CoreFeatures = () => {
       `}</style>
 
       <section className="services-section" ref={sectionRef}>
-        <h2>Core Features of Pawpal</h2>
+        <h2>Core Features of PawPal</h2>
         <p className="section-subtitle">
           Everything you need to keep your pets healthy, happy, and connected to the best veterinary care in Sri Lanka
         </p>

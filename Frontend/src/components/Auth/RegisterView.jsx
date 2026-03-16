@@ -104,16 +104,16 @@ const RegisterView = () => {
                     <Box sx={{ maxWidth: '92%', width: '100%', mx: 'auto' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                             <PetsIcon sx={{ fontSize: 20, color: primaryColor }} />
-                            <Typography variant="body2" fontWeight="bold" sx={{ color: primaryColor }}>Pawpal {isVet ? 'Vet' : ''}</Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ color: primaryColor }}>PawPal {isVet ? 'Vet' : ''}</Typography>
                         </Box>
 
                         <Typography variant="h5" fontWeight="900" sx={{ mb: 0.5, color: textMain, letterSpacing: '-0.5px' }}>
                             {isVet ? 'Complete Your Vet Profile' : 'Create Account'}
                         </Typography>
                         <Typography variant="caption" sx={{ mb: 2, opacity: 0.9, color: textMuted, fontWeight: 500, fontSize: '0.8rem', display: 'block' }}>
-                            {isVet 
-                                ? 'Please provide your professional details to activate your vet account and access the dashboard.' 
-                                : 'Join Pawpal to manage your pet\'s health records.'}
+                            {isVet
+                                ? 'Please provide your professional details to activate your vet account and access the dashboard.'
+                                : 'Join PawPal to manage your pet\'s health records.'}
                         </Typography>
 
                         <form onSubmit={handleSubmit} noValidate>
@@ -170,12 +170,12 @@ const RegisterView = () => {
                                         </Box>
                                         <Box>
                                             <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Specialization</Typography>
-                                            <TextField 
-                                                fullWidth 
-                                                size="small" 
-                                                name="specialization" 
-                                                select 
-                                                value={formData.specialization} 
+                                            <TextField
+                                                fullWidth
+                                                size="small"
+                                                name="specialization"
+                                                select
+                                                value={formData.specialization}
                                                 onChange={handleChange}
                                                 SelectProps={{
                                                     displayEmpty: true,

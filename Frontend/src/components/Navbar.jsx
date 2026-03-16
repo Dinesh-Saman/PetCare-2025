@@ -99,7 +99,7 @@ const Navbar = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <img
             src="https://i.imgur.com/RHsVvXq.jpeg"
-            alt="Pawpal Logo"
+            alt="PawPal Logo"
             style={{
               width: 40,
               height: 40,
@@ -109,7 +109,7 @@ const Navbar = () => {
             }}
           />
           <Typography variant="h5" fontWeight="bold">
-            Pawpal
+            PawPal
           </Typography>
         </Box>
         <IconButton onClick={toggleDrawer(false)} sx={{ color: 'white' }}>
@@ -241,7 +241,7 @@ const Navbar = () => {
       {/* Footer */}
       <Box sx={{ p: 2, textAlign: 'center', opacity: 0.7 }}>
         <Typography variant="caption">
-          © {new Date().getFullYear()} Pawpal
+          © {new Date().getFullYear()} PawPal
         </Typography>
       </Box>
     </Box>
@@ -286,7 +286,7 @@ const Navbar = () => {
             <Box
               component="img"
               src="https://i.imgur.com/RHsVvXq.jpeg"
-              alt="Pawpal Logo"
+              alt="PawPal Logo"
               sx={{
                 width: { xs: 50, md: 70 },
                 height: { xs: 50, md: 70 },
@@ -303,7 +303,7 @@ const Navbar = () => {
                 fontSize: { xs: '1.1rem', md: '1.6rem' }
               }}
             >
-              Pawpal
+              PawPal
             </Typography>
           </Box>
 

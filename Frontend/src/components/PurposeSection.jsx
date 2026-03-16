@@ -2,36 +2,36 @@ import React from "react";
 import { Heart, Globe, Bot, ShieldCheck } from "lucide-react";
 
 const PurposeSection = () => {
-    const points = [
-        {
-            icon: <Heart size={32} />,
-            title: "Compassionate Care",
-            description: "Empowering pet owners with digital tools to track health, vaccinations, and daily wellness with ease.",
-            color: "#ef4444"
-        },
-        {
-            icon: <Globe size={32} />,
-            title: "Connecting Communities",
-            description: "Bridging the gap between pet owners and Sri Lanka's best veterinary clinics through seamless digital communication.",
-            color: "#3b82f6"
-        },
-        {
-            icon: <Bot size={32} />,
-            title: "AI-Powered Guidance",
-            description: "Instant, reliable pet care support powered by AI, tailored specifically for the unique environment of Sri Lanka.",
-            color: "#10b981"
-        },
-        {
-            icon: <ShieldCheck size={32} />,
-            title: "Trusted Security",
-            description: "Your pet's medical data is secured with enterprise-grade protection, ensuring privacy and peace of mind.",
-            color: "#8b5cf6"
-        }
-    ];
+  const points = [
+    {
+      icon: <Heart size={32} />,
+      title: "Compassionate Care",
+      description: "Empowering pet owners with digital tools to track health, vaccinations, and daily wellness with ease.",
+      color: "#ef4444"
+    },
+    {
+      icon: <Globe size={32} />,
+      title: "Connecting Communities",
+      description: "Bridging the gap between pet owners and Sri Lanka's best veterinary clinics through seamless digital communication.",
+      color: "#3b82f6"
+    },
+    {
+      icon: <Bot size={32} />,
+      title: "AI-Powered Guidance",
+      description: "Instant, reliable pet care support powered by AI, tailored specifically for the unique environment of Sri Lanka.",
+      color: "#10b981"
+    },
+    {
+      icon: <ShieldCheck size={32} />,
+      title: "Trusted Security",
+      description: "Your pet's medical data is secured with enterprise-grade protection, ensuring privacy and peace of mind.",
+      color: "#8b5cf6"
+    }
+  ];
 
-    return (
-        <>
-            <style>{`
+  return (
+    <>
+      <style>{`
         .purpose-section {
           padding: 80px 20px;
           background: #ffffff;
@@ -118,34 +118,34 @@ const PurposeSection = () => {
         }
       `}</style>
 
-            <section className="purpose-section">
-                <div className="purpose-wrapper">
-                    <div className="purpose-header">
-                        <h2>Our Purpose</h2>
-                        <p>
-                            At Pawpal, we are dedicated to revolutionizing pet healthcare in Sri Lanka by combining
-                            compassion with cutting-edge technology.
-                        </p>
-                    </div>
+      <section className="purpose-section">
+        <div className="purpose-wrapper">
+          <div className="purpose-header">
+            <h2>Our Purpose</h2>
+            <p>
+              At PawPal, we are dedicated to revolutionizing pet healthcare in Sri Lanka by combining
+              compassion with cutting-edge technology.
+            </p>
+          </div>
 
-                    <div className="purpose-grid">
-                        {points.map((point, index) => (
-                            <div key={index} className="purpose-card">
-                                <div
-                                    className="purpose-icon-box"
-                                    style={{ background: point.color }}
-                                >
-                                    {point.icon}
-                                </div>
-                                <h3>{point.title}</h3>
-                                <p>{point.description}</p>
-                            </div>
-                        ))}
-                    </div>
+          <div className="purpose-grid">
+            {points.map((point, index) => (
+              <div key={index} className="purpose-card">
+                <div
+                  className="purpose-icon-box"
+                  style={{ background: point.color }}
+                >
+                  {point.icon}
                 </div>
-            </section>
-        </>
-    );
+                <h3>{point.title}</h3>
+                <p>{point.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
 };
 
 export default PurposeSection;

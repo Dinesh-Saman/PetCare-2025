@@ -125,7 +125,7 @@ const VetLogin = () => {
           }}>
             <PetsIcon sx={{ fontSize: 22 }} />
           </Box>
-          <Typography variant="h6" fontWeight="800" color="#1e293b" letterSpacing="-0.5px">Pawpal Vet</Typography>
+          <Typography variant="h6" fontWeight="800" color="#1e293b" letterSpacing="-0.5px">PawPal Vet</Typography>
         </Box>
 
         <Box sx={{ maxWidth: '400px', width: '100%', mx: 'auto' }}>

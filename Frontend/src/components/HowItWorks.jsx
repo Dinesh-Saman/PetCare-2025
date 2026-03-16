@@ -2,36 +2,36 @@ import React from "react";
 import { UserPlus, Calendar, MessageSquare, ShieldCheck } from "lucide-react";
 
 const HowItWorks = () => {
-    const steps = [
-        {
-            icon: <UserPlus size={32} />,
-            title: "1. Register Your Pet",
-            description: "Create a digital profile for your pet with medical history, species, and breed details to get personalized care.",
-            color: "#3b82f6"
-        },
-        {
-            icon: <Calendar size={32} />,
-            title: "2. Book Appointments",
-            description: "Browse registered clinics in Sri Lanka and book appointments with real-time availability in just few clicks.",
-            color: "#10b981"
-        },
-        {
-            icon: <MessageSquare size={32} />,
-            title: "3. Direct Vet Chat",
-            description: "Start a private conversation with your veterinarian. Ask questions and share medical records securely.",
-            color: "#8b5cf6"
-        },
-        {
-            icon: <ShieldCheck size={32} />,
-            title: "4. AI Health Support",
-            description: "Our AI-powered assistant provides instant first-aid advice and pet care tips tailored for the Sri Lankan context.",
-            color: "#f59e0b"
-        }
-    ];
+  const steps = [
+    {
+      icon: <UserPlus size={32} />,
+      title: "1. Register Your Pet",
+      description: "Create a digital profile for your pet with medical history, species, and breed details to get personalized care.",
+      color: "#3b82f6"
+    },
+    {
+      icon: <Calendar size={32} />,
+      title: "2. Book Appointments",
+      description: "Browse registered clinics in Sri Lanka and book appointments with real-time availability in just few clicks.",
+      color: "#10b981"
+    },
+    {
+      icon: <MessageSquare size={32} />,
+      title: "3. Direct Vet Chat",
+      description: "Start a private conversation with your veterinarian. Ask questions and share medical records securely.",
+      color: "#8b5cf6"
+    },
+    {
+      icon: <ShieldCheck size={32} />,
+      title: "4. AI Health Support",
+      description: "Our AI-powered assistant provides instant first-aid advice and pet care tips tailored for the Sri Lankan context.",
+      color: "#f59e0b"
+    }
+  ];
 
-    return (
-        <>
-            <style>{`
+  return (
+    <>
+      <style>{`
         .how-it-works-section {
           padding: 60px 20px;
           background-color: #f8fafc;
@@ -135,37 +135,37 @@ const HowItWorks = () => {
         }
       `}</style>
 
-            <section className="how-it-works-section">
-                <div className="how-bg-blob blob-1"></div>
-                <div className="how-bg-blob blob-2"></div>
+      <section className="how-it-works-section">
+        <div className="how-bg-blob blob-1"></div>
+        <div className="how-bg-blob blob-2"></div>
 
-                <div className="how-wrapper">
-                    <div className="how-header">
-                        <h2>How Pawpal Works</h2>
-                        <p>
-                            Your journey to better pet healthcare in Sri Lanka is simple and secure.
-                            Follow these steps to get started.
-                        </p>
-                    </div>
+        <div className="how-wrapper">
+          <div className="how-header">
+            <h2>How PawPal Works</h2>
+            <p>
+              Your journey to better pet healthcare in Sri Lanka is simple and secure.
+              Follow these steps to get started.
+            </p>
+          </div>
 
-                    <div className="steps-grid">
-                        {steps.map((step, index) => (
-                            <div key={index} className="step-card">
-                                <div
-                                    className="step-icon-wrapper"
-                                    style={{ backgroundColor: step.color }}
-                                >
-                                    {step.icon}
-                                </div>
-                                <h3>{step.title}</h3>
-                                <p>{step.description}</p>
-                            </div>
-                        ))}
-                    </div>
+          <div className="steps-grid">
+            {steps.map((step, index) => (
+              <div key={index} className="step-card">
+                <div
+                  className="step-icon-wrapper"
+                  style={{ backgroundColor: step.color }}
+                >
+                  {step.icon}
                 </div>
-            </section>
-        </>
-    );
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
 };
 
 export default HowItWorks;

@@ -27,7 +27,7 @@ def get_rag_chain():
     prompt = PromptTemplate.from_template(
         """
         [Role]
-        You are Dr. Sara, an AI veterinarian for Pawpal (Sri Lanka).
+        You are Dr. Sara, an AI veterinarian for PawPal (Sri Lanka).
         Your mission is to provide helpful, safe, and accurate advice to pet owners.
         
         [Guidelines]

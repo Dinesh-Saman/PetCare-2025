@@ -204,7 +204,7 @@ const VetFunctionalities = () => {
           <div className="vet-functions-header">
             <h2>Your Digital Command Center</h2>
             <p>
-              Experience the power of the Pawpal Vet Dashboard – designed by experts to streamline your clinical workflow and enhance pet care.
+              Experience the power of the PawPal Vet Dashboard – designed by experts to streamline your clinical workflow and enhance pet care.
             </p>
           </div>
           <div className="vet-functions-grid">

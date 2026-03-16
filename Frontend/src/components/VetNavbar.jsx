@@ -56,7 +56,7 @@ const VetNavbar = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <img
             src="https://i.imgur.com/RHsVvXq.jpeg"
-            alt="Pawpal Logo"
+            alt="PawPal Logo"
             style={{
               width: 40,
               height: 40,
@@ -64,7 +64,7 @@ const VetNavbar = () => {
               objectFit: 'cover',
             }}
           />
-          <Typography variant="h5" fontWeight="bold"> Pawpal </Typography>
+          <Typography variant="h5" fontWeight="bold"> PawPal </Typography>
         </Box>
         <IconButton onClick={toggleDrawer(false)} sx={{ color: 'white' }}>
           <CloseIcon />
@@ -155,7 +155,7 @@ const VetNavbar = () => {
             <Box
               component="img"
               src="https://i.imgur.com/RHsVvXq.jpeg"
-              alt="Pawpal Logo"
+              alt="PawPal Logo"
               sx={{
                 width: { xs: 50, md: 70 },
                 height: { xs: 50, md: 70 },
@@ -168,7 +168,7 @@ const VetNavbar = () => {
               variant="h5"
               sx={{ fontWeight: 700, fontSize: { xs: '1.1rem', md: '1.6rem' } }}
             >
-              Pawpal <span style={{ fontWeight: 400, opacity: 0.8, fontSize: '0.9rem' }}>VET PORTAL</span>
+              PawPal <span style={{ fontWeight: 400, opacity: 0.8, fontSize: '0.9rem' }}>VET PORTAL</span>
             </Typography>
           </Box>
 

@@ -14,42 +14,42 @@ const Testimonials = () => {
       name: "Dr. Janaki Collure",
       role: "Veterinarian, PetVet Clinic, Colombo",
       image: "https://randomuser.me/api/portraits/women/44.jpg",
-      text: "Pawpal has transformed how we connect with pet owners. The in-app chat and appointment system make follow-ups seamless, and the AI chatbot provides reliable basic guidance before visits — highly recommended for busy clinics.",
+      text: "PawPal has transformed how we connect with pet owners. The in-app chat and appointment system make follow-ups seamless, and the AI chatbot provides reliable basic guidance before visits — highly recommended for busy clinics.",
       rating: 5,
     },
     {
       name: "Amara Silva",
       role: "Pet Owner, Negombo",
       image: "https://randomuser.me/api/portraits/women/28.jpg",
-      text: "As a busy working mom, Pawpal's reminders for vaccinations and meds are a lifesaver. I booked my dog's check-up in seconds and chatted with the vet from home. My Labrador is healthier than ever!",
+      text: "As a busy working mom, PawPal's reminders for vaccinations and meds are a lifesaver. I booked my dog's check-up in seconds and chatted with the vet from home. My Labrador is healthier than ever!",
       rating: 5,
     },
     {
       name: "Dr. Chaminda Perera",
       role: "Senior Vet, Kandy Animal Hospital",
       image: "https://randomuser.me/api/portraits/men/35.jpg",
-      text: "The pet profile sharing feature lets us access history instantly. Pawpal reduces no-shows with reminders and helps us focus on care rather than admin. A real game-changer for Sri Lankan vets.",
+      text: "The pet profile sharing feature lets us access history instantly. PawPal reduces no-shows with reminders and helps us focus on care rather than admin. A real game-changer for Sri Lankan vets.",
       rating: 5,
     },
     {
       name: "Ruwani Fernando",
       role: "Cat Parent & Caregiver, Galle",
       image: "https://randomuser.me/api/portraits/women/55.jpg",
-      text: "I was worried about my senior cat's symptoms, but Pawpal's AI gave helpful nutrition and first-aid tips with clear 'see a vet' advice. Booked an appointment easily — now she's doing great!",
+      text: "I was worried about my senior cat's symptoms, but PawPal's AI gave helpful nutrition and first-aid tips with clear 'see a vet' advice. Booked an appointment easily — now she's doing great!",
       rating: 5,
     },
     {
       name: "Dr. Nalinika Obeyesekere",
       role: "Founder Vet, Leading Clinic Colombo",
       image: "https://randomuser.me/api/portraits/women/40.jpg",
-      text: "Pawpal bridges the gap for rural and urban pet owners alike. Secure chat, digital records, and preventive reminders improve compliance and outcomes. Excellent tool for modern veterinary practice.",
+      text: "PawPal bridges the gap for rural and urban pet owners alike. Secure chat, digital records, and preventive reminders improve compliance and outcomes. Excellent tool for modern veterinary practice.",
       rating: 5,
     },
     {
       name: "Tharindu Jayasinghe",
       role: "Dog Owner, Jaffna",
       image: "https://randomuser.me/api/portraits/men/42.jpg",
-      text: "Living far from specialists, Pawpal let me register my pet, get AI advice on diet, and book a virtual follow-up. The reminders kept us on track with flea treatment. Truly grateful!",
+      text: "Living far from specialists, PawPal let me register my pet, get AI advice on diet, and book a virtual follow-up. The reminders kept us on track with flea treatment. Truly grateful!",
       rating: 5,
     },
     {
@@ -63,21 +63,21 @@ const Testimonials = () => {
       name: "Sachini Weerasinghe",
       role: "Pet Parent, Anuradhapura",
       image: "https://randomuser.me/api/portraits/women/32.jpg",
-      text: "Pawpal's nearby clinic finder and easy booking helped when my puppy had an emergency. The AI chatbot calmed me with first-aid steps until we reached the vet. Fantastic app!",
+      text: "PawPal's nearby clinic finder and easy booking helped when my puppy had an emergency. The AI chatbot calmed me with first-aid steps until we reached the vet. Fantastic app!",
       rating: 5,
     },
     {
       name: "Sunil Rajapaksa",
       role: "Retired Engineer & Dog Dad, Kandy",
       image: "https://randomuser.me/api/portraits/men/65.jpg",
-      text: "Even at my age, Pawpal is simple to use. I manage my dog's profiles, set reminders, and chat with the vet anytime. It's given me peace of mind and kept him healthy.",
+      text: "Even at my age, PawPal is simple to use. I manage my dog's profiles, set reminders, and chat with the vet anytime. It's given me peace of mind and kept him healthy.",
       rating: 5,
     },
     {
       name: "Dilani Perera",
       role: "Clinic Staff & Cat Owner, Colombo",
       image: "https://randomuser.me/api/portraits/women/38.jpg",
-      text: "We love how Pawpal streamlines registrations and appointments. Owners get reminders, we get organized records — it makes our days smoother and pets happier.",
+      text: "We love how PawPal streamlines registrations and appointments. Owners get reminders, we get organized records — it makes our days smoother and pets happier.",
       rating: 5,
     },
   ];
@@ -591,7 +591,7 @@ const Testimonials = () => {
             <h2>Trusted by Pet Owners &</h2>
             <h2 className="testimonials-gradient-text">Veterinarians Across Sri Lanka</h2>
             <p className="testimonials-subtitle">
-              Heartwarming stories from vets, happy pet parents, and caregivers who use Pawpal every day
+              Heartwarming stories from vets, happy pet parents, and caregivers who use PawPal every day
             </p>
           </div>
 
