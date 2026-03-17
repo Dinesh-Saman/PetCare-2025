@@ -627,14 +627,16 @@ const PetProfile = () => {
                     disabled={pet.registrationStatus !== 'Approved'}
                     sx={{
                       mt: 2,
-                      background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                      background: 'linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%)',
                       color: 'white',
                       fontWeight: 'bold',
                       textTransform: 'none',
                       borderRadius: '12px',
                       px: 3,
                       '&:hover': {
-                        opacity: 0.9,
+                        background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b8e 100%)',
+                        transform: 'translateY(-1px)',
+                        boxShadow: '0 4px 12px rgba(123, 31, 162, 0.3)',
                       },
                       '&.Mui-disabled': {
                         background: '#e2e8f0',
@@ -653,7 +655,7 @@ const PetProfile = () => {
               <Tab label="Pet Info" />
               <Tab label="Medical Notes" />
               <Tab label="Medical Records" />
-              <Tab label="APPOINTMENTS & PRESCRIPTIONS" />
+              <Tab label="Appointments & Prescriptions" />
               <Tab label="Vaccinations" />
             </Tabs>
 
@@ -663,7 +665,7 @@ const PetProfile = () => {
                   <Grid container spacing={4}>
                     <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                       <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', width: '100%', height: '100%' }}>
-                        <Box sx={{ bgcolor: '#e08c0eff', color: 'white', p: 2, borderBottom: '1px solid #e2e8f0' }}>
+                        <Box sx={{ bgcolor: '#7b1fa2', color: 'white', p: 2, borderBottom: '1px solid #e2e8f0' }}>
                           <Typography variant="h6" fontWeight="bold">Pet Details</Typography>
                         </Box>
                         <Box sx={{ p: 3 }}>
@@ -677,7 +679,7 @@ const PetProfile = () => {
                     </Grid>
                     <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                       <Paper elevation={0} sx={{ borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden', width: '100%', height: '100%' }}>
-                        <Box sx={{ bgcolor: '#e08c0eff', color: 'white', p: 2, borderBottom: '1px solid #e2e8f0' }}>
+                        <Box sx={{ bgcolor: '#7b1fa2', color: 'white', p: 2, borderBottom: '1px solid #e2e8f0' }}>
                           <Typography variant="h6" fontWeight="bold">Owner Details</Typography>
                         </Box>
                         <Box sx={{ p: 3 }}>
@@ -697,8 +699,8 @@ const PetProfile = () => {
               {activeTab === 1 && (
                 <AlignedContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-                    <Typography variant="h5" fontWeight="bold" color="#e08c0eff">Medical Notes</Typography>
-                    <Button variant="contained" color="success" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }} sx={{ width: isMobile ? '100%' : 'auto' }}>
+                    <Typography variant="h5" fontWeight="bold" color="#7b1fa2">Medical Notes</Typography>
+                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }} sx={{ width: isMobile ? '100%' : 'auto', bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>
                       Add Medical Note
                     </Button>
                   </Box>
@@ -706,7 +708,7 @@ const PetProfile = () => {
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
-                        <TableRow sx={{ bgcolor: '#e08c0eff' }}>
+                        <TableRow sx={{ bgcolor: '#7b1fa2' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Appointment Date</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Diagnosis</TableCell>
@@ -778,8 +780,8 @@ const PetProfile = () => {
               {activeTab === 2 && (
                 <AlignedContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-                    <Typography variant="h5" fontWeight="bold" color="#e08c0eff">Medical Records</Typography>
-                    <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }} sx={{ width: isMobile ? '100%' : 'auto' }}>
+                    <Typography variant="h5" fontWeight="bold" color="#7b1fa2">Medical Records</Typography>
+                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => { cancelMedForm(); setShowMedForm(true); }} sx={{ width: isMobile ? '100%' : 'auto', bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>
                       Upload Record
                     </Button>
                   </Box>
@@ -811,7 +813,7 @@ const PetProfile = () => {
                       <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                         <Table>
                           <TableHead>
-                            <TableRow sx={{ bgcolor: '#e08c0eff' }}>
+                            <TableRow sx={{ bgcolor: '#7b1fa2' }}>
                               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
                               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date</TableCell>
                               <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
@@ -912,11 +914,11 @@ const PetProfile = () => {
                                                       textTransform: 'none',
                                                       borderRadius: '8px',
                                                       bgcolor: 'white',
-                                                      borderColor: '#e2e8f0',
-                                                      color: '#1e293b',
+                                                      borderColor: '#7b1fa2',
+                                                      color: '#7b1fa2',
                                                       '&:hover': {
-                                                        bgcolor: '#f1f5f9',
-                                                        borderColor: '#cbd5e1'
+                                                        bgcolor: alpha('#7b1fa2', 0.05),
+                                                        borderColor: '#6a1b9a'
                                                       }
                                                     }}
                                                   >
@@ -944,11 +946,11 @@ const PetProfile = () => {
 
               {activeTab === 3 && (
                 <AlignedContent>
-                  <Typography variant="h5" fontWeight="bold" color="#e08c0eff" mb={3}>APPOINTMENTS & PRESCRIPTIONS</Typography>
+                  <Typography variant="h5" fontWeight="bold" color="#7b1fa2" mb={3}>Appointments & Prescriptions</Typography>
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
-                        <TableRow sx={{ bgcolor: '#e08c0eff' }}>
+                        <TableRow sx={{ bgcolor: '#7b1fa2' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date & Time</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Clinic</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Veterinarian</TableCell>
@@ -967,8 +969,8 @@ const PetProfile = () => {
                             id={`appt-row-${appt._id}`}
                             sx={{
                               '&:hover': { bgcolor: '#fff9f7' },
-                              bgcolor: highlightedApptId === appt._id ? alpha('#e08c0eff', 0.15) : 'inherit',
-                              borderLeft: highlightedApptId === appt._id ? '4px solid #e08c0eff' : 'none',
+                              bgcolor: highlightedApptId === appt._id ? alpha('#7b1fa2', 0.15) : 'inherit',
+                              borderLeft: highlightedApptId === appt._id ? '4px solid #7b1fa2' : 'none',
                               transition: 'all 0.5s ease'
                             }}
                           >
@@ -1090,15 +1092,15 @@ const PetProfile = () => {
               {activeTab === 4 && (
                 <AlignedContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Typography variant="h5" fontWeight="bold" color="#e08c0eff">Vaccinations</Typography>
-                    <Button variant="contained" color="secondary" startIcon={<AddIcon />} onClick={() => { cancelPresForm(); setPresFormData(p => ({ ...p, type: 'Vaccination' })); setShowPresForm(true); }}>
+                    <Typography variant="h5" fontWeight="bold" color="#7b1fa2">Vaccinations</Typography>
+                    <Button variant="contained" startIcon={<AddIcon />} onClick={() => { cancelPresForm(); setPresFormData(p => ({ ...p, type: 'Vaccination' })); setShowPresForm(true); }} sx={{ bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>
                       Add Vaccination
                     </Button>
                   </Box>
                   <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
                     <Table>
                       <TableHead>
-                        <TableRow sx={{ bgcolor: '#e08c0eff' }}>
+                        <TableRow sx={{ bgcolor: '#7b1fa2' }}>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date of Vaccination</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Type</TableCell>
                           <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Name</TableCell>
@@ -1266,7 +1268,7 @@ const PetProfile = () => {
                             variant="contained"
                             component="label"
                             startIcon={<AttachFileIcon />}
-                            sx={{ borderRadius: 2, textTransform: 'none', bgcolor: '#1e293b', '&:hover': { bgcolor: '#334155' } }}
+                            sx={{ borderRadius: 2, textTransform: 'none', bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}
                           >
                             Upload Files
                             <input type="file" hidden multiple accept=".jpg,.jpeg,.png,.pdf" onChange={handleFileSelect} />
@@ -1301,8 +1303,8 @@ const PetProfile = () => {
                   </Grid>
                 </DialogContent>
                 <DialogActions sx={{ p: 2, bgcolor: '#f5f7fa' }}>
-                  <Button onClick={cancelMedForm}>Cancel</Button>
-                  <Button variant="contained" color="success" onClick={handleSaveMedRecord} disabled={saving || uploading}>{saving ? 'Saving...' : 'Save'}</Button>
+                  <Button onClick={cancelMedForm} sx={{ color: '#7b1fa2' }}>Cancel</Button>
+                  <Button variant="contained" onClick={handleSaveMedRecord} disabled={saving || uploading} sx={{ bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>{saving ? 'Saving...' : 'Save'}</Button>
                 </DialogActions>
               </Dialog>
 
@@ -1376,8 +1378,8 @@ const PetProfile = () => {
                   </Grid>
                 </DialogContent>
                 <DialogActions sx={{ p: 2, bgcolor: '#f5f7fa' }}>
-                  <Button onClick={cancelPresForm}>Cancel</Button>
-                  <Button variant="contained" color="secondary" onClick={handleSavePres} disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+                  <Button onClick={cancelPresForm} sx={{ color: '#7b1fa2' }}>Cancel</Button>
+                  <Button variant="contained" onClick={handleSavePres} disabled={saving} sx={{ bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>{saving ? 'Saving...' : 'Save'}</Button>
                 </DialogActions>
               </Dialog>
 
@@ -1395,7 +1397,7 @@ const PetProfile = () => {
                             <Typography fontWeight="bold">Prescription</Typography>
                           </Box>
                           <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Button size="small" variant="contained" color="secondary" component="a" href={selectedAppt.prescriptionUrl} target="_blank">View</Button>
+                            <Button size="small" variant="contained" component="a" href={selectedAppt.prescriptionUrl} target="_blank" sx={{ bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>View</Button>
                             <Tooltip title="Download">
                               <IconButton size="small" color="secondary" onClick={() => handleDownload(selectedAppt.prescriptionUrl, `Prescription_${selectedAppt._id}`)}>
                                 <DownloadIcon />
@@ -1426,7 +1428,7 @@ const PetProfile = () => {
                   )}
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
-                  <Button onClick={() => setShowApptModal(false)} variant="outlined">Close</Button>
+                  <Button onClick={() => setShowApptModal(false)} variant="outlined" sx={{ color: '#7b1fa2', borderColor: '#7b1fa2', '&:hover': { borderColor: '#6a1b9a', bgcolor: alpha('#7b1fa2', 0.05) } }}>Close</Button>
                 </DialogActions>
               </Dialog>
             </Box>

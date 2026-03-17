@@ -95,7 +95,7 @@ const TableRowStyled = styled(TableRow)(({ theme }) => ({
 }));
 
 const TableHeadCell = styled(TableCell)({
-  backgroundColor: '#e08c0eff',
+  backgroundColor: '#7b1fa2',
   color: 'white',
   fontWeight: 'bold',
   fontSize: '1rem',
@@ -521,13 +521,13 @@ const PendingRegistrations = () => {
                                               <Typography>{pet.weight ? `${pet.weight} kg` : 'N/A'}</Typography>
                                             </Box>
                                           </InfoRow>
-                                          <InfoRow><InfoLabel>Clinic:</InfoLabel><Typography fontWeight="bold" color="#e08c0eff">{pet.registeredClinicId?.name || 'N/A'}</Typography></InfoRow>
+                                          <InfoRow><InfoLabel>Clinic:</InfoLabel><Typography fontWeight="bold" color="#7b1fa2">{pet.registeredClinicId?.name || 'N/A'}</Typography></InfoRow>
                                         </Box>
                                       </Box>
                                     </Grid>
                                     <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                                       <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                                        <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography variant="h6" sx={{ color: '#7b1fa2', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                           <PersonIcon /> Owner & Notes
                                         </Typography>
                                         <Box sx={{ px: 1, flexGrow: 1 }}>
@@ -535,7 +535,7 @@ const PendingRegistrations = () => {
                                           <InfoRow><PhoneIcon /><InfoLabel>Phone:</InfoLabel><Typography>{pet.ownerId?.phoneNumber || 'N/A'}</Typography></InfoRow>
                                           <Divider sx={{ my: 2 }} />
                                           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: '#64748b' }}>Additional Notes:</Typography>
-                                          <Box sx={{ p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, borderLeft: '4px solid #e08c0eff' }}>
+                                          <Box sx={{ p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, borderLeft: '4px solid #7b1fa2' }}>
                                             <Typography variant="body2" sx={{ fontStyle: pet.notes ? 'normal' : 'italic', color: pet.notes ? 'textPrimary' : 'textSecondary' }}>
                                               {pet.notes || "No notes provided by the owner."}
                                             </Typography>

@@ -80,7 +80,7 @@ const TableRowStyled = styled(TableRow)({
 });
 
 const TableHeadRow = styled(TableRow)({
-  backgroundColor: '#e08c0eff',
+  backgroundColor: '#7b1fa2',
 });
 
 const TableHeadCell = styled(TableCell)({

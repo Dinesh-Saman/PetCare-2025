@@ -68,7 +68,7 @@ const TableRowStyled = styled(TableRow)(({ theme }) => ({
 }));
 
 const TableHeadRow = styled(TableRow)({
-  backgroundColor: '#e08c0eff',
+  backgroundColor: '#7b1fa2',
 });
 
 const TableHeadCell = styled(TableCell)({
@@ -566,7 +566,7 @@ const ClinicStaff = () => {
                                   </Grid>
                                   <Grid item xs={12} md={6} sx={{ display: 'flex' }}>
                                     <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                                      <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                      <Typography variant="h6" sx={{ color: '#7b1fa2', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                         <AdminPanelSettingsIcon /> Professional Information
                                       </Typography>
                                       <Box sx={{ px: 1, flexGrow: 1 }}>

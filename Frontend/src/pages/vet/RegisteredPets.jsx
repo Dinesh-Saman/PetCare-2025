@@ -68,7 +68,7 @@ const TableRowStyled = styled(TableRow)({
 });
 
 const TableHeadCell = styled(TableCell)({
-  backgroundColor: '#e08c0e',
+  backgroundColor: '#7b1fa2',
   color: 'white',
   fontWeight: 'bold',
   fontSize: '1rem',

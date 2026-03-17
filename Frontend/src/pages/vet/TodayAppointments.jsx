@@ -80,7 +80,7 @@ const TableRowStyled = styled(TableRow)(({ theme }) => ({
 }));
 
 const TableHeadRow = styled(TableRow)({
-    backgroundColor: '#e08c0eff',
+    backgroundColor: '#7b1fa2',
 });
 
 const TableHeadCell = styled(TableCell)({
@@ -490,7 +490,7 @@ const TodayAppointments = () => {
                                                                 <Grid container spacing={3} sx={{ p: 2 }}>
                                                                     <Grid item xs={12}>
                                                                         <Box sx={{ p: 2, borderRadius: 3, bgcolor: 'white', border: '1px solid #edf2f7', width: '100%', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
-                                                                            <Typography variant="h6" sx={{ color: '#e08c0eff', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                            <Typography variant="h6" sx={{ color: '#7b1fa2', fontWeight: 700, mb: 2, borderBottom: '2px solid #f0f0f0', pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                                                                 <CalendarTodayIcon /> Appointment Details
                                                                             </Typography>
                                                                             <Box sx={{ px: 1, flexGrow: 1 }}>
@@ -498,7 +498,7 @@ const TodayAppointments = () => {
                                                                                 <InfoRow><AccessTimeIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Time:</InfoLabel><Typography variant="body2"><strong>{new Date(app.dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></Typography></InfoRow>
                                                                                 <InfoRow><DescriptionIcon sx={{ fontSize: 20 }} /><InfoLabel sx={{ minWidth: 100 }}>Reason:</InfoLabel><Typography variant="body2">{app.reason || 'N/A'}</Typography></InfoRow>
                                                                                 {app.notes && (
-                                                                                    <Box sx={{ mt: 1, p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, borderLeft: '4px solid #e08c0eff' }}>
+                                                                                    <Box sx={{ mt: 1, p: 1.5, bgcolor: '#f8fafc', borderRadius: 2, borderLeft: '4px solid #7b1fa2' }}>
                                                                                         <Typography variant="body2"><strong>Notes:</strong> {app.notes}</Typography>
                                                                                     </Box>
                                                                                 )}
