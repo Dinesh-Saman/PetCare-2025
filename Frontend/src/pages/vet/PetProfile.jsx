@@ -44,7 +44,8 @@ import {
   Stack,
   Autocomplete,
   alpha,
-  Badge
+  Badge,
+  TablePagination
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import PetsIcon from '@mui/icons-material/Pets';
@@ -189,6 +190,8 @@ const PetProfile = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [highlightedApptId, setHighlightedApptId] = useState(null);
+  const [vetPage, setVetPage] = useState(0);
+  const [ownerPage, setOwnerPage] = useState(0);
 
   // Clear highlight when switching away from appointments tab
   useEffect(() => {
@@ -244,7 +247,7 @@ const PetProfile = () => {
     dosage: '',
     duration: '',
     instructions: '',
-    type: 'Medication',
+    type: 'Rabies (1-year)',
     dueDate: '',
     medicalRecordId: ''
   });
@@ -787,8 +790,9 @@ const PetProfile = () => {
                   </Box>
 
                   {(() => {
-                    const combinedRecords = [
-                      ...medicalRecords.map(r => ({ ...r, recordType: 'vet' })),
+                    const vetRecords = medicalRecords.map(r => ({ ...r, recordType: 'vet' })).sort((a, b) => new Date(b.date) - new Date(a.date));
+                    
+                    const ownerRecords = [
                       ...(pet?.personalRecords?.map((r, idx) => ({
                         _id: `owner-${idx}`,
                         date: r.date,
@@ -809,24 +813,33 @@ const PetProfile = () => {
                       }] : [])
                     ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-                    return (
-                      <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
+                    const renderTable = (records, isVetTable, page, setPage) => {
+                      const rowsPerPage = 4;
+                      const paginatedRecords = records.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+                      return (
+                      <TableContainer component={Paper} sx={{ borderRadius: 3, mb: 4 }}>
+                        <Box sx={{ p: 2, bgcolor: isVetTable ? '#7b1fa2' : '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                          <Typography variant="h6" fontWeight="bold" color={isVetTable ? 'white' : '#475569'}>
+                            {isVetTable ? 'Clinic Records' : 'Owner Uploads'}
+                          </Typography>
+                        </Box>
                         <Table>
                           <TableHead>
-                            <TableRow sx={{ bgcolor: '#7b1fa2' }}>
-                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}></TableCell>
-                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Date</TableCell>
-                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Description</TableCell>
-                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Source / Vet</TableCell>
-                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Visibility</TableCell>
-                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Attachments</TableCell>
-                              <TableCell sx={{ color: 'white', fontWeight: 'bold' }} align="center">Actions</TableCell>
+                            <TableRow sx={{ bgcolor: isVetTable ? alpha('#7b1fa2', 0.05) : '#f1f5f9' }}>
+                              <TableCell sx={{ fontWeight: 'bold' }}></TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Date</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Description</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Source / Vet</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Visibility</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Attachments</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }} align="center">Actions</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {combinedRecords.length === 0 ? (
-                              <TableRow><TableCell colSpan={7} align="center"><Typography color="textSecondary" py={4}>No medical records found</Typography></TableCell></TableRow>
-                            ) : combinedRecords.map(record => (
+                            {paginatedRecords.length === 0 ? (
+                              <TableRow><TableCell colSpan={7} align="center"><Typography color="textSecondary" py={4}>No records found in this section</Typography></TableCell></TableRow>
+                            ) : paginatedRecords.map(record => (
                               <React.Fragment key={record._id}>
                                 <TableRow sx={{ bgcolor: record.recordType === 'owner' ? alpha('#4f46e5', 0.03) : '#f9f9f9', '&:hover': { bgcolor: '#f1f1f1' } }}>
                                   <TableCell>
@@ -853,9 +866,6 @@ const PetProfile = () => {
                                   <TableCell>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                       <Typography fontWeight="bold">{record.diagnosis || 'N/A'}</Typography>
-                                      {record.recordType === 'owner' && (
-                                        <Chip label="Owner Upload" size="small" variant="outlined" color="secondary" sx={{ height: 20, fontSize: '0.65rem' }} />
-                                      )}
                                     </Box>
                                   </TableCell>
                                   <TableCell>
@@ -938,7 +948,25 @@ const PetProfile = () => {
                             ))}
                           </TableBody>
                         </Table>
+                        {records.length > 0 && (
+                          <TablePagination
+                            rowsPerPageOptions={[]}
+                            component="div"
+                            count={records.length}
+                            rowsPerPage={4}
+                            page={page}
+                            onPageChange={(e, newPage) => setPage(newPage)}
+                          />
+                        )}
                       </TableContainer>
+                    );
+                  };
+
+                    return (
+                      <Box>
+                        {renderTable(vetRecords, true, vetPage, setVetPage)}
+                        {renderTable(ownerRecords, false, ownerPage, setOwnerPage)}
+                      </Box>
                     );
                   })()}
                 </AlignedContent>
@@ -1078,7 +1106,7 @@ const PetProfile = () => {
                                   })()}
                                 </Stack>
                               ) : (
-                                <Typography variant="caption" color="textSecondary">Finalizing...</Typography>
+                                null
                               )}
                             </TableCell>
                           </TableRow>
@@ -1312,74 +1340,75 @@ const PetProfile = () => {
                 <DialogTitle sx={{ bgcolor: '#f5f7fa', fontWeight: 'bold' }}>
                   {isEditingPres ? 'Edit' : 'Add'} Vaccination
                 </DialogTitle>
-                <DialogContent dividers sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
-                  <Grid container spacing={3} sx={{ maxWidth: '800px' }}>
-                    {/* Line 1: Type and Name */}
-                    {/* Line 1: Type - Full width to accommodate long placeholder/padding */}
-                    <Grid item xs={12}>
+                <DialogContent dividers sx={{ p: 4 }}>
+                  <Box sx={{ 
+                    display: 'grid !important', 
+                    gridTemplateColumns: '1fr 1fr !important', 
+                    gap: '24px !important',
+                    width: '100% !important'
+                  }}>
+                    {/* First 4 Fields (2x2) */}
+                    <Box sx={{ gridColumn: 'span 1 !important' }}>
                       <Autocomplete
                         fullWidth
-                        options={["Medication", ...VACCINATION_TYPES]}
-                        value={presFormData.type || "Medication"}
+                        options={VACCINATION_TYPES}
+                        value={presFormData.type || "Rabies (1-year)"}
                         onChange={(e, val) => setPresFormData(p => ({ ...p, type: val }))}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            pr: '175px !important'
-                          }
-                        }}
                         renderInput={(params) => (
-                          <TextField {...params} label="Category" placeholder="Select or type vaccination category..." />
+                          <TextField 
+                            {...params} 
+                            label="Category" 
+                            placeholder="Category" 
+                          />
                         )}
                       />
-                    </Grid>
-                    <Grid item xs={12}>
+                    </Box>
+                    <Box sx={{ gridColumn: 'span 1 !important' }}>
                       <TextField
                         fullWidth
-                        label="Name *"
-                        placeholder="e.g. DHPP, Brand Name..."
+                        label="Medication/Vaccine Name *"
+                        placeholder="e.g. DHPP, Rabies"
                         value={presFormData.medicationName}
                         onChange={e => setPresFormData(p => ({ ...p, medicationName: e.target.value }))}
                       />
-                    </Grid>
+                    </Box>
 
-                    {/* Line 2: Dosage and Frequency */}
-                    <Grid item xs={6}>
+                    <Box sx={{ gridColumn: 'span 1 !important' }}>
                       <TextField
                         fullWidth
                         label="Dosage"
-                        placeholder="e.g. 5ml, 1 Tablet..."
+                        placeholder="e.g. 5ml, 1 Tablet"
                         value={presFormData.dosage}
                         onChange={e => setPresFormData(p => ({ ...p, dosage: e.target.value }))}
                       />
-                    </Grid>
-                    <Grid item xs={6}>
+                    </Box>
+                    <Box sx={{ gridColumn: 'span 1 !important' }}>
                       <TextField
                         fullWidth
                         label="Frequency/Duration"
-                        placeholder="e.g. Twice a day, 1 week..."
+                        placeholder="e.g. Weekly, 7 days"
                         value={presFormData.duration}
                         onChange={e => setPresFormData(p => ({ ...p, duration: e.target.value }))}
                       />
-                    </Grid>
+                    </Box>
 
-                    {/* Line 3: Next Due Date */}
-                    {presFormData.type !== 'Medication' && (
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          type="date"
-                          label="Next Due Date"
-                          InputLabelProps={{ shrink: true }}
-                          value={presFormData.dueDate || ''}
-                          onChange={e => setPresFormData(p => ({ ...p, dueDate: e.target.value }))}
-                        />
-                      </Grid>
-                    )}
-                  </Grid>
+                    {/* Last Field (Single, spanning both columns) */}
+                    <Box sx={{ gridColumn: 'span 2 !important' }}>
+                      <TextField
+                        fullWidth
+                        type="date"
+                        label="Next Due Date"
+                        InputLabelProps={{ shrink: true }}
+                        value={presFormData.dueDate || ''}
+                        onChange={e => setPresFormData(p => ({ ...p, dueDate: e.target.value }))}
+                        sx={{ mb: 2 }}
+                      />
+                    </Box>
+                  </Box>
                 </DialogContent>
-                <DialogActions sx={{ p: 2, bgcolor: '#f5f7fa' }}>
-                  <Button onClick={cancelPresForm} sx={{ color: '#7b1fa2' }}>Cancel</Button>
-                  <Button variant="contained" onClick={handleSavePres} disabled={saving} sx={{ bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' } }}>{saving ? 'Saving...' : 'Save'}</Button>
+                <DialogActions sx={{ p: 3, bgcolor: '#f5f7fa' }}>
+                  <Button onClick={cancelPresForm} sx={{ color: '#7b1fa2', fontWeight: 600 }}>Cancel</Button>
+                  <Button variant="contained" onClick={handleSavePres} disabled={saving} sx={{ bgcolor: '#7b1fa2', '&:hover': { bgcolor: '#6a1b9a' }, px: 4, borderRadius: '8px', fontWeight: 'bold' }}>{saving ? 'Saving...' : 'Save'}</Button>
                 </DialogActions>
               </Dialog>
 

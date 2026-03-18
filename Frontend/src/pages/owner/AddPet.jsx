@@ -33,7 +33,6 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
         setClinics(response.data.clinics || response.data || []);
       } catch (error) {
         console.error('Error fetching clinics:', error);
-        Swal.fire('Warning', 'Could not load clinics list. You can still proceed.', 'warning');
         setClinics([]);
       } finally {
         setLoadingClinics(false);
@@ -88,6 +87,14 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
       maxWidth="md"
       fullWidth
       PaperProps={{ sx: { borderRadius: '16px' } }}
+      slotProps={{
+        backdrop: {
+          sx: {
+            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(15, 23, 42, 0.35)',
+          }
+        }
+      }}
     >
       <DialogTitle sx={{ p: 4, pb: 1 }}>
         <Typography variant="h5" fontWeight="800" sx={{ color: '#1e293b' }}>Add New Pet</Typography>

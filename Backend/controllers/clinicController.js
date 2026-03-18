@@ -917,7 +917,7 @@ exports.deactivateClinicStaff = async (req, res) => {
     const user = await Veterinarian.findById(userId);
     let hasPermission = false;
 
-    if (user.accessLevel === 'Enhanced') {
+    if (user.accessLevel === 'Enhanced' || user.accessLevel === 'Primary') {
       hasPermission = true; // Enhanced vets can deactivate any staff member
     }
 

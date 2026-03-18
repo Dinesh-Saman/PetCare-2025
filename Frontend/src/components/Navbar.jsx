@@ -35,6 +35,7 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import Swal from 'sweetalert2';
+import NotificationBell from './NotificationBell';
 
 const Navbar = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -343,6 +344,9 @@ const Navbar = () => {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, md: 2 } }}>
             {isLoggedIn ? (
               <>
+                {/* Notification Bell - only for owners */}
+                {user?.role !== 'vet' && <NotificationBell />}
+
                 <Button
                   onClick={handleProfileMenuOpen}
                   startIcon={<PersonIcon />}

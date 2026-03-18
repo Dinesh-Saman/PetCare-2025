@@ -115,7 +115,7 @@ exports.getPrescriptionsByPet = async (req, res) => {
       .populate('petId', 'name species breed photo')
       .populate({
         path: 'medicalRecordId',
-        select: 'date diagnosis visibleToOwner',
+        select: 'date diagnosis visibleToOwner appointmentId prescriptionUrl',
         populate: {
           path: 'vetId',
           select: 'firstName lastName'

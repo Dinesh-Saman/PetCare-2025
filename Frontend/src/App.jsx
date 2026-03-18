@@ -53,6 +53,9 @@ function App() {
   // Hide footer on dashboard pages to prevent sidebar clipping
   const shouldHideFooter = location.pathname.startsWith('/vet') && location.pathname !== '/vet-home';
 
+  // Hide the floating chatbot in owner chat to prevent overlapping functionality
+  const shouldHideChatWidget = shouldHideFooter || location.pathname.startsWith('/owner/chat');
+
   return (
     <>
       <ScrollToTop />
@@ -109,7 +112,7 @@ function App() {
         <Route path="staff" element={<StaffManagement />} /> */}
 
       </Routes>
-      {!shouldHideFooter && <ChatWidget />}
+      {!shouldHideChatWidget && <ChatWidget />}
       {!shouldHideFooter && <Footer />}
     </>
   );

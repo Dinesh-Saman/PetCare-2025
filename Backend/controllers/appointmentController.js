@@ -217,6 +217,12 @@ exports.cancelAppointment = async (req, res) => {
 
     // Update the appointment
     const updateData = { status: 'Canceled' };
+    
+    // If an owner is canceling, mark it as unread for the vet so they get a notification
+    if (req.user.role === 'owner') {
+      updateData.isReadByVet = false;
+    }
+
     if (reason) {
       updateData.notes = appointment.notes
         ? `${appointment.notes}\n\nCancellation reason: ${reason}`
@@ -379,13 +385,17 @@ exports.manageAppointment = async (req, res) => {
             treatmentNotes: appointment.medicalNotes || '',
             date: appointment.dateTime || new Date(),
             visibleToOwner: true,
-            attachments: [appointment.medicalRecordUrl].filter(Boolean)
+            attachments: [appointment.medicalRecordUrl].filter(Boolean),
+            prescriptionUrl: appointment.prescriptionUrl || null
           });
         } else {
           medicalRecord.diagnosis = appointment.diagnosis || medicalRecord.diagnosis;
           medicalRecord.treatmentNotes = appointment.medicalNotes || medicalRecord.treatmentNotes;
           if (appointment.medicalRecordUrl && !medicalRecord.attachments.includes(appointment.medicalRecordUrl)) {
             medicalRecord.attachments.push(appointment.medicalRecordUrl);
+          }
+          if (appointment.prescriptionUrl) {
+            medicalRecord.prescriptionUrl = appointment.prescriptionUrl;
           }
         }
         await medicalRecord.save();
@@ -792,5 +802,168 @@ exports.rescheduleAppointment = async (req, res) => {
       message: 'Error rescheduling appointment',
       error: error.message
     });
+  }
+};
+
+// Get appointment-based notifications for the logged-in owner
+exports.getOwnerNotifications = async (req, res) => {
+  try {
+    const ownerId = req.user.id;
+    const now = new Date();
+    const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    const Prescription = require('../models/Prescription');
+    const MedicalRecord = require('../models/MedicalRecord');
+
+    // Fetch all non-cancelled recent or upcoming appointments for the owner
+    const appointments = await Appointment.find({
+      ownerId,
+      $or: [
+        { dateTime: { $gte: now } },                         // future
+        { updatedAt: { $gte: new Date(now - 7 * 24 * 3600 * 1000) } } // last 7 days
+      ]
+    })
+      .populate('petId', 'name species photo')
+      .populate('vetId', 'firstName lastName specialization')
+      .populate('clinicId', 'name address')
+      .sort({ dateTime: 1 });
+
+    const notifications = [];
+
+    for (const appt of appointments) {
+      const apptDate = new Date(appt.dateTime);
+      const petName = appt.petId?.name || 'Your pet';
+      const vetName = appt.vetId ? `Dr. ${appt.vetId.firstName} ${appt.vetId.lastName}` : 'Your vet';
+      const clinicName = appt.clinicId?.name || 'the clinic';
+      const dateStr = apptDate.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+      // Upcoming within 48 hours
+      if (appt.status !== 'Canceled' && apptDate >= now && apptDate <= in48h) {
+        notifications.push({
+          id: `upcoming_${appt._id}`,
+          type: 'reminder',
+          icon: 'schedule',
+          title: `Upcoming Appointment`,
+          message: `${petName}'s appointment with ${vetName} at ${clinicName} is on ${dateStr}.`,
+          appointmentId: appt._id,
+          petId: appt.petId?._id,
+          petPhoto: appt.petId?.photo,
+          createdAt: appt.dateTime,
+          priority: 'high'
+        });
+      }
+
+      // Confirmed
+      if (appt.status === 'Confirmed' && apptDate >= now) {
+        notifications.push({
+          id: `confirmed_${appt._id}`,
+          type: 'confirmed',
+          icon: 'check_circle',
+          title: `Appointment Confirmed`,
+          message: `${petName}'s appointment with ${vetName} on ${dateStr} has been confirmed.`,
+          appointmentId: appt._id,
+          petId: appt.petId?._id,
+          petPhoto: appt.petId?.photo,
+          createdAt: new Date(),
+          priority: 'medium'
+        });
+      }
+
+      // Cancelled
+      if (appt.status === 'Canceled') {
+        notifications.push({
+          id: `cancelled_${appt._id}`,
+          type: 'cancelled',
+          icon: 'cancel',
+          title: `Appointment Cancelled`,
+          message: `${petName}'s appointment scheduled for ${dateStr} was cancelled.`,
+          appointmentId: appt._id,
+          petId: appt.petId?._id,
+          petPhoto: appt.petId?.photo,
+          createdAt: new Date(),
+          priority: 'medium'
+        });
+      }
+
+      // Completed — check for vet-uploaded OR structured prescriptions
+      if (appt.status === 'Completed') {
+        // Check for structured prescriptions (form-typed by vet via medical record)
+        const medRecord = await MedicalRecord.findOne({ appointmentId: appt._id });
+        const structuredPresCount = medRecord
+          ? await Prescription.countDocuments({ medicalRecordId: medRecord._id, isDeleted: { $ne: true } })
+          : 0;
+
+        const hasPrescriptions = appt.prescriptionUrl || structuredPresCount > 0;
+
+        if (hasPrescriptions) {
+          // Fetch medication names for the message
+          let medicationSummary = '';
+          if (medRecord && structuredPresCount > 0) {
+            const presList = await Prescription.find({ medicalRecordId: medRecord._id, isDeleted: { $ne: true } }).limit(2);
+            medicationSummary = presList.map(p => p.medicationName).join(', ');
+            if (structuredPresCount > 2) medicationSummary += '...';
+          }
+
+          notifications.push({
+            id: `prescription_${appt._id}`,
+            type: 'prescription',
+            icon: 'medication',
+            title: `Prescription Available`,
+            message: medicationSummary 
+              ? `New prescription for ${petName}: ${medicationSummary}. Ready to view.`
+              : `A new prescription for ${petName} from ${vetName} is ready to view.`,
+            appointmentId: appt._id,
+            petId: appt.petId?._id,
+            petPhoto: appt.petId?.photo,
+            prescriptionUrl: (appt.prescriptionUrl || (medRecord && medRecord.prescriptionUrl)) || null,
+            createdAt: new Date(),
+            priority: 'high'
+          });
+        }
+      }
+
+      // Completed with medical record
+      if (appt.status === 'Completed' && appt.medicalRecordUrl) {
+        notifications.push({
+          id: `record_${appt._id}`,
+          type: 'medical_record',
+          icon: 'assignment',
+          title: `Medical Record Updated`,
+          message: `${vetName} has added a medical record for ${petName}'s visit on ${dateStr}.`,
+          appointmentId: appt._id,
+          petId: appt.petId?._id,
+          petPhoto: appt.petId?.photo,
+          createdAt: new Date(),
+          priority: 'medium'
+        });
+      }
+
+      // Rescheduled
+      if (appt.status === 'Rescheduled') {
+        notifications.push({
+          id: `rescheduled_${appt._id}`,
+          type: 'rescheduled',
+          icon: 'event_repeat',
+          title: `Appointment Rescheduled`,
+          message: `${petName}'s appointment has been rescheduled to ${dateStr}.`,
+          appointmentId: appt._id,
+          petId: appt.petId?._id,
+          petPhoto: appt.petId?.photo,
+          createdAt: new Date(),
+          priority: 'medium'
+        });
+      }
+    }
+
+    // Sort: high priority first, then by date desc
+    notifications.sort((a, b) => {
+      if (a.priority === 'high' && b.priority !== 'high') return -1;
+      if (b.priority === 'high' && a.priority !== 'high') return 1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    res.status(200).json({ count: notifications.length, notifications });
+  } catch (error) {
+    console.error('Error getting owner notifications:', error);
+    res.status(500).json({ message: 'Error fetching notifications', error: error.message });
   }
 };

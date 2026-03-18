@@ -1,8 +1,8 @@
 // src/pages/owner/MyAppointments.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -249,8 +249,10 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 
 const MyAppointments = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [highlightedId, setHighlightedId] = useState(location.state?.highlightId || null);
   const [stats, setStats] = useState({
     total: 0,
     upcoming: 0,
@@ -261,12 +263,13 @@ const MyAppointments = () => {
   });
   const [cancelDialog, setCancelDialog] = useState({ open: false, appointment: null, reason: '' });
   const [viewDialog, setViewDialog] = useState({ open: false, appointment: null });
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState(location.state?.highlightId ? 'all' : 'upcoming');
   const [sortOption, setSortOption] = useState('dateAsc');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [bookModalOpen, setBookModalOpen] = useState(false);
   const [rescheduleModal, setRescheduleModal] = useState({ open: false, appointment: null });
+  const highlightRef = useRef(null);
 
   const fetchAppointments = async (showLoading = true) => {
     try {
@@ -309,6 +312,29 @@ const MyAppointments = () => {
       disconnectSocket();
     };
   }, []);
+
+  // Scroll to and highlight the notification-linked row after data loads
+  useEffect(() => {
+    if (!highlightedId || loading || appointments.length === 0) return;
+    
+    // Switch to the page containing the highlighted appt if needed
+    const index = sortedAppointments.findIndex(a => a._id === highlightedId);
+    if (index !== -1) {
+      const neededPage = Math.floor(index / rowsPerPage);
+      if (neededPage !== page) setPage(neededPage);
+    }
+
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`appt-row-${highlightedId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      // Remove highlight after 3.5 seconds
+      const fadeTimer = setTimeout(() => setHighlightedId(null), 3500);
+      return () => clearTimeout(fadeTimer);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [highlightedId, loading, appointments, page, rowsPerPage]);
 
   const filteredAppointments = appointments.filter((appointment) => {
     if (filterStatus === 'all') return true;
@@ -470,7 +496,7 @@ const MyAppointments = () => {
               <Box sx={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <Filter size={18} color="#64748b" />
                 <Box sx={{ display: 'flex', gap: '8px' }}>
-                  {['all', 'upcoming', 'Confirmed', 'Completed', 'Canceled'].map((status) => (
+                  {['all', 'upcoming', 'Booked', 'Confirmed', 'Completed', 'Canceled'].map((status) => (
                     <Chip
                       key={status}
                       label={status === 'all' ? 'All Sessions' : status}
@@ -534,8 +560,21 @@ const MyAppointments = () => {
                   <TableBody>
                     {sortedAppointments
                       .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                      .map((app) => (
-                        <StyledTableRow key={app._id}>
+                      .map((app) => {
+                        const isHighlighted = app._id === highlightedId;
+                        return (
+                        <StyledTableRow
+                          key={app._id}
+                          id={`appt-row-${app._id}`}
+                          sx={{
+                            transition: 'background 0.5s ease, box-shadow 0.5s ease',
+                            background: isHighlighted
+                              ? 'linear-gradient(135deg, rgba(79,70,229,0.12), rgba(124,58,237,0.08))'
+                              : undefined,
+                            boxShadow: isHighlighted ? '0 0 0 3px rgba(79,70,229,0.35) inset' : undefined,
+                            borderRadius: isHighlighted ? '16px' : undefined,
+                          }}
+                        >
                           <StyledTableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                               <Avatar
@@ -609,7 +648,8 @@ const MyAppointments = () => {
                             </Box>
                           </StyledTableCell>
                         </StyledTableRow>
-                      ))}
+                        );
+                      })}
                   </TableBody>
                 </Table>
                 <TablePagination

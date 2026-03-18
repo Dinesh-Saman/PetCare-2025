@@ -324,18 +324,67 @@ const TodayAppointments = () => {
         return acc;
     }, []);
 
-    const [openManageModal, setOpenManageModal] = useState(false);
-    const [selectedApp, setSelectedApp] = useState(null);
-    const [manageDiagnosis, setManageDiagnosis] = useState('');
-    const [manageNotes, setManageNotes] = useState('');
-    const [recordFile, setRecordFile] = useState(null);
-    const [rxFile, setRxFile] = useState(null);
+    const [prescriptionsRows, setPrescriptionsRows] = useState([]);
+    const [managePrescriptions, setManagePrescriptions] = useState([]);
 
-    const handleOpenManage = (app) => {
+    const handleAddPresRow = () => {
+        setPrescriptionsRows(prev => [...prev, { medicationName: '', dosage: '', duration: '', type: 'Medication' }]);
+    };
+
+    const handleRemovePresRow = (index) => {
+        setPrescriptionsRows(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handlePresFieldChange = (index, field, value) => {
+        setPrescriptionsRows(prev => {
+            const newPres = [...prev];
+            newPres[index] = { ...newPres[index], [field]: value };
+            return newPres;
+        });
+    };
+
+    const handleOpenManage = async (app) => {
         setSelectedApp(app);
         setManageDiagnosis(app.diagnosis || '');
         setManageNotes(app.medicalNotes || '');
+        setRecordFile(null);
+        setRxFile(null);
+        setPrescriptionsRows([]);
         setOpenManageModal(true);
+
+        // Fetch previously saved prescriptions for this appointment
+        try {
+            const petId = app.petId?._id || app.petId;
+            if (petId) {
+                // Fetch medical records for the pet to find this appointment's record
+                const medRes = await api.get(`/medical-records/pet/${petId}`);
+                const medRecords = medRes.data.records || [];
+                const apptRecord = medRecords.find(m => {
+                    const mid = m.appointmentId?._id || m.appointmentId;
+                    return mid?.toString() === app._id?.toString();
+                });
+
+                if (apptRecord) {
+                    const presRes = await api.get(`/prescriptions/pet/${petId}`);
+                    const allPres = presRes.data.prescriptions || [];
+                    const linked = allPres.filter(p => {
+                        const pMedId = p.medicalRecordId?._id || p.medicalRecordId;
+                        return pMedId?.toString() === apptRecord._id?.toString();
+                    });
+
+                    if (linked.length > 0) {
+                        setPrescriptionsRows(linked.map(p => ({
+                            medicationName: p.medicationName || '',
+                            dosage: p.dosage || '',
+                            duration: p.duration || '',
+                            type: p.type || 'Medication'
+                        })));
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Failed to load existing prescriptions:', err);
+        }
     };
 
     const handleCloseManage = () => {
@@ -343,6 +392,9 @@ const TodayAppointments = () => {
         setSelectedApp(null);
         setManageDiagnosis('');
         setManageNotes('');
+        setRecordFile(null);
+        setRxFile(null);
+        setPrescriptionsRows([]);
     };
 
     const handleUpdateConfirmedApp = async (markCompleted = false) => {
@@ -353,6 +405,10 @@ const TodayAppointments = () => {
             if (recordFile) formData.append('medicalRecord', recordFile);
             if (rxFile) formData.append('prescription', rxFile);
             if (markCompleted) formData.append('status', 'Completed');
+
+            if (prescriptionsRows.length > 0) {
+                formData.append('prescriptions', JSON.stringify(prescriptionsRows));
+            }
 
             const response = await api.patch(`/appointments/${selectedApp._id}/manage`, formData);
             const updatedAppt = response.data.appointment;
@@ -614,6 +670,59 @@ const TodayAppointments = () => {
                                     {rxFile && <Typography variant="caption" sx={{ mt: 1, color: '#4caf50', fontWeight: 'bold', wordBreak: 'break-all' }}>{rxFile.name}</Typography>}
                                 </Box>
                             </Box>
+                        </Box>
+
+                        <Box sx={{ mt: 2, border: '1px solid #e0e0e0', borderRadius: 2, p: 2, bgcolor: '#f8fafc', mb: 3 }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#333' }}>Medications (Typed)</Typography>
+                                <Button startIcon={<AddIcon />} size="small" variant="outlined" onClick={handleAddPresRow} sx={{ textTransform: 'none' }}>Add Medicine</Button>
+                            </Box>
+                            <Divider sx={{ mb: 2 }} />
+                            
+                            {prescriptionsRows.length === 0 ? (
+                                <Typography variant="caption" color="textSecondary" align="center" display="block" py={1}>No typed medications added.</Typography>
+                            ) : (
+                                <Stack spacing={2}>
+                                    {prescriptionsRows.map((pres, idx) => (
+                                        <Box key={idx} sx={{ p: 1.5, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: 'white' }}>
+                                            <Grid container spacing={1} alignItems="center">
+                                                <Grid item xs={12} sm={4}>
+                                                    <TextField
+                                                        size="small"
+                                                        fullWidth
+                                                        label="Medicine Name"
+                                                        value={pres.medicationName}
+                                                        onChange={(e) => handlePresFieldChange(idx, 'medicationName', e.target.value)}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={12} sm={3}>
+                                                    <TextField
+                                                        size="small"
+                                                        fullWidth
+                                                        label="Dosage"
+                                                        value={pres.dosage}
+                                                        onChange={(e) => handlePresFieldChange(idx, 'dosage', e.target.value)}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={10} sm={4}>
+                                                    <TextField
+                                                        size="small"
+                                                        fullWidth
+                                                        label="Instructions"
+                                                        value={pres.duration}
+                                                        onChange={(e) => handlePresFieldChange(idx, 'duration', e.target.value)}
+                                                    />
+                                                </Grid>
+                                                <Grid item xs={2} sm={1} sx={{ textAlign: 'right' }}>
+                                                    <IconButton size="small" color="error" onClick={() => handleRemovePresRow(idx)}>
+                                                        <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Grid>
+                                            </Grid>
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            )}
                         </Box>
 
                         {(selectedApp?.medicalRecordUrl || selectedApp?.prescriptionUrl) && (

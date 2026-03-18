@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
 import {
@@ -162,9 +162,11 @@ const getStatusColor = (status) => {
 const PetProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [pet, setPet] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(location.state?.targetTab || 0);
+  const [highlightedId, setHighlightedId] = useState(location.state?.highlightId || null);
   const [vetPage, setVetPage] = useState(1);
   const [personalPage, setPersonalPage] = useState(1);
   const [presPage, setPresPage] = useState(1);
@@ -178,6 +180,7 @@ const PetProfile = () => {
   const [editPetForm, setEditPetForm] = useState({
     name: '', species: '', breed: '', dateOfBirth: '', gender: '', weight: '', color: '', notes: '', photo: ''
   });
+  const highlightRef = useRef(null);
 
   useEffect(() => {
     fetchPetDetails();
@@ -208,14 +211,50 @@ const PetProfile = () => {
       const allPres = presRes.data.prescriptions || [];
 
       // Store ALL prescriptions in the main state for the tab
-      setPrescriptions(allPres.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      let finalPres = [...allPres];
+      
+      // Also check for medical records with prescriptionUrl but NO linked structured prescriptions
+      const recordsWithFiles = recordsRes.data.records?.filter(r => r.prescriptionUrl) || [];
+      recordsWithFiles.forEach(record => {
+        const hasStructured = allPres.some(p => (p.medicalRecordId?._id || p.medicalRecordId)?.toString() === record._id.toString());
+        if (!hasStructured) {
+          finalPres.push({
+            _id: `file-${record._id}`,
+            medicationName: 'Uploaded Prescription Document',
+            dosage: 'See attached file',
+            instructions: record.diagnosis || 'Prescribed by veterinarian',
+            createdAt: record.date,
+            medicalRecordId: record, // already contains prescriptionUrl
+            isVirtual: true
+          });
+        }
+      });
 
-      // Keep a filtered version for any other potential specific displays
-      setVaccinations(allPres.filter(p => p.type === 'Vaccination'));
+      setPrescriptions(finalPres.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     } catch (error) {
       console.error('Error fetching medical history:', error);
     }
   };
+
+  // Scroll to and highlight the notification-linked record
+  useEffect(() => {
+    if (!highlightedId || loading) return;
+    
+    const timer = setTimeout(() => {
+      const elementId = `record-${highlightedId}`;
+      const el = document.getElementById(elementId);
+      
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Remove highlight after 4 seconds
+        const fadeTimer = setTimeout(() => setHighlightedId(null), 4000);
+        return () => clearTimeout(fadeTimer);
+      }
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, [highlightedId, loading, tabValue]);
 
   const calculateAge = (dob) => {
     if (!dob) return 'Unknown';
@@ -689,8 +728,20 @@ const PetProfile = () => {
                       const isText = url.toLowerCase().endsWith('.txt');
                       const fileColor = isPdf ? '#ef4444' : isText ? '#64748b' : '#3b82f6';
                       const FileIconComponent = isPdf ? <PdfIcon /> : isText ? <FileIcon /> : <ImageIcon />;
+                      const appIdStr = record.appointmentId?._id?.toString() || record.appointmentId?.toString();
+                      const itemHighlight = appIdStr === highlightedId;
                       return (
-                        <RecordCard key={`${record._id}-${idx}`} elevation={0}>
+                        <RecordCard 
+                          key={`${record._id}-${idx}`} 
+                          id={`record-${appIdStr}`}
+                          elevation={0}
+                          sx={{
+                            border: itemHighlight ? '3px solid #4f46e5' : '1px solid #f1f5f9',
+                            boxShadow: itemHighlight ? '0 12px 30px rgba(79, 70, 229, 0.2)' : 'none',
+                            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                            scrollMarginTop: '150px'
+                          }}
+                        >
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <FileIconBox color={fileColor}>
                               {FileIconComponent}
@@ -888,16 +939,23 @@ const PetProfile = () => {
                 return (
                   <>
                     <Stack spacing={3}>
-                      {displayedMeds.map((pres) => (
+                      {displayedMeds.map((pres) => {
+                        const appIdStr = pres.appointmentId?._id?.toString() || pres.appointmentId?.toString() || pres.medicalRecordId?.appointmentId?._id?.toString() || pres.medicalRecordId?.appointmentId?.toString();
+                        const presHighlight = appIdStr === highlightedId;
+                        return (
                         <Paper
                           key={pres._id}
+                          id={`record-${appIdStr}`}
                           elevation={0}
                           sx={{
                             p: 4,
                             borderRadius: '24px',
-                            border: '1.5px solid #f1f5f9',
+                            border: presHighlight ? '3px solid #10b981' : '1.5px solid #f1f5f9',
+                            boxShadow: presHighlight ? '0 15px 40px rgba(16, 185, 129, 0.25)' : 'none',
                             bgcolor: '#ffffff',
-                            position: 'relative'
+                            position: 'relative',
+                            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                            scrollMarginTop: '150px'
                           }}
                         >
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -936,24 +994,47 @@ const PetProfile = () => {
                             <span className="instruction-text">{pres.instructions || 'Follow as directed by the veterinarian.'}</span>
                           </InstructionBox>
 
-                          <Button
-                            variant="outlined"
-                            startIcon={<DownloadIcon />}
-                            onClick={() => downloadPrescription(pres._id, pres.medicationName)}
-                            sx={{
-                              textTransform: 'none',
-                              borderRadius: '12px',
-                              fontWeight: 800,
-                              color: '#64748b',
-                              borderColor: '#e2e8f0',
-                              px: 3,
-                              '&:hover': { borderColor: '#cbd5e1', bgcolor: '#f8fafc' }
-                            }}
-                          >
-                            Download Prescription
-                          </Button>
+                          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
+                            {!pres.isVirtual && (
+                              <Button
+                                variant="outlined"
+                                startIcon={<DownloadIcon />}
+                                onClick={() => downloadPrescription(pres._id, pres.medicationName)}
+                                sx={{
+                                  textTransform: 'none',
+                                  borderRadius: '12px',
+                                  fontWeight: 800,
+                                  color: '#64748b',
+                                  borderColor: '#e2e8f0',
+                                  px: 3,
+                                  '&:hover': { borderColor: '#cbd5e1', bgcolor: '#f8fafc' }
+                                }}
+                              >
+                                Download PDF Report
+                              </Button>
+                            )}
+                            {pres.medicalRecordId?.prescriptionUrl && (
+                              <Button
+                                variant="contained"
+                                startIcon={<DownloadIcon />}
+                                onClick={() => handleDownload(pres.medicalRecordId.prescriptionUrl, `Prescription_${pres.medicationName || pres.medicalRecordId.diagnosis || 'Document'}`)}
+                                sx={{
+                                  textTransform: 'none',
+                                  borderRadius: '12px',
+                                  fontWeight: 800,
+                                  color: '#ffffff',
+                                  bgcolor: '#10b981',
+                                  px: 3,
+                                  '&:hover': { bgcolor: '#059669', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }
+                                }}
+                              >
+                                {pres.isVirtual ? 'Download Uploaded Prescription' : 'Download Uploaded File'}
+                              </Button>
+                            )}
+                          </Box>
                         </Paper>
-                      ))}
+                        );
+                      })}
                     </Stack>
                     {totalPresPages > 1 && (
                       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -1001,16 +1082,23 @@ const PetProfile = () => {
                 return (
                   <>
                     <Stack spacing={3}>
-                      {displayedVacc.map((pres) => (
+                      {displayedVacc.map((pres) => {
+                        const appIdStr = pres.appointmentId?._id?.toString() || pres.appointmentId?.toString() || pres.medicalRecordId?.appointmentId?._id?.toString() || pres.medicalRecordId?.appointmentId?.toString();
+                        const vaccHighlight = appIdStr === highlightedId;
+                        return (
                         <Paper
                           key={pres._id}
+                          id={`record-${appIdStr}`}
                           elevation={0}
                           sx={{
                             p: 4,
                             borderRadius: '24px',
-                            border: '1.5px solid #f1f5f9',
+                            border: vaccHighlight ? '3.5px solid #7c3aed' : '1.5px solid #f1f5f9',
+                            boxShadow: vaccHighlight ? '0 15px 45px rgba(124, 58, 237, 0.25)' : 'none',
                             bgcolor: '#ffffff',
-                            position: 'relative'
+                            position: 'relative',
+                            transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                            scrollMarginTop: '150px'
                           }}
                         >
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
@@ -1070,7 +1158,8 @@ const PetProfile = () => {
                             Download Certificate
                           </Button>
                         </Paper>
-                      ))}
+                        );
+                      })}
                     </Stack>
                     {totalVaccPages > 1 && (
                       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>

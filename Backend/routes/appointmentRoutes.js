@@ -12,7 +12,8 @@ const {
   getAppointmentById,
   getTodayAppointmentsCountByVet,
   getMyAppointments,
-  rescheduleAppointment
+  rescheduleAppointment,
+  getOwnerNotifications
 } = require('../controllers/appointmentController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -79,5 +80,8 @@ router.get('/owner/my-appointments', protect, authorize('owner'), getMyAppointme
 
 // Reschedule appointment (owner only)
 router.patch('/:id/reschedule', protect, authorize('owner'), rescheduleAppointment);
+
+// Owner notifications (appointment-based)
+router.get('/owner/notifications', protect, authorize('owner'), getOwnerNotifications);
 
 module.exports = router;

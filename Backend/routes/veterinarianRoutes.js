@@ -149,7 +149,7 @@ router.patch('/:id/deactivate', authorizeVetAccess('Enhanced'), async (req, res)
   // Check if target vet is in requester's clinic(s)
   let hasPermission = false;
 
-  if (requester.accessLevel === 'Enhanced') {
+  if (requester.accessLevel === 'Enhanced' || requester.accessLevel === 'Primary') {
     // Enhanced vets have system-wide access and can deactivate any vet
     hasPermission = true;
   }

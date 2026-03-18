@@ -10,17 +10,26 @@ import CoreFeatures from "../components/CoreFeatures";
 import Banner from "../components/Banner";
 
 import BlogSection from "../components/BlogSection";
+import AddPetModal from "./owner/AddPet";
 
 const Home = () => {
+  const [isAddPetModalOpen, setIsAddPetModalOpen] = React.useState(false);
+
   return (
     <div className="home-container">
       <Navbar />
-      <HeroSection />
+      <HeroSection onAddPetClick={() => setIsAddPetModalOpen(true)} />
       <HowItWorks />
       <CoreFeatures />
       <Banner />
 
       <BlogSection />
+
+      <AddPetModal 
+        open={isAddPetModalOpen} 
+        onClose={() => setIsAddPetModalOpen(false)} 
+        onPetAdded={() => setIsAddPetModalOpen(false)}
+      />
     </div>
   );
 };

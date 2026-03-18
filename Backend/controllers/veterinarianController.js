@@ -1196,6 +1196,10 @@ const getVetNotifications = async (req, res) => {
     const clinicId = isStaff ? vet.clinicId : vet.currentActiveClinicId;
     const ownedClinics = isStaff ? [] : (vet.ownedClinics || []);
 
+    // Build list of clinic IDs this user has access to
+    const clinicsToSearch = [clinicId, ...ownedClinics].filter(Boolean);
+    const hasMultipleClinics = clinicsToSearch.length > 0;
+
     // 1. Pending pet registration requests
     let pendingPetsQuery = {
       registrationStatus: 'Pending',
@@ -1205,12 +1209,18 @@ const getVetNotifications = async (req, res) => {
         { isReadByVet: { $exists: false } }
       ]
     };
-    if (vet.accessLevel !== 'Enhanced') {
-      if (clinicId) pendingPetsQuery.registeredClinicId = clinicId;
-    } else if (clinicId || ownedClinics.length > 0) {
-      const clinicsToSearch = [clinicId, ...ownedClinics].filter(Boolean);
-      pendingPetsQuery.registeredClinicId = { $in: clinicsToSearch };
+
+    if (isStaff || vet.accessLevel === 'Enhanced') {
+      if (hasMultipleClinics) {
+        pendingPetsQuery.registeredClinicId = { $in: clinicsToSearch };
+      } else if (clinicId) {
+        pendingPetsQuery.registeredClinicId = clinicId;
+      }
+    } else {
+        // Basic vets see registrations for their clinic
+        if (clinicId) pendingPetsQuery.registeredClinicId = clinicId;
     }
+
     const pendingRegistrations = await PetProfile.find(pendingPetsQuery)
       .populate('ownerId', 'firstName lastName photo')
       .populate('registeredClinicId', 'name')
@@ -1223,26 +1233,43 @@ const getVetNotifications = async (req, res) => {
     const dayAfterTomorrow = new Date(today);
     dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
 
-    let appointmentsFilter = {};
-    if (vet.accessLevel !== 'Enhanced') {
-      appointmentsFilter.vetId = vetId;
-    } else if (clinicId || ownedClinics.length > 0) {
-      const clinicsToSearch = [clinicId, ...ownedClinics].filter(Boolean);
-      appointmentsFilter.clinicId = { $in: clinicsToSearch };
+    // BUILD FILTER: Appointments where I am the vet OR they belong to a clinic I manage
+    let accessFilter = [];
+    
+    // Always show appointments explicitly assigned to this vet
+    if (!isStaff) accessFilter.push({ vetId: vetId });
+
+    // Show appointments in clinics managed/active
+    if (hasMultipleClinics) {
+      accessFilter.push({ clinicId: { $in: clinicsToSearch } });
+    } else if (clinicId) {
+      accessFilter.push({ clinicId: clinicId });
     }
 
-    // Combine: Booked (Requests - any future) OR Confirmed (Reminders - today/tomorrow)
     let appointmentsQuery = {
-      ...appointmentsFilter,
-      $or: [
-        { isReadByVet: false },
-        { isReadByVet: { $exists: false } }
-      ],
       $and: [
+        { $or: accessFilter },
         {
           $or: [
+            // New requests: Always show until acted upon (never dismissable)
             { status: 'Booked', dateTime: { $gte: today } },
-            { status: 'Confirmed', dateTime: { $gte: today, $lt: dayAfterTomorrow } }
+            // Reminders: Show if Confirmed AND today/tomorrow AND unread
+            { 
+              status: 'Confirmed', 
+              dateTime: { $gte: today, $lt: dayAfterTomorrow },
+              $or: [
+                { isReadByVet: false },
+                { isReadByVet: { $exists: false } }
+              ]
+            },
+            // CANCELLATIONS: Show if unread by vet
+            {
+              status: 'Canceled',
+              $or: [
+                { isReadByVet: false },
+                { isReadByVet: { $exists: false } }
+              ]
+            }
           ]
         }
       ]
@@ -1251,22 +1278,19 @@ const getVetNotifications = async (req, res) => {
     const upcomingAppointments = await Appointment.find(appointmentsQuery)
       .populate('petId', 'name photo')
       .populate('clinicId', 'name')
-      .sort({ dateTime: 1 });
+      .sort({ dateTime: 1 })
+      .limit(20);
 
     // 3. Chat notifications (Unread messages from Owners)
     let chatQuery = { senderType: 'Owner', isRead: { $ne: true } };
 
-    // Find pets linked to the vet's clinics
-    if (vet.accessLevel !== 'Enhanced') {
-      const clinicsToSearch = [clinicId, ...ownedClinics].filter(Boolean);
-      const pets = await PetProfile.find({ registeredClinicId: { $in: clinicsToSearch.length > 0 ? clinicsToSearch : [clinicId] } }).select('_id');
-      const petIds = pets.map(p => p._id);
-      chatQuery.petId = { $in: petIds };
-    } else if (clinicId || ownedClinics.length > 0) {
-      const clinicsToSearch = [clinicId, ...ownedClinics].filter(Boolean);
-      const pets = await PetProfile.find({ registeredClinicId: { $in: clinicsToSearch } }).select('_id');
-      const petIds = pets.map(p => p._id);
-      chatQuery.petId = { $in: petIds };
+    // Find pet ids for filtering chats - use all clinics the user has access to
+    if (hasMultipleClinics || clinicId) {
+        const pets = await PetProfile.find({ 
+            registeredClinicId: { $in: hasMultipleClinics ? clinicsToSearch : [clinicId] } 
+        }).select('_id');
+        const petIdsToFilter = pets.map(p => p._id);
+        chatQuery.petId = { $in: petIdsToFilter };
     }
 
     const unreadChats = await ChatMessage.find(chatQuery)
@@ -1275,31 +1299,31 @@ const getVetNotifications = async (req, res) => {
         select: 'name photo ownerId',
         populate: { path: 'ownerId', select: '_id' }
       })
-      .sort({ timestamp: -1 });
+      .sort({ timestamp: -1 })
+      .limit(20);
 
-    // Transform chats to include ownerId at top level for easier frontend navigation
+    // Transform chats...
     const transformedChats = unreadChats.map(chat => {
-      const chatObj = chat.toObject();
+      const chatObj = chat.toObject ? chat.toObject() : chat;
       return {
         ...chatObj,
-        // Since we filtered by senderType: 'Owner', senderId is the owner's ID
         ownerId: chatObj.senderId?.toString() || chatObj.petId?.ownerId?._id || chatObj.petId?.ownerId
       };
     });
 
-    console.log(`Notifications found - Registrations: ${pendingRegistrations.length}, Appointments: ${upcomingAppointments.length}, Chats: ${transformedChats.length}`);
+    console.log(`📡 VetNotifications for ${vet.firstName}: Regs:${pendingRegistrations.length}, Appts:${upcomingAppointments.length}, Chats:${transformedChats.length}`);
 
     res.status(200).json({
       success: true,
       notifications: {
-        pendingRegistrations: pendingRegistrations,
+        pendingRegistrations,
         appointments: upcomingAppointments,
         unreadChats: transformedChats
       }
     });
   } catch (error) {
-    console.error('Error in getVetNotifications:', error);
-    res.status(500).json({ message: 'Error fetching notifications', error: error.message });
+    console.error('❌ Error in getVetNotifications:', error);
+    res.status(500).json({ success: false, message: 'Error fetching notifications', error: error.message });
   }
 };
 

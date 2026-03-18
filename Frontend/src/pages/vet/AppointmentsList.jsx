@@ -254,15 +254,6 @@ const VetAppointmentsList = () => {
         if (prev.find(a => a._id === newApp._id)) return prev;
         const updated = [...prev, newApp];
         updated.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
-        Swal.fire({
-          title: 'New Appointment!',
-          text: `A new appointment for ${newApp.petId?.name || 'a pet'} has been booked.`,
-          icon: 'info',
-          toast: true,
-          position: 'top-end',
-          timer: 4000,
-          showConfirmButton: false
-        });
         return updated;
       });
     });
@@ -414,6 +405,15 @@ const VetAppointmentsList = () => {
       case 'reason': return app.reason?.toLowerCase().includes(query);
       default: return true;
     }
+  }).sort((a, b) => {
+    const statusOrder = { 'Pending': 1, 'Confirmed': 2 };
+    const orderA = statusOrder[a.status] || 3;
+    const orderB = statusOrder[b.status] || 3;
+    
+    if (orderA !== orderB) {
+      return orderA - orderB;
+    }
+    return new Date(a.dateTime) - new Date(b.dateTime);
   });
 
   const paginatedAllAppointments = filteredAllAppointments.slice(pageAll * rowsPerPageAll, pageAll * rowsPerPageAll + rowsPerPageAll);

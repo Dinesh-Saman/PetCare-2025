@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const HeroSection = () => {
+const HeroSection = ({ onAddPetClick }) => {
   const { user, openAuthModal } = useAuth();
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -31,7 +31,11 @@ const HeroSection = () => {
       if (user.role === 'vet') {
         navigate('/vet/dashboard');
       } else {
-        navigate('/owner/pets/new', { state: { fromHome: true } });
+        if (onAddPetClick) {
+          onAddPetClick();
+        } else {
+          navigate('/owner/pets/new', { state: { fromHome: true } });
+        }
       }
     }
   };
