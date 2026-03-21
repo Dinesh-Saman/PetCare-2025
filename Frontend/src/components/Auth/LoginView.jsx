@@ -70,12 +70,16 @@ const LoginView = () => {
                 sessionStorage.setItem('temp_2fa_userId', data.userId);
                 sessionStorage.setItem('temp_2fa_role', data.role);
             } else {
-                if (data.user.role === 'vet' && !data.user.veterinaryId) {
+                // Determine if vet profile is incomplete (missing Address)
+                const isVet = data.user.role === 'vet';
+                const isIncomplete = isVet && (!data.user.address || data.user.address === 'Please update your address');
+
+                if (isIncomplete) {
                     login(data.user, data.token, true); // Stay open to complete profile
                     setAuthModalView('register');
                 } else {
                     login(data.user, data.token);
-                    if (data.user.role === 'vet') navigate('/vet/dashboard');
+                    if (isVet) navigate('/vet/dashboard');
                 }
             }
         } catch (err) {
@@ -101,12 +105,16 @@ const LoginView = () => {
                 sessionStorage.setItem('temp_2fa_userId', data.userId);
                 sessionStorage.setItem('temp_2fa_role', data.role);
             } else {
-                if (data.user.role === 'vet' && !data.user.veterinaryId) {
+                // Determine if vet profile is incomplete (missing Address)
+                const isVet = data.user.role === 'vet';
+                const isIncomplete = isVet && (!data.user.address || data.user.address === 'Please update your address');
+
+                if (isIncomplete) {
                     login(data.user, data.token, true); // Stay open to complete profile
                     setAuthModalView('register');
                 } else {
                     login(data.user, data.token);
-                    if (data.user.role === 'vet') navigate('/vet/dashboard');
+                    if (isVet) navigate('/vet/dashboard');
                 }
             }
         } catch (err) {

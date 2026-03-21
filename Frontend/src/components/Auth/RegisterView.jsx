@@ -11,10 +11,13 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
 const RegisterView = () => {
+    const { authModalRole, vetUser, updateUser, closeAuthModal } = useAuth();
     const navigate = useNavigate();
-    const { setAuthModalView, authModalRole, login, vetUser, updateUser, closeAuthModal } = useAuth();
     const isVet = authModalRole === 'vet';
-    const isCompleteProfileMode = isVet && vetUser && !vetUser.address;
+
+    // A profile is incomplete if address or specialization is missing (for professional vets, not general staff)
+    const isCompleteProfileMode = isVet && vetUser && !vetUser.staffRole && 
+        (!vetUser.address || vetUser.address === 'Please update your address' || !vetUser.specialization);
 
     const [formData, setFormData] = useState({
         firstName: (isVet && vetUser?.firstName) || '',
@@ -23,7 +26,7 @@ const RegisterView = () => {
         password: '',
         confirmPassword: '',
         phoneNumber: (isVet && vetUser?.phoneNumber) || '',
-        address: (isVet && vetUser?.address) || '',
+        address: (isVet && (vetUser?.address === 'Please update your address' ? '' : vetUser?.address)) || '',
         veterinaryId: (isVet && vetUser?.veterinaryId) || '',
         specialization: (isVet && vetUser?.specialization) || ''
     });
@@ -37,7 +40,8 @@ const RegisterView = () => {
 
     const specializations = [
         'General Practice', 'Surgery', 'Dermatology', 'Internal Medicine', 'Cardiology',
-        'Oncology', 'Neurology', 'Ophthalmology', 'Dentistry', 'Emergency Care'
+        'Oncology', 'Neurology', 'Ophthalmology', 'Dentistry', 'Emergency Care',
+        'Radiology', 'Anesthesiology', 'Exotic Animals', 'Equine Medicine'
     ];
 
     const handleChange = (e) => {
@@ -46,22 +50,45 @@ const RegisterView = () => {
         setError('');
     };
 
-    const isFieldInvalid = (field) => submitted && !formData[field]?.toString().trim() && (isVet || !['veterinaryId', 'specialization'].includes(field));
+    const isFieldInvalid = (field) => {
+        if (!submitted) return false;
+        
+        // Hide red borders for passwords in complete profile mode
+        if (isCompleteProfileMode && (field === 'password' || field === 'confirmPassword')) return false;
+        
+        const value = formData[field]?.toString().trim();
+        if (!value) {
+            // If it's a vet, address and specialization are required. 
+            // If it's an owner, address is required.
+            if (isVet) {
+                return ['address', 'specialization', 'firstName', 'lastName', 'email', 'phoneNumber'].includes(field);
+            }
+            return !['veterinaryId', 'specialization'].includes(field);
+        }
+        return false;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitted(true);
 
-        const requiredFields = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'phoneNumber', 'address'];
+        const requiredFields = isVet 
+            ? ['firstName', 'lastName', 'email', 'phoneNumber', 'address', 'specialization']
+            : ['firstName', 'lastName', 'email', 'phoneNumber', 'address'];
 
-        const invalid = requiredFields.some(field => !formData[field]?.trim());
+        // Add password fields only if we are NOT in complete profile mode
+        if (!isCompleteProfileMode) {
+            requiredFields.push('password', 'confirmPassword');
+        }
+
+        const invalid = requiredFields.some(field => !formData[field]?.toString().trim());
 
         if (invalid) {
             setError('Please complete all required fields');
             return;
         }
 
-        if (formData.password !== formData.confirmPassword) {
+        if (!isCompleteProfileMode && formData.password !== formData.confirmPassword) {
             setError('Passwords do not match');
             return;
         }
@@ -71,7 +98,7 @@ const RegisterView = () => {
         try {
             if (isCompleteProfileMode) {
                 // Update existing vet profile
-                const { data } = await api.put(`/vets/${vetUser.id}`, { ...formData, accessLevel: 'Enhanced' });
+                const { data } = await api.put(`/vets/${vetUser.id || vetUser._id}`, { ...formData, accessLevel: 'Enhanced' });
                 updateUser(data.vet);
                 closeAuthModal();
                 navigate('/vet/dashboard');
@@ -108,25 +135,25 @@ const RegisterView = () => {
                         </Box>
 
                         <Typography variant="h5" fontWeight="900" sx={{ mb: 0.5, color: textMain, letterSpacing: '-0.5px' }}>
-                            {isVet ? 'Complete Your Vet Profile' : 'Create Account'}
+                            {isCompleteProfileMode ? 'Complete Your Vet Profile' : 'Create Account'}
                         </Typography>
                         <Typography variant="caption" sx={{ mb: 2, opacity: 0.9, color: textMuted, fontWeight: 500, fontSize: '0.8rem', display: 'block' }}>
-                            {isVet
-                                ? 'Please provide your professional details to activate your vet account and access the dashboard.'
+                            {isCompleteProfileMode
+                                ? 'Please provide your professional details to activate your vet account.'
                                 : 'Join PawPal to manage your pet\'s health records.'}
                         </Typography>
 
                         <form onSubmit={handleSubmit} noValidate>
                             {error && (
-                                <Alert severity="error" sx={{ mb: 1.5, py: 0, borderRadius: '12px', fontSize: '0.75rem' }}>
+                                <Alert severity="error" sx={{ mb: 2, py: 0.5, borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600 }}>
                                     {error}
                                 </Alert>
                             )}
 
                             <Box sx={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(2, 1fr)',
-                                gap: isVet ? 2 : 2.5,
+                                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                                gap: 2,
                                 width: '100%'
                             }}>
                                 <Box>
@@ -150,22 +177,26 @@ const RegisterView = () => {
                                         sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
                                 </Box>
 
-                                <Box>
-                                    <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Password</Typography>
-                                    <TextField fullWidth size="small" name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} required error={isFieldInvalid('password')}
-                                        sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
-                                </Box>
-                                <Box>
-                                    <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Confirm Password</Typography>
-                                    <TextField fullWidth size="small" name="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} required error={isFieldInvalid('confirmPassword')}
-                                        sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
-                                </Box>
+                                {!isCompleteProfileMode && (
+                                    <>
+                                        <Box>
+                                            <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Password</Typography>
+                                            <TextField fullWidth size="small" name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} required error={isFieldInvalid('password')}
+                                                sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Confirm Password</Typography>
+                                            <TextField fullWidth size="small" name="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} required error={isFieldInvalid('confirmPassword')}
+                                                sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
+                                        </Box>
+                                    </>
+                                )}
 
                                 {isVet ? (
                                     <>
                                         <Box>
-                                            <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Address</Typography>
-                                            <TextField fullWidth size="small" name="address" placeholder="Address" value={formData.address} onChange={handleChange} required error={isFieldInvalid('address')}
+                                            <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Professional Address</Typography>
+                                            <TextField fullWidth size="small" name="address" placeholder="Professional Address" value={formData.address} onChange={handleChange} required error={isFieldInvalid('address')}
                                                 sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
                                         </Box>
                                         <Box>
@@ -177,6 +208,8 @@ const RegisterView = () => {
                                                 select
                                                 value={formData.specialization}
                                                 onChange={handleChange}
+                                                required
+                                                error={isFieldInvalid('specialization')}
                                                 SelectProps={{
                                                     displayEmpty: true,
                                                     renderValue: (viewValue) => {
@@ -192,9 +225,9 @@ const RegisterView = () => {
                                         </Box>
                                     </>
                                 ) : (
-                                    <Box sx={{ gridColumn: 'span 2' }}>
+                                    <Box sx={{ gridColumn: { sm: 'span 2' } }}>
                                         <Typography variant="body2" sx={{ mb: 0.4, fontWeight: 700, opacity: 0.9, display: 'block', fontSize: '0.82rem', color: textMain }}>Address</Typography>
-                                        <TextField fullWidth size="small" name="address" placeholder="Address" value={formData.address} onChange={handleChange} required error={isFieldInvalid('address')}
+                                        <TextField fullWidth size="small" name="address" placeholder="Your Address" value={formData.address} onChange={handleChange} required error={isFieldInvalid('address')}
                                             sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', borderRadius: '16px', height: '42px', fontSize: '0.9rem' } }} />
                                     </Box>
                                 )}

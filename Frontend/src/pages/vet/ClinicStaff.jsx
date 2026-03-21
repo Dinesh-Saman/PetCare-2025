@@ -262,12 +262,12 @@ const ClinicStaff = () => {
         email: formData.email.toLowerCase().trim(),
       };
       await api.post('/clinics/staff', payload);
-      Swal.fire('Success!', 'Staff member added successfully.', 'success');
+      Swal.fire('Success!', 'Veterinarian added successfully.', 'success');
       handleCloseAddPopup();
       const response = await api.get('/vets/clinics/staff');
       setStaff(response.data.staff || []);
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Failed to add staff';
+      const errorMsg = error.response?.data?.message || 'Failed to add veterinarian';
       if (errorMsg.toLowerCase().includes('email')) {
         setErrors(prev => ({ ...prev, email: errorMsg }));
       } else if (errorMsg.toLowerCase().includes('phone')) {
@@ -673,7 +673,7 @@ const ClinicStaff = () => {
 
             {/* Row 4: Email + Specialization */}
             <TextField fullWidth label="Email" name="email" value={formData.email} onChange={handleFormChange} required error={!!errors.email} helperText={errors.email} />
-            <FormControl fullWidth required>
+            <FormControl fullWidth required sx={{ width: '100% !important' }}>
               <InputLabel>Specialization</InputLabel>
               <Select
                 name="specialization"
@@ -745,7 +745,7 @@ const ClinicStaff = () => {
               </FormControl>
 
               {editFormData.staffType === 'veterinarian' ? (
-                <FormControl fullWidth>
+                <FormControl fullWidth sx={{ width: '100% !important' }}>
                   <InputLabel>Specialization</InputLabel>
                   <Select
                     name="specialization"

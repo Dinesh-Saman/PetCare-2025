@@ -4,7 +4,7 @@ import {
     Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     Paper, TextField, MenuItem, FormControl, Select, InputLabel, TablePagination,
     Avatar, Chip, IconButton, Collapse, Grid, Card, CardContent, CardHeader, Button,
-    Dialog, DialogTitle, DialogContent, DialogActions, alpha
+    Dialog, DialogTitle, DialogContent, DialogActions, Stack, Divider, CircularProgress, alpha
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Swal from 'sweetalert2';
@@ -24,7 +24,9 @@ import {
     Event as EventIcon,
     CheckCircleOutline as CheckCircleOutlineIcon,
     Medication as MedicationIcon,
-    Chat as ChatIcon
+    Chat as ChatIcon,
+    Add as AddIcon,
+    Delete as DeleteIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 import socket, { connectSocket, disconnectSocket } from '../../services/socket';
@@ -181,6 +183,14 @@ const TodayAppointments = () => {
 
     const [expandedRow, setExpandedRow] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    // Manage Appointment Modal States
+    const [openManageModal, setOpenManageModal] = useState(false);
+    const [selectedApp, setSelectedApp] = useState(null);
+    const [manageDiagnosis, setManageDiagnosis] = useState('');
+    const [manageNotes, setManageNotes] = useState('');
+    const [recordFile, setRecordFile] = useState(null);
+    const [rxFile, setRxFile] = useState(null);
 
     const getCurrentVetId = () => {
         try {

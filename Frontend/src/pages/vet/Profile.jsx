@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Box, Typography, Grid, Card, CardContent, TextField, Button,
-    Stack, Avatar, Switch, alpha, CircularProgress, Alert, Divider
+    Stack, Avatar, Switch, alpha, CircularProgress, Alert, Divider, MenuItem
 } from '@mui/material';
 import {
     Person as PersonIcon,
@@ -50,6 +50,11 @@ const ContentContainer = styled(Box)(({ theme }) => ({
 }));
 
 const VetProfile = () => {
+    const specializations = [
+        'General Practice', 'Surgery', 'Dermatology', 'Internal Medicine', 'Cardiology',
+        'Oncology', 'Neurology', 'Ophthalmology', 'Dentistry', 'Emergency Care',
+        'Radiology', 'Anesthesiology', 'Exotic Animals', 'Equine Medicine'
+    ];
     const { user, updateUser } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -111,6 +116,7 @@ const VetProfile = () => {
                 newPassword: passwordData.newPassword
             });
             Swal.fire('Success', 'Password updated successfully', 'success');
+            updateUser({ ...user, hasPassword: true });
             setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
         } catch (err) {
             Swal.fire('Error', err.response?.data?.message || 'Failed to update password', 'error');
@@ -122,7 +128,7 @@ const VetProfile = () => {
     const setup2FA = async () => {
         try {
             setTfaLoading(true);
-            const { data } = await api.get('/auth/2fa/setup');
+            const { data } = await api.post('/auth/2fa/setup');
             setTwoFactorData(data);
         } catch (err) {
             Swal.fire('Error', 'Failed to initiate 2FA setup', 'error');
@@ -210,7 +216,7 @@ const VetProfile = () => {
                                         </Typography>
                                         <Box component="form" onSubmit={handleUpdateProfile}>
                                             <Grid container spacing={3}>
-                                                <Grid item xs={12} sm={6} md={4}>
+                                                <Grid item xs={12} sm={6} md={6}>
                                                     <TextField
                                                         fullWidth label="First Name"
                                                         variant="outlined"
@@ -219,7 +225,7 @@ const VetProfile = () => {
                                                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                                     />
                                                 </Grid>
-                                                <Grid item xs={12} sm={6} md={4}>
+                                                <Grid item xs={12} sm={6} md={6}>
                                                     <TextField
                                                         fullWidth label="Last Name"
                                                         variant="outlined"
@@ -228,7 +234,7 @@ const VetProfile = () => {
                                                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                                     />
                                                 </Grid>
-                                                <Grid item xs={12} sm={6} md={4}>
+                                                <Grid item xs={12} sm={6} md={6}>
                                                     <TextField
                                                         fullWidth label="Email Address"
                                                         value={user.email} disabled
@@ -236,7 +242,7 @@ const VetProfile = () => {
                                                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                                     />
                                                 </Grid>
-                                                <Grid item xs={12} sm={6} md={4}>
+                                                <Grid item xs={12} sm={6} md={6}>
                                                     <TextField
                                                         fullWidth label="Phone Number"
                                                         value={formData.phoneNumber}
@@ -245,13 +251,27 @@ const VetProfile = () => {
                                                     />
                                                 </Grid>
                                                 {!user?.staffRole && (
-                                                    <Grid item xs={12} sm={6} md={4}>
+                                                    <Grid item xs={12} sm={6} md={6}>
                                                         <TextField
-                                                            fullWidth label="Specialization"
+                                                            fullWidth 
+                                                            label="Specialization"
+                                                            select
                                                             value={formData.specialization}
                                                             onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                                                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                                                        />
+                                                            sx={{ 
+                                                                '& .MuiOutlinedInput-root': { borderRadius: '12px', width: '100% !important' },
+                                                                '& .MuiSelect-select': { width: '100% !important' },
+                                                                '& .MuiInputBase-root': { width: '100% !important' },
+                                                                width: '100% !important',
+                                                                minWidth: '100% !important'
+                                                            }}
+                                                        >
+                                                            {specializations.map((option) => (
+                                                                <MenuItem key={option} value={option}>
+                                                                    {option}
+                                                                </MenuItem>
+                                                            ))}
+                                                        </TextField>
                                                     </Grid>
                                                 )}
                                             </Grid>
@@ -351,13 +371,15 @@ const VetProfile = () => {
                                         </Typography>
                                         <Box component="form" onSubmit={handleChangePassword}>
                                             <Stack spacing={3}>
-                                                <TextField
-                                                    fullWidth label="Old Password"
-                                                    type="password"
-                                                    value={passwordData.oldPassword}
-                                                    onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
-                                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                                                />
+                                                {user.hasPassword && (
+                                                    <TextField
+                                                        fullWidth label="Old Password"
+                                                        type="password"
+                                                        value={passwordData.oldPassword}
+                                                        onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+                                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                                    />
+                                                )}
                                                 <TextField
                                                     fullWidth label="New Password"
                                                     type="password"

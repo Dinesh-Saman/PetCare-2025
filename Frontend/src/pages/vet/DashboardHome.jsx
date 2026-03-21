@@ -278,6 +278,7 @@ const DashboardHome = () => {
     statCards.push({ label: "Total Staff Members", count: stats.clinicStaff, loading: loading.clinicStaff, icon: <FaUsers />, color: '#6366f1' });
     statCards.push({ label: "Registered Clinics", count: stats.totalClinics, loading: loading.totalClinics, icon: <FaHospital />, color: '#f59e0b' });
   } else {
+    statCards.push({ label: "Total Staff Members", count: stats.clinicStaff, loading: loading.clinicStaff, icon: <FaUsers />, color: '#6366f1' });
     statCards.push({ label: "Pending Registrations", count: stats.pendingRegistrations, loading: loading.pendingRegistrations, icon: <FaNotesMedical />, color: '#f59e0b' });
   }
 
