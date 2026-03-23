@@ -253,7 +253,7 @@ const VetAppointmentsList = () => {
       setAppointments(prev => {
         if (prev.find(a => a._id === newApp._id)) return prev;
         const updated = [...prev, newApp];
-        updated.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+        updated.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
         return updated;
       });
     });
@@ -292,7 +292,7 @@ const VetAppointmentsList = () => {
           appointmentsData = response.data.data;
         }
 
-        appointmentsData.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+        appointmentsData.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
         setAppointments(appointmentsData);
       } catch (error) {
         console.error('Error fetching vet appointments:', error);
@@ -357,6 +357,38 @@ const VetAppointmentsList = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    const result = await Swal.fire({
+      title: 'Permanently Delete?',
+      text: 'This will completely remove the record from the database. Use with caution!',
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, DELETE it!',
+      cancelButtonText: 'No, keep it'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        setLoading(true);
+        await api.delete(`/appointments/${id}`);
+        setAppointments(prev => prev.filter(app => app._id !== id));
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Appointment has been removed from the database.',
+          icon: 'success',
+          timer: 3000,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        Swal.fire('Error!', error.response?.data?.message || 'Could not delete appointment', 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handlePendingManage = async (app) => {
     const result = await Swal.fire({
       title: 'Manage Pending Appointment',
@@ -405,16 +437,7 @@ const VetAppointmentsList = () => {
       case 'reason': return app.reason?.toLowerCase().includes(query);
       default: return true;
     }
-  }).sort((a, b) => {
-    const statusOrder = { 'Pending': 1, 'Confirmed': 2 };
-    const orderA = statusOrder[a.status] || 3;
-    const orderB = statusOrder[b.status] || 3;
-    
-    if (orderA !== orderB) {
-      return orderA - orderB;
-    }
-    return new Date(a.dateTime) - new Date(b.dateTime);
-  });
+  }).sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
 
   const paginatedAllAppointments = filteredAllAppointments.slice(pageAll * rowsPerPageAll, pageAll * rowsPerPageAll + rowsPerPageAll);
 
@@ -547,8 +570,8 @@ const VetAppointmentsList = () => {
             <TableHeadRow>
               <TableHeadCell></TableHeadCell>
               <TableHeadCell>Pet</TableHeadCell>
-              <TableHeadCell>Owner</TableHeadCell>
               <TableHeadCell>Clinic</TableHeadCell>
+              <TableHeadCell>Date & Time</TableHeadCell>
               <TableHeadCell>Status</TableHeadCell>
               <TableHeadCell>Actions</TableHeadCell>
             </TableHeadRow>
@@ -576,18 +599,20 @@ const VetAppointmentsList = () => {
                         </PetAvatar>
                         <Box>
                           <Typography fontWeight="bold">{app.petId?.name || 'Unknown'}</Typography>
-                          <Typography variant="body2" color="textSecondary">{app.petId?.species} • {app.petId?.breed}</Typography>
+                          <Typography variant="caption" sx={{ color: '#1e293b', display: 'block', fontWeight: 600 }}>
+                            {app.petId?.ownerId ? `${app.petId.ownerId.firstName} ${app.petId.ownerId.lastName}` : 'N/A'}
+                          </Typography>
                         </Box>
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Typography fontWeight="bold">
-                        {app.petId?.ownerId ? `${app.petId.ownerId.firstName} ${app.petId.ownerId.lastName}` : 'N/A'}
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#49149eff' }}>
+                        {app.clinicId?.name || 'N/A'}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#49149eff' }}>
-                        {app.clinicId?.name || 'N/A'}
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b' }}>
+                        {new Date(app.dateTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                       </Typography>
                     </TableCell>
                     <TableCell><StatusChip label={app.status === 'Booked' ? 'Pending' : app.status} status={app.status} /></TableCell>
@@ -609,7 +634,7 @@ const VetAppointmentsList = () => {
                             Manage
                           </StyledButton>
                         )}
-                        {isVeterinarian && (app.status === 'Booked' || app.status === 'Confirmed') && (
+                        {isVeterinarian && app.status === 'Confirmed' && (
                           <IconButton
                             color="error"
                             size="small"
@@ -620,6 +645,20 @@ const VetAppointmentsList = () => {
                             }}
                           >
                             <CancelIcon />
+                          </IconButton>
+                        )}
+                        {isVeterinarian && (
+                          <IconButton
+                            color="error"
+                            size="small"
+                            onClick={() => handleDelete(app._id)}
+                            title="Delete Permanently"
+                            sx={{
+                              bgcolor: alpha('#d32f2f', 0.1),
+                              '&:hover': { bgcolor: alpha('#d32f2f', 0.2) }
+                            }}
+                          >
+                            <DeleteIcon />
                           </IconButton>
                         )}
                       </Box>
@@ -651,7 +690,7 @@ const VetAppointmentsList = () => {
                                         variant="outlined"
                                         size="small"
                                         startIcon={<ChatIcon />}
-                                        onClick={() => navigate(`/vet/chat/owner/${app.petId.ownerId._id}`)}
+                                        onClick={() => navigate(`/vet/chat/owner/${app.petId.ownerId._id}`, { state: { selectedPetId: app.petId._id } })}
                                         sx={{
                                           borderRadius: '12px',
                                           textTransform: 'none',
@@ -772,10 +811,15 @@ const VetAppointmentsList = () => {
         </DialogTitle>
         <DialogContent sx={{ p: 0, backgroundColor: '#fdfdfd' }}>
           <Box sx={{ p: 4, pb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-              <CheckCircleOutlineIcon sx={{ color: '#2196f3', fontSize: 24, mr: 1 }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
-                Medical Documents {selectedApp?.petId?.name ? `- ${selectedApp.petId.name}` : ''}
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                <CheckCircleOutlineIcon sx={{ color: '#2196f3', fontSize: 24, mr: 1 }} />
+                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#1e293b' }}>
+                  Medical Documents {selectedApp?.petId?.name ? `- ${selectedApp.petId.name}` : ''}
+                </Typography>
+              </Box>
+              <Typography variant="caption" sx={{ color: '#64748b', ml: 4, fontWeight: 700, display: 'block' }}>
+                Visit Date: {selectedApp?.dateTime ? new Date(selectedApp.dateTime).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' }) : 'N/A'}
               </Typography>
             </Box>
 

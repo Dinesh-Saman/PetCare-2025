@@ -318,12 +318,14 @@ const Banner = () => {
               <div className="circle circle-2"></div>
             </div>
 
-            <span className="banner-label">Pet Health Made Simple</span>
+            <span className="banner-label">For Professionals</span>
             <h2>
-              Keep Your Pets <span className="banner-highlight">Healthy & Happy</span> with PawPal
+              Are you <span className="banner-highlight">a veterinarian?</span>
             </h2>
             <p>
-              Register your pets, book vet appointments, chat with veterinarians, set vaccination & medication reminders, and get instant AI-powered advice tailored for Sri Lankan pet owners — all in one secure platform.
+              Join now to confirm pet registrations, stay connected with pet owners, and keep pet 
+              health records updated - from vaccinations to prescriptions, everything organized 
+              effortlessly
             </p>
 
             <div className="banner-actions">

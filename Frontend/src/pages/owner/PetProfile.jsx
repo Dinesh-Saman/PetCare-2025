@@ -5,7 +5,8 @@ import Swal from 'sweetalert2';
 import {
   Box, Typography, Grid, Card, CardContent, Avatar, Button, Chip,
   Divider, Paper, Container, Stack, Tooltip, IconButton, Tabs, Tab,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Pagination
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Pagination,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Collapse, Link
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import { styled, alpha } from '@mui/material/styles';
@@ -35,6 +36,7 @@ import {
   MedicalServices as VetIcon,
   Person as UserIcon,
   Delete as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
   Description as FileIcon
 } from '@mui/icons-material';
 import Navbar from '../../components/Navbar';
@@ -167,11 +169,18 @@ const PetProfile = () => {
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(location.state?.targetTab || 0);
   const [highlightedId, setHighlightedId] = useState(location.state?.highlightId || null);
+  const [medPage, setMedPage] = useState(1);
   const [vetPage, setVetPage] = useState(1);
   const [personalPage, setPersonalPage] = useState(1);
   const [presPage, setPresPage] = useState(1);
   const [vaccPage, setVaccPage] = useState(1);
   const RECORDS_PER_PAGE = 5;
+  const [expandedMedRows, setExpandedMedRows] = useState(new Set());
+  const toggleMedExpand = (id) => {
+    const newSet = new Set(expandedMedRows);
+    newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+    setExpandedMedRows(newSet);
+  };
   const [records, setRecords] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
   const [vaccinations, setVaccinations] = useState([]);
@@ -636,11 +645,12 @@ const PetProfile = () => {
                 }
               }}
             >
-              <Tab label="Overview" />
-              <Tab label="Medical Records" />
-              <Tab label="Prescriptions" />
-              <Tab label="Vaccinations" />
-            </Tabs>
+                <Tab label="Pet Info" />
+                <Tab label="Medical Notes" />
+                <Tab label="Medical Records" />
+                <Tab label="Prescriptions" />
+                <Tab label="Vaccinations" />
+              </Tabs>
           </Box>
         </ProfileBanner>
 
@@ -688,6 +698,129 @@ const PetProfile = () => {
 
           {tabValue === 1 && (
             <Box>
+              <SectionHeader>
+                <HospitalIcon />
+                <Typography variant="h6">Medical History & Notes</Typography>
+              </SectionHeader>
+
+              {(() => {
+                const sortedRecords = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+                const totalMedPages = Math.ceil(sortedRecords.length / RECORDS_PER_PAGE);
+                const displayedNotes = sortedRecords.slice((medPage - 1) * RECORDS_PER_PAGE, medPage * RECORDS_PER_PAGE);
+
+                if (sortedRecords.length === 0) return (
+                  <Card sx={{ borderRadius: '24px', border: '1.5px dashed #e2e8f0', bgcolor: '#ffffff', mb: 4, boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
+                    <CardContent sx={{ py: 8, textAlign: 'center' }}>
+                      <HospitalIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
+                      <Typography color="#64748b" variant="h6" fontWeight="800">No medical notes found.</Typography>
+                    </CardContent>
+                  </Card>
+                );
+
+                return (
+                  <Card sx={{ borderRadius: '24px', bgcolor: '#ffffff', mb: 4, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }} elevation={0}>
+                    <TableContainer>
+                      <Table>
+                        <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                          <TableRow>
+                            <TableCell width={50} />
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Date</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Diagnosis</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Veterinarian</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }} align="center">Actions</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {displayedNotes.map((record) => {
+                            const isExpanded = expandedMedRows.has(record._id);
+                            return (
+                              <React.Fragment key={record._id}>
+                                <TableRow sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
+                                  <TableCell>
+                                    <IconButton size="small" onClick={() => toggleMedExpand(record._id)}>
+                                      <ExpandMoreIcon sx={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} />
+                                    </IconButton>
+                                  </TableCell>
+                                  <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>
+                                    {new Date(record.date).toLocaleDateString()}
+                                  </TableCell>
+                                  <TableCell sx={{ fontWeight: 700, color: '#1e293b' }}>{record.diagnosis}</TableCell>
+                                  <TableCell sx={{ color: '#475569', fontWeight: 500 }}>
+                                    Dr. {record.vetId?.firstName} {record.vetId?.lastName}
+                                  </TableCell>
+                                  <TableCell align="center">
+                                    <Tooltip title={isExpanded ? "Hide Details" : "View Details"}>
+                                      <IconButton size="small" onClick={() => toggleMedExpand(record._id)} sx={{ color: '#4f46e5' }}>
+                                        <ViewIcon fontSize="small" />
+                                      </IconButton>
+                                    </Tooltip>
+                                  </TableCell>
+                                </TableRow>
+                                <TableRow>
+                                  <TableCell colSpan={5} sx={{ py: 0, px: 4 }}>
+                                    <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                                      <Box sx={{ py: 3, borderLeft: '4px solid #4f46e5', pl: 3, my: 1, bgcolor: alpha('#4f46e5', 0.02) }}>
+                                        <Typography variant="subtitle2" fontWeight="800" color="#4f46e5" gutterBottom>Diagnosis:</Typography>
+                                        <Typography variant="body1" sx={{ color: '#1e293b', fontWeight: 600, mb: 2 }}>
+                                          {record.diagnosis || 'Test'}
+                                        </Typography>
+
+                                        <Typography variant="subtitle2" fontWeight="800" color="#4f46e5" gutterBottom>Treatment Notes:</Typography>
+                                        <Typography variant="body2" sx={{ color: '#1e293b', whiteSpace: 'pre-wrap', mb: 2, lineHeight: 1.6 }}>
+                                          {record.treatmentNotes || 'No specific treatment notes recorded.'}
+                                        </Typography>
+
+                                        {record.recommendations && (
+                                          <>
+                                            <Typography variant="subtitle2" fontWeight="800" color="#4f46e5" gutterBottom>Recommendations:</Typography>
+                                            <Typography variant="body2" sx={{ color: '#1e293b', whiteSpace: 'pre-wrap', mb: 2, lineHeight: 1.6 }}>
+                                              {record.recommendations}
+                                            </Typography>
+                                          </>
+                                        )}
+
+                                        <Divider sx={{ my: 1.5, opacity: 0.5 }} />
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                          <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>
+                                            Appointment:
+                                          </Typography>
+                                          <Link 
+                                            component="button"
+                                            variant="caption"
+                                            onClick={() => navigate('/owner/my-appointments', { state: { highlightId: (record.appointmentId?._id || record.appointmentId)?.toString() } })}
+                                            sx={{ 
+                                              fontWeight: 700, 
+                                              color: '#4f46e5', 
+                                              textDecoration: 'none',
+                                              '&:hover': { textDecoration: 'underline' }
+                                            }}
+                                          >
+                                            {new Date(record.date).toLocaleDateString()} at {new Date(record.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                          </Link>
+                                        </Box>
+                                      </Box>
+                                    </Collapse>
+                                  </TableCell>
+                                </TableRow>
+                              </React.Fragment>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    {totalMedPages > 1 && (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2, borderTop: '1px solid #f1f5f9' }}>
+                        <Pagination count={totalMedPages} page={medPage} onChange={(e, v) => setMedPage(v)} color="primary" size="small" />
+                      </Box>
+                    )}
+                  </Card>
+                );
+              })()}
+            </Box>
+          )}
+
+          {tabValue === 2 && (
+            <Box>
               {/* Veterinarian Records Section */}
               <SectionHeader>
                 <VetIcon />
@@ -695,7 +828,6 @@ const PetProfile = () => {
               </SectionHeader>
 
               {(() => {
-                // Flatten all attachments from all records into a single list for pagination
                 const allVetAttachments = [];
                 [...records]
                   .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -713,196 +845,183 @@ const PetProfile = () => {
 
                 if (allVetAttachments.length === 0) {
                   return (
-                    <Paper sx={{ p: 8, textAlign: 'center', borderRadius: '32px', border: '2px dashed #e2e8f0', bgcolor: alpha('#f1f5f9', 0.5) }}>
-                      <VetIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
-                      <Typography color="#64748b" variant="h6" fontWeight="800">No veterinarian records found.</Typography>
-                    </Paper>
+                    <Card sx={{ borderRadius: '24px', border: '1.5px dashed #e2e8f0', bgcolor: '#ffffff', mb: 4, boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
+                      <CardContent sx={{ py: 8, textAlign: 'center' }}>
+                        <VetIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
+                        <Typography color="#64748b" variant="h6" fontWeight="800">No veterinarian records found.</Typography>
+                      </CardContent>
+                    </Card>
                   );
                 }
 
                 return (
-                  <>
-                    {displayedVetRecords.map((item, idx) => {
-                      const { record, url } = item;
-                      const isPdf = url.toLowerCase().endsWith('.pdf');
-                      const isText = url.toLowerCase().endsWith('.txt');
-                      const fileColor = isPdf ? '#ef4444' : isText ? '#64748b' : '#3b82f6';
-                      const FileIconComponent = isPdf ? <PdfIcon /> : isText ? <FileIcon /> : <ImageIcon />;
-                      const appIdStr = record.appointmentId?._id?.toString() || record.appointmentId?.toString();
-                      const itemHighlight = appIdStr === highlightedId;
-                      return (
-                        <RecordCard 
-                          key={`${record._id}-${idx}`} 
-                          id={`record-${appIdStr}`}
-                          elevation={0}
-                          sx={{
-                            border: itemHighlight ? '3px solid #4f46e5' : '1px solid #f1f5f9',
-                            boxShadow: itemHighlight ? '0 12px 30px rgba(79, 70, 229, 0.2)' : 'none',
-                            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                            scrollMarginTop: '150px'
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <FileIconBox color={fileColor}>
-                              {FileIconComponent}
-                            </FileIconBox>
-                            <Box>
-                              <Typography variant="body1" fontWeight="800" sx={{ color: '#1e293b', mb: 0.5 }}>
-                                {record.diagnosis}
-                              </Typography>
-                              <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block' }}>
-                                {new Date(record.date).toLocaleDateString()} • {isPdf ? 'PDF' : isText ? 'TEXT' : 'IMAGE'}
-                              </Typography>
-                              <Typography variant="body2" sx={{ color: '#94a3b8', mt: 0.5, fontWeight: 500 }}>
-                                Dr. {record.vetId?.firstName} {record.vetId?.lastName}
-                              </Typography>
-                            </Box>
-                          </Box>
-                          <IconButton 
-                            onClick={() => handleDownload(url, `MedicalRecord_${record.diagnosis}_${new Date(record.date).toLocaleDateString()}.pdf`)} 
-                            sx={{ color: '#64748b' }}
-                          >
-                            <DownloadIcon fontSize="small" />
-                          </IconButton>
-                        </RecordCard>
-                      );
-                    })}
+                  <Card sx={{ borderRadius: '24px', bgcolor: '#ffffff', mb: 4, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }} elevation={0}>
+                    <TableContainer>
+                      <Table>
+                        <TableHead>
+                          <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b', py: 2 }}>Date</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Diagnosis</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Veterinarian</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>File Type</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }} align="center">Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {displayedVetRecords.map((item, idx) => {
+                            const { record, url } = item;
+                            const isPdf = url.toLowerCase().endsWith('.pdf');
+                            const isText = url.toLowerCase().endsWith('.txt');
+                            const appIdStr = record.appointmentId?._id?.toString() || record.appointmentId?.toString();
+                            const itemHighlight = appIdStr === highlightedId;
+                            
+                            return (
+                              <TableRow 
+                                key={`${record._id}-${idx}`}
+                                id={`record-${appIdStr}`}
+                                sx={{
+                                  bgcolor: itemHighlight ? alpha('#4f46e5', 0.05) : 'inherit',
+                                  borderLeft: itemHighlight ? '4px solid #4f46e5' : 'none',
+                                  '&:hover': { bgcolor: '#f9fafb' }
+                                }}
+                              >
+                                <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>
+                                  {new Date(record.date).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 700, color: '#1e293b' }}>
+                                  {record.diagnosis}
+                                </TableCell>
+                                <TableCell sx={{ color: '#475569', fontWeight: 500 }}>
+                                  Dr. {record.vetId?.firstName} {record.vetId?.lastName}
+                                </TableCell>
+                                <TableCell>
+                                  <Chip 
+                                    icon={isPdf ? <PdfIcon sx={{ fontSize: '1rem !important' }} /> : isText ? <FileIcon sx={{ fontSize: '1rem !important' }} /> : <ImageIcon sx={{ fontSize: '1rem !important' }} />}
+                                    label={isPdf ? 'PDF' : isText ? 'TEXT' : 'IMAGE'}
+                                    size="small"
+                                    sx={{ 
+                                      fontWeight: 700, 
+                                      fontSize: '0.7rem',
+                                      bgcolor: alpha(isPdf ? '#ef4444' : isText ? '#64748b' : '#3b82f6', 0.1),
+                                      color: isPdf ? '#ef4444' : isText ? '#64748b' : '#3b82f6'
+                                    }}
+                                  />
+                                </TableCell>
+                                <TableCell align="center">
+                                  <IconButton 
+                                    onClick={() => handleDownload(url, `Record_${record.diagnosis}_${new Date(record.date).toLocaleDateString()}.pdf`)} 
+                                    sx={{ color: '#64748b', '&:hover': { color: '#4f46e5', bgcolor: alpha('#4f46e5', 0.05) } }}
+                                  >
+                                    <DownloadIcon fontSize="small" />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                     {totalVetPages > 1 && (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, mb: 4 }}>
-                        <Pagination
-                          count={totalVetPages}
-                          page={vetPage}
-                          onChange={(e, v) => setVetPage(v)}
-                          color="primary"
-                          size="small"
-                        />
+                      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2, borderTop: '1px solid #f1f5f9' }}>
+                        <Pagination count={totalVetPages} page={vetPage} onChange={(e, v) => setVetPage(v)} color="primary" size="small" />
                       </Box>
                     )}
-                  </>
+                  </Card>
                 );
               })()}
 
-              {/* My Uploads Section */}
               <SectionHeader>
                 <UserIcon />
                 <Typography variant="h6">My Uploads</Typography>
               </SectionHeader>
 
               {(() => {
-                // Combine legacy and personal records for sorting and pagination
                 const allPersonal = [];
                 if (pet.medicalRecords && typeof pet.medicalRecords === 'string' && pet.medicalRecords.startsWith('http')) {
-                  allPersonal.push({
-                    name: 'Pet Identity/Health Document',
-                    url: pet.medicalRecords,
-                    date: pet.createdAt || new Date(0), // Use creation date for legacy if available
-                    type: 'Legacy upload'
-                  });
+                  allPersonal.push({ name: 'Health Document', url: pet.medicalRecords, date: pet.createdAt || new Date(0), type: 'Legacy' });
                 }
-
-                (pet.personalRecords || []).forEach(r => {
-                  allPersonal.push({ ...r, type: 'Personal upload' });
-                });
-
-                // Sort by date descending (most recent first)
+                (pet.personalRecords || []).forEach(r => allPersonal.push({ ...r, type: 'Personal' }));
                 allPersonal.sort((a, b) => new Date(b.date) - new Date(a.date));
 
                 const totalPersonalPages = Math.ceil(allPersonal.length / RECORDS_PER_PAGE);
-                const displayedPersonal = allPersonal.slice(
-                  (personalPage - 1) * RECORDS_PER_PAGE,
-                  personalPage * RECORDS_PER_PAGE
-                );
+                const displayedPersonal = allPersonal.slice((personalPage - 1) * RECORDS_PER_PAGE, personalPage * RECORDS_PER_PAGE);
 
-                if (allPersonal.length === 0) {
-                  return (
-                    <Paper sx={{ p: 8, textAlign: 'center', borderRadius: '32px', border: '2px dashed #e2e8f0', bgcolor: alpha('#f1f5f9', 0.5) }}>
+                if (allPersonal.length === 0) return (
+                  <Card sx={{ borderRadius: '24px', border: '1.5px dashed #e2e8f0', bgcolor: '#ffffff', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
+                    <CardContent sx={{ py: 8, textAlign: 'center' }}>
                       <UserIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
                       <Typography color="#64748b" variant="h6" fontWeight="800">No personal uploads found.</Typography>
-                    </Paper>
-                  );
-                }
+                    </CardContent>
+                  </Card>
+                );
 
                 return (
-                  <>
-                    <Stack spacing={2}>
-                      {displayedPersonal.map((record, index) => {
-                        const isPdf = record.url?.toLowerCase().endsWith('.pdf');
-                        const isText = record.url?.toLowerCase().endsWith('.txt');
-                        const fileColor = isPdf ? '#ef4444' : isText ? '#64748b' : '#3b82f6';
-                        const FileIconComponent = isPdf ? <PdfIcon /> : isText ? <FileIcon /> : <ImageIcon />;
-                        return (
-                          <RecordCard key={index} elevation={0}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <FileIconBox color={fileColor}>
-                                {FileIconComponent}
-                              </FileIconBox>
-                              <Box>
-                                <Typography variant="body1" fontWeight="800" sx={{ color: '#1e293b', mb: 0.5 }}>
-                                  {record.name}
-                                </Typography>
-                                <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 600, display: 'block' }}>
-                                  {record.date ? new Date(record.date).toLocaleDateString() : 'N/A'} • {isPdf ? 'PDF' : isText ? 'TEXT' : 'IMAGE'}
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#94a3b8', mt: 0.5, fontWeight: 500 }}>
-                                  {record.type}
-                                </Typography>
-                              </Box>
-                            </Box>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <IconButton 
-                                onClick={() => handleDownload(record.url, record.name || 'PersonalRecord')} 
-                                sx={{ color: '#64748b' }}
-                              >
-                                <DownloadIcon fontSize="small" />
-                              </IconButton>
-                              {record._id && (
-                                <IconButton
-                                  onClick={() => handleDeletePersonalRecord(record._id, record.name)}
-                                  sx={{
-                                    color: '#ef4444',
-                                    '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.05)' }
-                                  }}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              )}
-                            </Box>
-                          </RecordCard>
-                        );
-                      })}
-                    </Stack>
+                  <Card sx={{ borderRadius: '24px', bgcolor: '#ffffff', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }} elevation={0}>
+                    <TableContainer>
+                      <Table>
+                        <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Date</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Record Name</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Source</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>File Type</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }} align="center">Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {displayedPersonal.map((record, index) => {
+                            const isPdf = record.url?.toLowerCase().endsWith('.pdf');
+                            const isText = record.url?.toLowerCase().endsWith('.txt');
+                            return (
+                              <TableRow key={index} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
+                                <TableCell sx={{ fontWeight: 600, color: '#1e293b' }}>
+                                  {record.date ? new Date(record.date).toLocaleDateString() : 'N/A'}
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 700, color: '#1e293b' }}>{record.name}</TableCell>
+                                <TableCell>
+                                  <Chip label={record.type} size="small" sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
+                                </TableCell>
+                                <TableCell>
+                                  <Chip 
+                                    icon={isPdf ? <PdfIcon sx={{ fontSize: '1rem !important' }} /> : isText ? <FileIcon sx={{ fontSize: '1rem !important' }} /> : <ImageIcon sx={{ fontSize: '1rem !important' }} />}
+                                    label={isPdf ? 'PDF' : isText ? 'TEXT' : 'IMAGE'}
+                                    size="small"
+                                    sx={{ fontWeight: 700, fontSize: '0.7rem', color: isPdf ? '#ef4444' : '#3b82f6', bgcolor: 'transparent' }}
+                                  />
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Stack direction="row" spacing={0.5} justifyContent="center">
+                                    <IconButton 
+                                      onClick={() => handleDownload(record.url, record.name || 'PersonalRecord')} 
+                                      sx={{ color: '#64748b', '&:hover': { color: '#4f46e5' } }}
+                                    >
+                                      <DownloadIcon fontSize="small" />
+                                    </IconButton>
+                                    {record._id && (
+                                      <IconButton onClick={() => handleDeletePersonalRecord(record._id, record.name)} sx={{ color: '#ef4444', '&:hover': { bgcolor: alpha('#ef4444', 0.05) } }}>
+                                        <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                    )}
+                                  </Stack>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                     {totalPersonalPages > 1 && (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                        <Pagination
-                          count={totalPersonalPages}
-                          page={personalPage}
-                          onChange={(e, v) => setPersonalPage(v)}
-                          color="primary"
-                          size="small"
-                        />
+                      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2, borderTop: '1px solid #f1f5f9' }}>
+                        <Pagination count={totalPersonalPages} page={personalPage} onChange={(e, v) => setPersonalPage(v)} color="primary" size="small" />
                       </Box>
                     )}
-                  </>
+                  </Card>
                 );
               })()}
 
               <Box sx={{ pt: 3, textAlign: 'left' }}>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<AddIcon />}
-                  sx={{
-                    borderRadius: '12px',
-                    textTransform: 'none',
-                    fontWeight: 700,
-                    borderColor: '#e2e8f0',
-                    color: '#475569',
-                    px: 3,
-                    '&:hover': {
-                      borderColor: '#cbd5e1',
-                      backgroundColor: '#f8fafc'
-                    }
-                  }}
+                <Button variant="outlined" component="label" startIcon={<AddIcon />}
+                  sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, borderColor: '#e2e8f0', color: '#475569', px: 3, '&:hover': { borderColor: '#cbd5e1', backgroundColor: '#f8fafc' } }}
                 >
                   Upload New Record
                   <input type="file" hidden onChange={handleUploadPersonalRecord} />
@@ -911,7 +1030,7 @@ const PetProfile = () => {
             </Box>
           )}
 
-          {tabValue === 2 && (
+          {tabValue === 3 && (
             <Box>
               <SectionHeader>
                 <MedicineIcon />
@@ -920,14 +1039,15 @@ const PetProfile = () => {
 
               {(() => {
                 const meds = prescriptions.filter(p => p.type === 'Medication');
-                // Most recent first
                 meds.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
                 if (meds.length === 0) return (
-                  <Paper sx={{ p: 8, textAlign: 'center', borderRadius: '32px', border: '2px dashed #e2e8f0', bgcolor: alpha('#f1f5f9', 0.5) }}>
-                    <MedicineIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
-                    <Typography color="#64748b" variant="h6" fontWeight="800">No prescriptions found.</Typography>
-                  </Paper>
+                  <Card sx={{ borderRadius: '24px', border: '1.5px dashed #e2e8f0', bgcolor: '#ffffff', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
+                    <CardContent sx={{ py: 8, textAlign: 'center' }}>
+                      <MedicineIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
+                      <Typography color="#64748b" variant="h6" fontWeight="800">No prescriptions found.</Typography>
+                    </CardContent>
+                  </Card>
                 );
 
                 const totalPresPages = Math.ceil(meds.length / RECORDS_PER_PAGE);
@@ -937,122 +1057,86 @@ const PetProfile = () => {
                 );
 
                 return (
-                  <>
-                    <Stack spacing={3}>
-                      {displayedMeds.map((pres) => {
-                        const appIdStr = pres.appointmentId?._id?.toString() || pres.appointmentId?.toString() || pres.medicalRecordId?.appointmentId?._id?.toString() || pres.medicalRecordId?.appointmentId?.toString();
-                        const presHighlight = appIdStr === highlightedId;
-                        return (
-                        <Paper
-                          key={pres._id}
-                          id={`record-${appIdStr}`}
-                          elevation={0}
-                          sx={{
-                            p: 4,
-                            borderRadius: '24px',
-                            border: presHighlight ? '3px solid #10b981' : '1.5px solid #f1f5f9',
-                            boxShadow: presHighlight ? '0 15px 40px rgba(16, 185, 129, 0.25)' : 'none',
-                            bgcolor: '#ffffff',
-                            position: 'relative',
-                            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-                            scrollMarginTop: '150px'
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <FileIconBox color="#10b981">
-                                <MedicineIcon />
-                              </FileIconBox>
-                              <Typography variant="h5" fontWeight="900" color="#1e293b">
-                                {pres.medicationName}
-                              </Typography>
-                            </Box>
-                            <Typography variant="body2" sx={{ color: '#94a3b8', fontWeight: 600 }}>
-                              {new Date(pres.createdAt).toLocaleDateString()}
-                            </Typography>
-                          </Box>
+                  <Card sx={{ borderRadius: '24px', bgcolor: '#ffffff', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }} elevation={0}>
+                    <TableContainer>
+                      <Table>
+                        <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Date</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Medication</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Dosage</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Prescribed By</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }} align="center">Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {displayedMeds.map((pres) => {
+                            const appIdStr = pres.appointmentId?._id?.toString() || pres.appointmentId?.toString() || pres.medicalRecordId?.appointmentId?._id?.toString() || pres.medicalRecordId?.appointmentId?.toString();
+                            const presHighlight = appIdStr === highlightedId;
 
-                          <Grid container spacing={4} sx={{ mb: 2 }}>
-                            <Grid item xs={12} sm={6}>
-                              <DetailLabel>Dosage</DetailLabel>
-                              <DetailValue>{pres.dosage} {pres.duration ? `• ${pres.duration}` : ''}</DetailValue>
-                            </Grid>
-                            <Grid item xs={12} sm={6}>
-                              <DetailLabel>Prescribed By</DetailLabel>
-                              <DetailValue>
-                                {pres.medicalRecordId?.vetId
-                                  ? `Dr. ${pres.medicalRecordId.vetId.firstName} ${pres.medicalRecordId.vetId.lastName}`
-                                  : pres.createdBy
-                                    ? `Dr. ${pres.createdBy.firstName} ${pres.createdBy.lastName}`
-                                    : 'Attending Veterinarian'}
-                              </DetailValue>
-                            </Grid>
-                          </Grid>
-
-                          <InstructionBox>
-                            <span className="instruction-label">Instructions:</span>
-                            <span className="instruction-text">{pres.instructions || 'Follow as directed by the veterinarian.'}</span>
-                          </InstructionBox>
-
-                          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
-                            {!pres.isVirtual && (
-                              <Button
-                                variant="outlined"
-                                startIcon={<DownloadIcon />}
-                                onClick={() => downloadPrescription(pres._id, pres.medicationName)}
-                                sx={{
-                                  textTransform: 'none',
-                                  borderRadius: '12px',
-                                  fontWeight: 800,
-                                  color: '#64748b',
-                                  borderColor: '#e2e8f0',
-                                  px: 3,
-                                  '&:hover': { borderColor: '#cbd5e1', bgcolor: '#f8fafc' }
+                            return (
+                              <TableRow 
+                                key={pres._id}
+                                id={`record-${appIdStr}`}
+                                sx={{ 
+                                  bgcolor: presHighlight ? alpha('#10b981', 0.05) : 'inherit',
+                                  borderLeft: presHighlight ? '4px solid #10b981' : 'none',
+                                  '&:hover': { bgcolor: '#f9fafb' },
+                                  transition: 'all 0.3s ease'
                                 }}
                               >
-                                Download PDF Report
-                              </Button>
-                            )}
-                            {pres.medicalRecordId?.prescriptionUrl && (
-                              <Button
-                                variant="contained"
-                                startIcon={<DownloadIcon />}
-                                onClick={() => handleDownload(pres.medicalRecordId.prescriptionUrl, `Prescription_${pres.medicationName || pres.medicalRecordId.diagnosis || 'Document'}`)}
-                                sx={{
-                                  textTransform: 'none',
-                                  borderRadius: '12px',
-                                  fontWeight: 800,
-                                  color: '#ffffff',
-                                  bgcolor: '#10b981',
-                                  px: 3,
-                                  '&:hover': { bgcolor: '#059669', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }
-                                }}
-                              >
-                                {pres.isVirtual ? 'Download Uploaded Prescription' : 'Download Uploaded File'}
-                              </Button>
-                            )}
-                          </Box>
-                        </Paper>
-                        );
-                      })}
-                    </Stack>
+                                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>
+                                  {new Date(pres.createdAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell sx={{ fontWeight: 700, color: '#1e293b' }}>
+                                  {pres.medicationName}
+                                </TableCell>
+                                <TableCell sx={{ color: '#475569', fontWeight: 500 }}>
+                                  {pres.dosage} {pres.duration ? `• ${pres.duration}` : ''}
+                                </TableCell>
+                                <TableCell sx={{ color: '#475569', fontWeight: 500 }}>
+                                  {pres.medicalRecordId?.vetId
+                                    ? `Dr. ${pres.medicalRecordId.vetId.firstName} ${pres.medicalRecordId.vetId.lastName}`
+                                    : pres.createdBy
+                                      ? `Dr. ${pres.createdBy.firstName} ${pres.createdBy.lastName}`
+                                      : 'Veterinarian'}
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Stack direction="row" spacing={1} justifyContent="center">
+                                    {!pres.isVirtual && (
+                                      <Tooltip title="Download PDF Report">
+                                        <IconButton size="small" onClick={() => downloadPrescription(pres._id, pres.medicationName)} sx={{ color: '#64748b' }}>
+                                          <DownloadIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    )}
+                                    {pres.medicalRecordId?.prescriptionUrl && (
+                                      <Tooltip title={pres.isVirtual ? "Download Uploaded Prescription" : "Download Uploaded File"}>
+                                        <IconButton size="small" onClick={() => handleDownload(pres.medicalRecordId.prescriptionUrl, `File_${pres.medicationName}`)} sx={{ color: '#10b981' }}>
+                                          <FileIcon fontSize="small" />
+                                        </IconButton>
+                                      </Tooltip>
+                                    )}
+                                  </Stack>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                     {totalPresPages > 1 && (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                        <Pagination
-                          count={totalPresPages}
-                          page={presPage}
-                          onChange={(e, v) => setPresPage(v)}
-                          color="primary"
-                        />
+                      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2, borderTop: '1px solid #f1f5f9' }}>
+                        <Pagination count={totalPresPages} page={presPage} onChange={(e, v) => setPresPage(v)} color="primary" size="small" />
                       </Box>
                     )}
-                  </>
+                  </Card>
                 );
               })()}
             </Box>
           )}
 
-          {tabValue === 3 && (
+          {tabValue === 4 && (
             <Box>
               <SectionHeader>
                 <VaccineIcon />
@@ -1061,15 +1145,16 @@ const PetProfile = () => {
 
               {(() => {
                 const vaccinationRecords = prescriptions.filter(p => p.type !== 'Medication');
-                // Most recent first
                 vaccinationRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
                 if (vaccinationRecords.length === 0) {
                   return (
-                    <Paper sx={{ p: 8, textAlign: 'center', borderRadius: '32px', border: '2px dashed #e2e8f0', bgcolor: alpha('#f1f5f9', 0.5) }}>
-                      <VaccineIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
-                      <Typography color="#64748b" variant="h6" fontWeight="800">No vaccinations recorded.</Typography>
-                    </Paper>
+                    <Card sx={{ borderRadius: '24px', border: '1.5px dashed #e2e8f0', bgcolor: '#ffffff', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
+                      <CardContent sx={{ py: 8, textAlign: 'center' }}>
+                        <VaccineIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 2 }} />
+                        <Typography color="#64748b" variant="h6" fontWeight="800">No vaccinations recorded.</Typography>
+                      </CardContent>
+                    </Card>
                   );
                 }
 
@@ -1080,98 +1165,74 @@ const PetProfile = () => {
                 );
 
                 return (
-                  <>
-                    <Stack spacing={3}>
-                      {displayedVacc.map((pres) => {
-                        const appIdStr = pres.appointmentId?._id?.toString() || pres.appointmentId?.toString() || pres.medicalRecordId?.appointmentId?._id?.toString() || pres.medicalRecordId?.appointmentId?.toString();
-                        const vaccHighlight = appIdStr === highlightedId;
-                        return (
-                        <Paper
-                          key={pres._id}
-                          id={`record-${appIdStr}`}
-                          elevation={0}
-                          sx={{
-                            p: 4,
-                            borderRadius: '24px',
-                            border: vaccHighlight ? '3.5px solid #7c3aed' : '1.5px solid #f1f5f9',
-                            boxShadow: vaccHighlight ? '0 15px 45px rgba(124, 58, 237, 0.25)' : 'none',
-                            bgcolor: '#ffffff',
-                            position: 'relative',
-                            transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                            scrollMarginTop: '150px'
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <FileIconBox color="#7c3aed">
-                                <VaccineIcon />
-                              </FileIconBox>
-                              <Box>
-                                <Typography variant="h5" fontWeight="900" color="#1e293b">
-                                  {pres.medicationName}
-                                </Typography>
-                                <Chip
-                                  label={pres.type === 'Vaccination' ? 'Certified' : pres.type}
-                                  size="small"
-                                  sx={{
-                                    mt: 1,
-                                    bgcolor: alpha('#7c3aed', 0.1),
-                                    color: '#7c3aed',
-                                    fontWeight: 800,
-                                    borderRadius: '8px'
-                                  }}
-                                />
-                              </Box>
-                            </Box>
-                            <Typography variant="body2" sx={{ color: '#94a3b8', fontWeight: 600 }}>
-                              Administered: {new Date(pres.createdAt).toLocaleDateString()}
-                            </Typography>
-                          </Box>
-
-                          <Grid container spacing={4} sx={{ mb: 2 }}>
-                            <Grid item xs={12} sm={6}>
-                              <DetailLabel>Dosage</DetailLabel>
-                              <DetailValue>{pres.dosage || 'Standard dose'}</DetailValue>
-                            </Grid>
-                          </Grid>
-
-                          <InstructionBox color="#f5f3ff" borderColor="#ddd6fe" textColor="#5b21b6">
-                            <span className="instruction-label">Next Booster Due:</span>
-                            <span className="instruction-text" style={{ fontWeight: 800, fontSize: '1rem' }}>
-                              {pres.dueDate ? new Date(pres.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A'}
-                            </span>
-                          </InstructionBox>
-                          <Button
-                            variant="outlined"
-                            startIcon={<DownloadIcon />}
-                            onClick={() => downloadPrescription(pres._id, pres.medicationName, 'vaccination')}
-                            sx={{
-                              textTransform: 'none',
-                              borderRadius: '12px',
-                              fontWeight: 800,
-                              color: '#64748b',
-                              borderColor: '#e2e8f0',
-                              px: 3,
-                              '&:hover': { borderColor: '#cbd5e1', bgcolor: '#f8fafc' }
-                            }}
-                          >
-                            Download Certificate
-                          </Button>
-                        </Paper>
-                        );
-                      })}
-                    </Stack>
+                  <Card sx={{ borderRadius: '24px', bgcolor: '#ffffff', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }} elevation={0}>
+                    <TableContainer>
+                      <Table>
+                        <TableHead sx={{ bgcolor: '#f8fafc' }}>
+                          <TableRow>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Administered</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Vaccine</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Dosage</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }}>Next Booster</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#64748b' }} align="center">Action</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {displayedVacc.map((pres) => {
+                            const appIdStr = pres.appointmentId?._id?.toString() || pres.appointmentId?.toString() || pres.medicalRecordId?.appointmentId?._id?.toString() || pres.medicalRecordId?.appointmentId?.toString();
+                            const vaccHighlight = appIdStr === highlightedId;
+                            
+                            return (
+                              <TableRow 
+                                key={pres._id} 
+                                id={`record-${appIdStr}`}
+                                sx={{ 
+                                  bgcolor: vaccHighlight ? alpha('#7c3aed', 0.05) : 'inherit',
+                                  borderLeft: vaccHighlight ? '4px solid #7c3aed' : 'none',
+                                  '&:hover': { bgcolor: '#f9fafb' },
+                                  transition: 'all 0.3s ease'
+                                }}
+                              >
+                                <TableCell sx={{ fontWeight: 600, color: '#475569' }}>
+                                  {new Date(pres.createdAt).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell>
+                                  <Box>
+                                    <Typography variant="body1" fontWeight="700" color="#1e293b">
+                                      {pres.medicationName}
+                                    </Typography>
+                                    <Chip label="Certified" size="small" sx={{ mt: 0.5, height: 18, fontSize: '0.65rem', fontWeight: 800, bgcolor: alpha('#7c3aed', 0.1), color: '#7c3aed' }} />
+                                  </Box>
+                                </TableCell>
+                                <TableCell sx={{ color: '#475569', fontWeight: 500 }}>
+                                  {pres.dosage || 'Standard dose'}
+                                </TableCell>
+                                <TableCell>
+                                  {pres.dueDate ? (
+                                    <Typography variant="body2" sx={{ fontWeight: 800, color: '#5b21b6' }}>
+                                      {new Date(pres.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                    </Typography>
+                                  ) : 'N/A'}
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Tooltip title="Download Certificate">
+                                    <IconButton size="small" onClick={() => downloadPrescription(pres._id, pres.medicationName, 'vaccination')} sx={{ color: '#7c3aed', '&:hover': { bgcolor: alpha('#7c3aed', 0.05) } }}>
+                                      <DownloadIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
                     {totalVaccPages > 1 && (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                        <Pagination
-                          count={totalVaccPages}
-                          page={vaccPage}
-                          onChange={(e, v) => setVaccPage(v)}
-                          color="secondary"
-                        />
+                      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2, borderTop: '1px solid #f1f5f9' }}>
+                        <Pagination count={totalVaccPages} page={vaccPage} onChange={(e, v) => setVaccPage(v)} color="secondary" size="small" />
                       </Box>
                     )}
-                  </>
+                  </Card>
                 );
               })()}
             </Box>

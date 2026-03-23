@@ -234,16 +234,26 @@ const getVetsByClinic = async (req, res) => {
       return res.status(404).json({ message: 'Clinic not found' });
     }
 
-    // Find vets who have this clinic as their current active clinic OR own it
+    console.log('=== getVetsByClinic DEBUG ===');
+    console.log('Target Clinic ID:', clinicId);
+    
+    const mongooseClinicId = new mongoose.Types.ObjectId(clinicId);
+
+    // Find vets who have this clinic as their current active clinic OR own it OR are assigned
     const vets = await Veterinarian.find({
       $or: [
-        { currentActiveClinicId: clinicId },
-        { ownedClinics: clinicId }
+        { currentActiveClinicId: mongooseClinicId },
+        { clinicId: mongooseClinicId },
+        { ownedClinics: { $in: [mongooseClinicId] } },
+        { assignedClinics: { $in: [mongooseClinicId] } }
       ],
       status: 'Active'
     })
       .select('-passwordHash')
       .sort({ accessLevel: -1, firstName: 1 });
+
+    console.log(`Found ${vets.length} vets for clinic ${clinicId}:`, vets.map(v => `${v.firstName} ${v.lastName} (ID: ${v._id})`));
+    console.log('=============================');
 
     res.status(200).json({
       clinicName: clinic.name,
@@ -252,6 +262,7 @@ const getVetsByClinic = async (req, res) => {
       vets
     });
   } catch (error) {
+    console.error('Error in getVetsByClinic:', error);
     res.status(500).json({
       message: 'Error fetching veterinarians',
       error: error.message
@@ -949,7 +960,13 @@ const getStaffByEnhancedVet = async (req, res) => {
     const allStaff = [formattedEnhanced, ...formattedVets, ...formattedStaff];
 
     // ── Fetch clinic details for context ──────────────────────────────────
-    const clinics = await Clinic.find({ _id: { $in: clinicIdsToSearch } })
+    let clinicQuery = { _id: { $in: clinicIdsToSearch } };
+    if (primaryVet.accessLevel === 'Enhanced') {
+      // Enhanced vets should see ALL clinics in the system for assignment
+      clinicQuery = {};
+    }
+    
+    const clinics = await Clinic.find(clinicQuery)
       .select('name address phoneNumber');
 
     // ── Final response ────────────────────────────────────────────────────

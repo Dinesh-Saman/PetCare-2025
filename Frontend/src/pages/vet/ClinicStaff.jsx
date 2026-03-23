@@ -241,7 +241,7 @@ const ClinicStaff = () => {
   };
 
   const handleAddStaffSubmit = async () => {
-    const required = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'phoneNumber', 'specialization'];
+    const required = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'phoneNumber', 'specialization', 'clinicId'];
 
     const missing = required.filter(field => !formData[field]?.trim());
     if (missing.length > 0) {
@@ -661,7 +661,7 @@ const ClinicStaff = () => {
             <TextField fullWidth label="First Name" name="firstName" value={formData.firstName} onChange={handleFormChange} required />
             <TextField fullWidth label="Last Name" name="lastName" value={formData.lastName} onChange={handleFormChange} required />
 
-            {/* Row 3: Phone Number + Access Level */}
+            {/* Row 2: Phone Number + Access Level */}
             <TextField fullWidth label="Phone Number" name="phoneNumber" value={formData.phoneNumber} onChange={handleFormChange} error={!!errors.phoneNumber} helperText={errors.phoneNumber} />
             <FormControl fullWidth>
               <InputLabel>Access Level</InputLabel>
@@ -671,8 +671,22 @@ const ClinicStaff = () => {
               </Select>
             </FormControl>
 
-            {/* Row 4: Email + Specialization */}
-            <TextField fullWidth label="Email" name="email" value={formData.email} onChange={handleFormChange} required error={!!errors.email} helperText={errors.email} />
+            {/* Row 3: Clinic + Specialization */}
+            <FormControl fullWidth required>
+              <InputLabel>Clinic</InputLabel>
+              <Select
+                name="clinicId"
+                value={formData.clinicId}
+                onChange={handleFormChange}
+                label="Clinic"
+              >
+                <MenuItem value="" disabled>Select Clinic</MenuItem>
+                {clinics.sort((a, b) => a.name.localeCompare(b.name)).map((clinic) => (
+                  <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
             <FormControl fullWidth required sx={{ width: '100% !important' }}>
               <InputLabel>Specialization</InputLabel>
               <Select
@@ -688,7 +702,20 @@ const ClinicStaff = () => {
               </Select>
             </FormControl>
 
-            {/* Row 4: Password + Confirm Password */}
+            {/* Row 4: Email (Full Width) */}
+            <TextField
+              fullWidth
+              label="Email"
+              name="email"
+              value={formData.email}
+              onChange={handleFormChange}
+              required
+              error={!!errors.email}
+              helperText={errors.email}
+              sx={{ gridColumn: isMobile ? '1' : '1 / span 2' }}
+            />
+
+            {/* Row 5: Password + Confirm Password */}
             <TextField fullWidth label="Password" name="password" type="password" value={formData.password} onChange={handleFormChange} required />
             <TextField fullWidth label="Confirm Password" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleFormChange} required error={!!errors.confirmPassword} helperText={errors.confirmPassword} />
           </Box>

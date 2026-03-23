@@ -302,14 +302,14 @@ const OwnerDashboard = () => {
     try {
       const response = await api.put(`/owners/${owner._id || owner.id}`, editForm);
       const updatedOwner = response.data.owner;
-      
+
       // Ensure we preserve the role for AuthContext and Navbar logic
       const ownerWithRole = { ...updatedOwner, role: 'owner' };
-      
+
       setOwner(ownerWithRole);
       updateUser(ownerWithRole); // Synchronize with AuthContext
       setOpenEditProfile(false);
-      
+
       Swal.fire({
         title: 'Success',
         text: 'Profile updated successfully',
@@ -488,7 +488,7 @@ const OwnerDashboard = () => {
             <Box sx={{ mb: 6 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 5, flexWrap: 'wrap', gap: 3 }}>
                 <Typography variant="h3" fontWeight="800" sx={{ color: '#1e293b' }}>
-                  Your Pets <PetsIcon sx={{ verticalAlign: 'middle', ml: 1, color: '#4f46e5' }} />
+                  My Pets <PetsIcon sx={{ verticalAlign: 'middle', ml: 1, color: '#4f46e5' }} />
                 </Typography>
               </Box>
 

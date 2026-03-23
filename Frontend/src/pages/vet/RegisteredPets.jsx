@@ -418,7 +418,7 @@ const RegisteredPets = () => {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       const ownerId = pet.ownerId?._id || pet.ownerId;
-                                      if (ownerId) navigate(`/vet/chat/owner/${ownerId}`);
+                                      if (ownerId) navigate(`/vet/chat/owner/${ownerId}`, { state: { selectedPetId: pet._id } });
                                     }}
                                     sx={{
                                       textTransform: 'none',

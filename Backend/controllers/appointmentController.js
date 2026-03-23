@@ -77,9 +77,10 @@ exports.bookAppointment = async (req, res) => {
     // === REAL-TIME UPDATE ===
     const io = req.app.get('socketio');
     if (io) {
-      // Notify the specific vet
-      io.to(vetId.toString()).emit('newAppointment', appointment);
-      console.log(`📡 Socket: Notified vet ${vetId} about new appointment`);
+      // Notify the clinic room (for all staff) and the specific vet
+      if (clinicId) io.to(`clinic_${clinicId}`).emit('newAppointment', appointment);
+      io.to(`user_${vetId}`).emit('newAppointment', appointment);
+      console.log(`📡 Socket: Notified clinic ${clinicId} and vet ${vetId} about new appointment`);
     }
   } catch (error) {
     console.error('Error booking appointment:', error);
@@ -262,10 +263,13 @@ exports.cancelAppointment = async (req, res) => {
         const ownerId = updated.ownerId?._id?.toString() || updated.ownerId?.toString() || (updated.petId?.ownerId?.toString());
 
         if (vetId) {
-          io.to(vetId).emit('appointmentStatusChanged', updated);
+          io.to(`user_${vetId}`).emit('appointmentStatusChanged', updated);
         }
         if (ownerId) {
-          io.to(ownerId).emit('appointmentStatusChanged', updated);
+          io.to(`user_${ownerId}`).emit('appointmentStatusChanged', updated);
+        }
+        if (updated.clinicId) {
+          io.to(`clinic_${updated.clinicId._id || updated.clinicId}`).emit('appointmentStatusChanged', updated);
         }
         console.log(`📡 Socket: Notified related parties about cancellation of ${id}`);
       }
@@ -461,7 +465,10 @@ exports.manageAppointment = async (req, res) => {
     if (io && updated) {
       const ownerId = updated.ownerId?._id?.toString() || updated.ownerId?.toString();
       if (ownerId) {
-        io.to(ownerId).emit('appointmentStatusChanged', updated);
+        io.to(`user_${ownerId}`).emit('appointmentStatusChanged', updated);
+      }
+      if (updated.clinicId) {
+        io.to(`clinic_${updated.clinicId._id || updated.clinicId}`).emit('appointmentStatusChanged', updated);
       }
     }
 
@@ -793,10 +800,13 @@ exports.rescheduleAppointment = async (req, res) => {
         const ownerId = updated.ownerId?._id?.toString() || updated.ownerId?.toString();
 
         if (vetId) {
-          io.to(vetId).emit('appointmentStatusChanged', updated);
+          io.to(`user_${vetId}`).emit('appointmentStatusChanged', updated);
         }
         if (ownerId) {
-          io.to(ownerId).emit('appointmentStatusChanged', updated);
+          io.to(`user_${ownerId}`).emit('appointmentStatusChanged', updated);
+        }
+        if (updated.clinicId) {
+          io.to(`clinic_${updated.clinicId._id || updated.clinicId}`).emit('appointmentStatusChanged', updated);
         }
       }
     } catch (socketErr) {
@@ -820,8 +830,37 @@ exports.getOwnerNotifications = async (req, res) => {
     const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
     const Prescription = require('../models/Prescription');
     const MedicalRecord = require('../models/MedicalRecord');
+    const ChatMessage = require('../models/ChatMessage');
+    const PetProfile = require('../models/PetProfile');
 
-    // Fetch all non-cancelled recent or upcoming appointments for the owner
+    // 1. Fetch unread chat messages from Vets
+    const ownerPets = await PetProfile.find({ ownerId }).select('_id name photo');
+    const petIds = ownerPets.map(p => p._id);
+    const unreadChats = await ChatMessage.find({
+      petId: { $in: petIds },
+      senderType: 'Vet',
+      isRead: { $ne: true }
+    }).sort({ timestamp: -1 });
+
+    const notifications = [];
+
+    // Add chat notifications
+    for (const chat of unreadChats) {
+      const pet = ownerPets.find(p => p._id.toString() === chat.petId.toString());
+      notifications.push({
+        id: `chat_${chat._id}`,
+        type: 'chat', // Added this type
+        icon: 'chat',
+        title: `New Message`,
+        message: `New message for ${pet?.name || 'your pet'}: "${chat.content.substring(0, 30)}${chat.content.length > 30 ? '...' : ''}"`,
+        petId: chat.petId,
+        petPhoto: pet?.photo,
+        createdAt: chat.timestamp,
+        priority: 'high'
+      });
+    }
+
+    // 2. Fetch all non-cancelled recent or upcoming appointments for the owner
     const appointments = await Appointment.find({
       ownerId,
       $or: [
@@ -833,8 +872,6 @@ exports.getOwnerNotifications = async (req, res) => {
       .populate('vetId', 'firstName lastName specialization')
       .populate('clinicId', 'name address')
       .sort({ dateTime: 1 });
-
-    const notifications = [];
 
     for (const appt of appointments) {
       const apptDate = new Date(appt.dateTime);
@@ -972,5 +1009,21 @@ exports.getOwnerNotifications = async (req, res) => {
   } catch (error) {
     console.error('Error getting owner notifications:', error);
     res.status(500).json({ message: 'Error fetching notifications', error: error.message });
+  }
+};
+
+// TEMPORARY: Allow manual deletion of appointments
+// In a real production system, you'd usually soft-delete or log this action.
+exports.deleteAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const appointment = await Appointment.findByIdAndDelete(id);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    res.status(200).json({ message: 'Appointment deleted successfully', appointment });
+  } catch (error) {
+    console.error('Error deleting appointment:', error);
+    res.status(500).json({ message: 'Error deleting appointment', error: error.message });
   }
 };

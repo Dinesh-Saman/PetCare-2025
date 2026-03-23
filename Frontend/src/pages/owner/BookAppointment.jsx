@@ -198,14 +198,19 @@ const BookAppointment = () => {
 
     useEffect(() => {
         const fetchVets = async () => {
+            console.log('--- fetchVets called for clinic:', formData.clinicId);
             if (!formData.clinicId) {
                 setVets([]);
                 return;
             }
             try {
+                // Clear old vets while new ones are loading
+                setVets([]);
                 const response = await api.get(`vets/clinic/${formData.clinicId}`);
+                console.log('--- Vets received from server:', response.data.vets);
                 setVets(response.data.vets || []);
             } catch (error) {
+                console.error('--- Error fetching vets:', error);
                 setVets([]);
             }
         };
@@ -249,6 +254,7 @@ const BookAppointment = () => {
             ...prev,
             [name]: value,
             ...(name === 'date' || name === 'vetId' || name === 'clinicId' || name === 'petId' ? { time: '' } : {}),
+            ...(name === 'clinicId' ? { vetId: '' } : {}), // Reset vet when clinic changes
             ...(name === 'petId' ? { clinicId: '', vetId: '' } : {})
         }));
     };
@@ -283,7 +289,7 @@ const BookAppointment = () => {
             return;
         }
 
-        const dateTime = `${formData.date}T${formData.time}:00`;
+        const dateTime = new Date(`${formData.date}T${formData.time}:00`).toISOString();
 
         setLoading(true);
         try {

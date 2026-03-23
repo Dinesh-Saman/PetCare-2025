@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import Button from '@mui/material/Button';
 import api from '../../services/api';
+import { io } from 'socket.io-client';
 import dayjs from 'dayjs';
 import {
     Menu as MenuIcon,
@@ -73,10 +74,48 @@ const VetAdminNavbar = () => {
 
     useEffect(() => {
         fetchNotifications();
-        // Refresh every 5 minutes
-        const interval = setInterval(fetchNotifications, 5 * 60 * 1000);
-        return () => clearInterval(interval);
     }, []);
+
+    // Socket.IO for real-time updates
+    useEffect(() => {
+        if (!user) return;
+
+        const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+            transports: ['websocket'],
+            withCredentials: true
+        });
+
+        socket.on('connect', () => {
+            console.log('🔌 VetAdminNavbar: Connected to socket');
+            // Join personal room and clinic room if available
+            const uid = user.id || user._id;
+            const cid = user.currentActiveClinicId?._id || user.currentActiveClinicId || user.clinicId;
+
+            if (uid) socket.emit('join_user', uid);
+            if (cid) {
+                socket.emit('join_clinic', cid.toString());
+                console.log(`🏥 Joining clinic room: clinic_${cid}`);
+            }
+        });
+
+        const handleUpdate = () => {
+            console.log('🔄 Socket: Notification update received');
+            fetchNotifications();
+        };
+
+        socket.on('newRegistration', handleUpdate);
+        socket.on('newAppointment', handleUpdate);
+        socket.on('appointmentStatusChanged', handleUpdate);
+        socket.on('chat_notification', handleUpdate);
+
+        return () => {
+            socket.off('newRegistration', handleUpdate);
+            socket.off('newAppointment', handleUpdate);
+            socket.off('appointmentStatusChanged', handleUpdate);
+            socket.off('chat_notification', handleUpdate);
+            socket.disconnect();
+        };
+    }, [user]);
 
     const fetchNotifications = async () => {
         try {
@@ -316,7 +355,7 @@ const VetAdminNavbar = () => {
                     sx: {
                         mt: 1.5,
                         width: { xs: '95vw', sm: 400 },
-                        maxHeight: 520,
+                        maxHeight: 600,
                         borderRadius: 3,
                         boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
                         overflow: 'hidden',

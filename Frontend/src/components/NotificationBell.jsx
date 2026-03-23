@@ -23,6 +23,8 @@ import EventRepeatIcon from '@mui/icons-material/EventRepeat';
 import PetsIcon from '@mui/icons-material/Pets';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api.jsx';
+import { io } from 'socket.io-client';
+import { useAuth } from '../context/AuthContext';
 
 
 const typeConfig = {
@@ -32,6 +34,7 @@ const typeConfig = {
   prescription: { color: '#8b5cf6', bg: '#f5f3ff', icon: MedicationIcon, chipLabel: 'Prescription', chipColor: 'secondary' },
   medical_record: { color: '#3b82f6', bg: '#eff6ff', icon: AssignmentIcon, chipLabel: 'Medical Record', chipColor: 'primary' },
   rescheduled: { color: '#f97316', bg: '#fff7ed', icon: EventRepeatIcon, chipLabel: 'Rescheduled', chipColor: 'warning' },
+  chat: { color: '#ec4899', bg: '#fdf2f8', icon: PetsIcon, chipLabel: 'Chat', chipColor: 'secondary' },
 };
 
 const NotificationBell = () => {
@@ -56,11 +59,48 @@ const NotificationBell = () => {
     }
   }, []);
 
-  // Fetch on mount and poll every 2 minutes
+  const { user } = useAuth(); // Assuming useAuth provides the logged-in user
+
+  // Initialize Socket.IO connection
+  useEffect(() => {
+    if (!user) return;
+    
+    // Determine socket URL from env or fallback to current origin (stripped of port)
+    const socketBase = import.meta.env.VITE_SOCKET_URL || 
+                      (window.location.protocol + '//' + window.location.hostname + ':5000');
+    
+    const socket = io(socketBase, {
+        transports: ['websocket'],
+        withCredentials: true
+    });
+
+    socket.on('connect', () => {
+        console.log(`🔌 NotificationBell: Connected to ${socketBase}`);
+        const uid = user.id || user._id;
+        if (uid) socket.emit('join_user', uid);
+    });
+
+    const handleUpdate = (type) => {
+        console.log(`🔔 Socket Notification: Recieved ${type} update`);
+        fetchNotifications();
+    };
+
+    socket.on('newAppointment', () => handleUpdate('newAppointment'));
+    socket.on('appointmentStatusChanged', () => handleUpdate('appointmentStatusChanged'));
+    socket.on('registrationStatusChanged', () => handleUpdate('registrationStatusChanged'));
+    socket.on('chat_notification', (data) => {
+        console.log('💬 Socket: New chat notification data:', data);
+        handleUpdate('chat_notification');
+    });
+
+    return () => {
+        socket.disconnect();
+    };
+  }, [user, fetchNotifications]);
+
+  // Initial fetch
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 2 * 60 * 1000);
-    return () => clearInterval(interval);
   }, [fetchNotifications]);
 
   const unreadNotifications = notifications.filter(n => !readIds.has(n.id));
@@ -81,12 +121,14 @@ const NotificationBell = () => {
 
     handleClose();
     
-    if (n.type === 'prescription' || n.type === 'medical_record') {
+    if (n.type === 'chat') {
+      navigate('/owner/chat', { state: { petId: n.petId } });
+    } else if (n.type === 'prescription' || n.type === 'medical_record') {
       // Navigate to Pet Profile for records/prescriptions
       navigate(`/owner/pets/${n.petId}`, {
         state: { 
           highlightId: n.appointmentId?.toString(),
-          targetTab: n.type === 'prescription' ? 2 : 1 // 1: Medical Records, 2: Prescriptions
+          targetTab: n.type === 'prescription' ? 3 : 2 // 2: Medical Records, 3: Prescriptions
         }
       });
     } else {

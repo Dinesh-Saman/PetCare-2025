@@ -181,62 +181,18 @@ const OwnerChat = () => {
     }
   };
 
-  // ── Socket setup ──
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      navigate('/');
-      return;
-    }
-
-    const socket = io(SOCKET_URL, { transports: ['websocket'] });
-    socketRef.current = socket;
-
-    socket.emit('join_user', user.id);
-
-    socket.on('new_message', (msg) => {
-      setMessages(prev => {
-        if (prev.some(m => m._id === msg._id)) return prev;
-
-        // Only scroll if it's from current user or already at bottom
-        const isFromMe = msg.senderType === 'Owner' && msg.senderId === user.id;
-        scrollToBottom(isFromMe);
-
-        return [...prev, msg];
-      });
-    });
-
-    socket.on('chat_notification', (data) => {
-      // Show a subtle notification if the chat is not currently open for this pet
-      if (!selectedPet || selectedPet._id !== data.petId) {
-        // Could show a toast here
-      }
-    });
-
-    return () => socket.disconnect();
-  }, []);
-
-  // ── Join/leave pet chat rooms ──
-  useEffect(() => {
-    if (!socketRef.current || !selectedPet) return;
-    socketRef.current.emit('join_chat', selectedPet._id);
-    return () => socketRef.current?.emit('leave_chat', selectedPet._id);
-  }, [selectedPet]);
-
   // ── Fetch owner's pets ──
-  useEffect(() => {
-    if (authLoading) return;
+  const fetchPets = useCallback(async (shouldSelectDefault = false) => {
     if (!user) return;
+    try {
+      setLoading(true);
+      const res = await api.get('/pets/my');
+      const allPets = res.data?.pets || res.data || [];
+      // Only allow approved pets to chat
+      const pets = allPets.filter(p => p.registrationStatus === 'Approved');
+      setMyPets(pets);
 
-    const fetchPets = async () => {
-      try {
-        setLoading(true);
-        const res = await api.get('/pets/my');
-        const allPets = res.data?.pets || res.data || [];
-        // Only allow approved pets to chat
-        const pets = allPets.filter(p => p.registrationStatus === 'Approved');
-        setMyPets(pets);
-
+      if (shouldSelectDefault) {
         if (initialPetId) {
           const match = pets.find(p => p._id === initialPetId);
           if (match) {
@@ -247,15 +203,107 @@ const OwnerChat = () => {
         } else if (pets.length > 0) {
           setSelectedPet(pets[0]);
         }
-      } catch (err) {
-        console.error(err);
-        Swal.fire('Error', 'Could not load your pets', 'error');
-      } finally {
-        setLoading(false);
       }
+    } catch (err) {
+      console.error(err);
+      Swal.fire('Error', 'Could not load your pets', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [user, initialPetId]);
+
+  const selectedPetRef = useRef(selectedPet);
+  useEffect(() => {
+    selectedPetRef.current = selectedPet;
+  }, [selectedPet]);
+
+  // ── Socket setup ──
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      navigate('/');
+      return;
+    }
+
+    // Connect socket if not already connected
+    if (!socketRef.current || !socketRef.current.connected) {
+        const socket = io(SOCKET_URL, { transports: ['websocket'] });
+        socketRef.current = socket;
+
+        socket.on('connect', () => {
+            console.log('🔌 OwnerChat: Connected to socket');
+            const uid = user?._id || user?.id;
+            if (uid) socket.emit('join_user', uid);
+            
+            // If a pet is already selected on connect, join its room
+            if (selectedPetRef.current) {
+                socket.emit('join_chat', selectedPetRef.current._id.toString());
+            }
+        });
+
+        socket.on('new_message', (msg) => {
+          setMessages(prev => {
+            if (prev.some(m => m._id === msg._id)) return prev;
+
+            const senderId = msg.senderId?._id || msg.senderId;
+            const currentUserId = user?._id || user?.id;
+            const isFromMe = String(senderId) === String(currentUserId);
+            
+            if (isFromMe) {
+              const optIdx = prev.findIndex(m => 
+                m.isOptimistic && 
+                m.content === msg.content && 
+                String(m.petId) === String(msg.petId)
+              );
+
+              if (optIdx !== -1) {
+                const newMessages = [...prev];
+                newMessages[optIdx] = msg;
+                return newMessages;
+              }
+            }
+
+            scrollToBottom(isFromMe);
+            return [...prev, msg];
+          });
+        });
+
+        socket.on('chat_notification', (data) => {
+          fetchPets();
+          
+          if (!selectedPetRef.current || String(selectedPetRef.current._id) !== String(data.petId)) {
+            console.log(`📡 New message for pet ${data.petId}`);
+          }
+        });
+    }
+
+    return () => {
+        if (socketRef.current) {
+            socketRef.current.disconnect();
+            socketRef.current = null;
+        }
     };
-    fetchPets();
-  }, [authLoading, user, initialPetId, navigate]);
+  }, [authLoading, user, fetchPets, navigate]);
+
+  // ── Join/leave pet chat rooms ──
+  useEffect(() => {
+    if (!socketRef.current || !selectedPet) return;
+    
+    const petId = selectedPet._id.toString();
+    socketRef.current.emit('join_chat', petId);
+    
+    return () => {
+        if (socketRef.current) {
+            socketRef.current.emit('leave_chat', petId);
+        }
+    };
+  }, [selectedPet?._id]);
+
+  // Initial fetch for owner's pets
+  useEffect(() => {
+    if (authLoading || !user) return;
+    fetchPets(true); // Pass true to select default pet on first load
+  }, [authLoading, user, fetchPets]);
 
   // ── Fetch messages on pet select ──
   const fetchMessages = useCallback(async () => {
@@ -540,7 +588,10 @@ const OwnerChat = () => {
                   </Avatar>
                   <Box>
                     <Typography variant="h6" fontWeight="800" color="#0f172a">{selectedPet.name}</Typography>
-                    <Typography variant="body2" color="textSecondary" fontWeight="600">
+                    <Typography variant="body2" color="#1e293b" fontWeight="700">
+                      {user?.firstName} {user?.lastName}
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary" fontWeight="600">
                       {selectedPet.registeredClinicId?.name || 'Veterinary Consultation'}
                     </Typography>
                   </Box>

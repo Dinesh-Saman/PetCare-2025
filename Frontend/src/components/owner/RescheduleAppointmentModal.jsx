@@ -174,7 +174,7 @@ const RescheduleAppointmentModal = ({ open, onClose, onSuccess, appointment }) =
             return;
         }
 
-        const dateTime = `${formData.date}T${formData.time}:00`;
+        const dateTime = new Date(`${formData.date}T${formData.time}:00`).toISOString();
 
         setLoading(true);
         try {

@@ -114,9 +114,11 @@ const VetChatWindow = () => {
                 const exists = prev.some(m => m._id === msg._id);
                 if (exists) return prev;
 
-                // If the message is from the current vet, force scroll.
-                // Otherwise only scroll if already at bottom.
-                const isFromMe = msg.senderId === (currentVet._id || currentVet.id);
+                // Standardized isFromMe check for populated objects
+                const senderId = msg.senderId?._id || msg.senderId;
+                const currentUserId = currentVet._id || currentVet.id;
+                const isFromMe = String(senderId) === String(currentUserId);
+                
                 setTimeout(() => scrollToBottom(isFromMe), 50);
 
                 return [...prev, msg];
@@ -126,11 +128,11 @@ const VetChatWindow = () => {
         return () => socket.disconnect();
     }, []);
 
-    // ── Join/leave pet room ──
     useEffect(() => {
-        if (!socketRef.current || !selectedPet) return;
-        socketRef.current.emit('join_chat', selectedPet._id);
-        return () => socketRef.current?.emit('leave_chat', selectedPet._id);
+        if (!socketRef.current || !selectedPet?._id) return;
+        const petId = selectedPet._id.toString();
+        socketRef.current.emit('join_chat', petId);
+        return () => socketRef.current?.emit('leave_chat', petId);
     }, [selectedPet?._id]);
 
     // ── Fetch owner's pets ──
@@ -163,18 +165,20 @@ const VetChatWindow = () => {
                     return clinicIds.includes(petClinicId);
                 });
 
-            if (visiblePets.length > 0) {
-                const firstPetWithInfo = visiblePets.find(p => typeof p.ownerId === 'object');
+            if (allOwnerPets.length > 0) {
+                const firstPetWithInfo = allOwnerPets.find(p => p.ownerId && typeof p.ownerId === 'object');
                 setOwner(firstPetWithInfo?.ownerId || { _id: ownerId, firstName: 'Owner', lastName: '' });
                 setPets(visiblePets);
-
-                // Handle initial selection from notification state
-                const targetPetId = location.state?.selectedPetId;
-                const initialPet = targetPetId
-                    ? (visiblePets.find(p => p._id === targetPetId) || visiblePets[0])
-                    : visiblePets[0];
-
-                setSelectedPet(initialPet);
+                
+                // If there are no visible pets in THIS clinic, at least the vet can see the owner name
+                // from the general pets list before filtering.
+                if (visiblePets.length > 0) {
+                    const targetPetId = location.state?.selectedPetId;
+                    const initialPet = targetPetId
+                        ? (visiblePets.find(p => p._id === targetPetId) || visiblePets[0])
+                        : visiblePets[0];
+                    setSelectedPet(initialPet);
+                }
             } else {
                 setOwner({ _id: ownerId, firstName: 'Owner', lastName: '' });
                 setPets([]);
@@ -404,7 +408,7 @@ const VetChatWindow = () => {
                                     gap: 1.5,
                                     flexShrink: 0
                                 }}>
-                                    <IconButton size="small" sx={{ color: 'white' }} onClick={() => navigate('/vet/chat')}>
+                                    <IconButton size="small" sx={{ color: 'white' }} onClick={() => navigate(-1)}>
                                         <ArrowBackIcon fontSize="small" />
                                     </IconButton>
                                     <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -509,7 +513,7 @@ const VetChatWindow = () => {
                                         zIndex: 2
                                     }}>
                                         {isMobile && (
-                                            <IconButton size="small" onClick={() => navigate('/vet/chat')}>
+                                            <IconButton size="small" onClick={() => navigate(-1)}>
                                                 <ArrowBackIcon />
                                             </IconButton>
                                         )}
@@ -518,7 +522,10 @@ const VetChatWindow = () => {
                                         </Avatar>
                                         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                                             <Typography variant={isMobile ? 'subtitle1' : 'h6'} fontWeight="800" color="#0f172a" noWrap>{selectedPet.name}</Typography>
-                                            <Typography variant="body2" color="textSecondary" fontWeight="600" noWrap>
+                                            <Typography variant="body2" color="#1e293b" fontWeight="700">
+                                                {owner?.firstName} {owner?.lastName}
+                                            </Typography>
+                                            <Typography variant="caption" color="textSecondary" fontWeight="600" noWrap>
                                                 {selectedPet.species}
                                             </Typography>
                                         </Box>

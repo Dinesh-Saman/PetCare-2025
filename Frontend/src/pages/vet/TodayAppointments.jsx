@@ -175,7 +175,7 @@ const TodayAppointments = () => {
     const [appointments, setAppointments] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [searchCriteria, setSearchCriteria] = useState("petName");
-    const [statusFilter, setStatusFilter] = useState("Confirmed");
+    const [statusFilter, setStatusFilter] = useState("all");
     const [clinicFilter, setClinicFilter] = useState("all");
 
     const [page, setPage] = useState(0);
@@ -238,9 +238,9 @@ const TodayAppointments = () => {
                 setLoading(true);
                 const response = await api.get(`/appointments/vet/${vetId}`);
                 let appointmentsData = response.data?.appointments || response.data || [];
-                const todayConfirmed = appointmentsData.filter(app => isToday(app.dateTime) && app.status === 'Confirmed');
-                todayConfirmed.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
-                setAppointments(todayConfirmed);
+                const todayApps = appointmentsData.filter(app => isToday(app.dateTime));
+                todayApps.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
+                setAppointments(todayApps);
             } catch (error) {
                 console.error('Error fetching today appointments:', error);
             } finally {
@@ -297,6 +297,59 @@ const TodayAppointments = () => {
             } catch (error) {
                 Swal.fire('Error!', error.response?.data?.message || 'Could not cancel appointment', 'error');
             }
+        }
+    };
+
+    const handleDelete = async (id) => {
+        const result = await Swal.fire({
+            title: 'Permanently Delete?',
+            text: 'This will completely remove the record from the database. Use with caution!',
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, DELETE it!',
+            cancelButtonText: 'No, keep it'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                setLoading(true);
+                await api.delete(`/appointments/${id}`);
+                setAppointments(prev => prev.filter(app => app._id !== id));
+                Swal.fire({
+                    title: 'Deleted!',
+                    text: 'Appointment has been removed from the database.',
+                    icon: 'success',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } catch (error) {
+                Swal.fire('Error!', error.response?.data?.message || 'Could not delete appointment', 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handlePendingManage = async (app) => {
+        const result = await Swal.fire({
+            title: 'Manage Pending Appointment',
+            text: `Manage appointment for ${app.petId?.name || 'this pet'}`,
+            showCloseButton: true,
+            showConfirmButton: true,
+            showDenyButton: true,
+            showCancelButton: false,
+            confirmButtonText: 'Confirm Appointment',
+            denyButtonText: 'Reject Appointment',
+            confirmButtonColor: '#4caf50',
+            denyButtonColor: '#f44336',
+        });
+
+        if (result.isConfirmed) {
+            handleConfirm(app._id);
+        } else if (result.isDenied) {
+            handleCancel(app._id);
         }
     };
 
@@ -506,8 +559,8 @@ const TodayAppointments = () => {
                                     <TableHeadRow>
                                         <TableHeadCell></TableHeadCell>
                                         <TableHeadCell>Pet</TableHeadCell>
-                                        <TableHeadCell>Owner</TableHeadCell>
                                         <TableHeadCell>Clinic</TableHeadCell>
+                                        <TableHeadCell>Date & Time</TableHeadCell>
                                         <TableHeadCell>Status</TableHeadCell>
                                         <TableHeadCell>Actions</TableHeadCell>
                                     </TableHeadRow>
@@ -527,25 +580,49 @@ const TodayAppointments = () => {
                                                     <TableCell>
                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                                             <PetAvatar src={app.petId?.photo} alt={app.petId?.name}>{app.petId?.name?.charAt(0)}</PetAvatar>
-                                                            <Typography fontWeight="bold">{app.petId?.name}</Typography>
+                                                            <Box>
+                                                                <Typography fontWeight="bold">{app.petId?.name}</Typography>
+                                                                <Typography variant="caption" sx={{ color: '#1e293b', display: 'block', fontWeight: 600 }}>
+                                                                    {app.petId?.ownerId?.firstName} {app.petId?.ownerId?.lastName}
+                                                                </Typography>
+                                                            </Box>
                                                         </Box>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Typography fontWeight="bold">
-                                                            {app.petId?.ownerId ? `${app.petId.ownerId.firstName} ${app.petId.ownerId.lastName}` : 'N/A'}
-                                                        </Typography>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Typography variant="body2" sx={{ fontWeight: 600, color: '#49149eff' }}>
                                                             {app.clinicId?.name || 'N/A'}
                                                         </Typography>
                                                     </TableCell>
+                                                    <TableCell>
+                                                        <Typography variant="body2" sx={{ fontWeight: 700, color: '#1e293b' }}>
+                                                            {new Date(app.dateTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                                        </Typography>
+                                                    </TableCell>
                                                     <TableCell><StatusChip label={app.status === 'Booked' ? 'Pending' : app.status} status={app.status} /></TableCell>
                                                     <TableCell>
                                                         <Box sx={{ display: 'flex', gap: 1 }}>
-                                                            {app.status === 'Booked' && <IconButton color="success" onClick={() => handleConfirm(app._id)}><CheckCircleIcon /></IconButton>}
-                                                            {app.status === 'Confirmed' && <StyledButton size="small" onClick={() => handleOpenManage(app)}>Manage</StyledButton>}
-                                                            {(app.status === 'Booked' || app.status === 'Confirmed') && <IconButton color="error" onClick={() => handleCancel(app._id)}><CancelIcon /></IconButton>}
+                                                            {(app.status === 'Booked' || app.status === 'Confirmed') && (
+                                                                <StyledButton size="small" onClick={() => app.status === 'Booked' ? handlePendingManage(app) : handleOpenManage(app)}>
+                                                                    Manage
+                                                                </StyledButton>
+                                                            )}
+                                                            {app.status === 'Confirmed' && (
+                                                                <IconButton color="error" onClick={() => handleCancel(app._id)}>
+                                                                    <CancelIcon />
+                                                                </IconButton>
+                                                            )}
+                                                            <IconButton
+                                                                color="error"
+                                                                size="small"
+                                                                onClick={() => handleDelete(app._id)}
+                                                                title="Delete Permanently"
+                                                                sx={{
+                                                                    bgcolor: alpha('#d32f2f', 0.1),
+                                                                    '&:hover': { bgcolor: alpha('#d32f2f', 0.2) }
+                                                                }}
+                                                            >
+                                                                <DeleteIcon />
+                                                            </IconButton>
                                                         </Box>
                                                     </TableCell>
                                                 </TableRowStyled>
@@ -575,7 +652,7 @@ const TodayAppointments = () => {
                                                                                             variant="outlined"
                                                                                             size="small"
                                                                                             startIcon={<ChatIcon />}
-                                                                                            onClick={() => navigate(`/vet/chat/owner/${app.petId.ownerId._id}`)}
+                                                                                            onClick={() => navigate(`/vet/chat/owner/${app.petId.ownerId._id}`, { state: { selectedPetId: app.petId._id } })}
                                                                                             sx={{
                                                                                                 borderRadius: '12px',
                                                                                                 textTransform: 'none',
@@ -619,10 +696,15 @@ const TodayAppointments = () => {
                 </DialogTitle>
                 <DialogContent sx={{ p: 0, backgroundColor: '#fdfdfd' }}>
                     <Box sx={{ p: 4, pb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                            <CheckCircleOutlineIcon sx={{ color: '#2196f3', fontSize: 24, mr: 1 }} />
-                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
-                                Medical Documents {selectedApp?.petId?.name ? `- ${selectedApp.petId.name}` : ''}
+                        <Box sx={{ mb: 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                                <CheckCircleOutlineIcon sx={{ color: '#2196f3', fontSize: 24, mr: 1 }} />
+                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#1e293b' }}>
+                                    Medical Documents {selectedApp?.petId?.name ? `- ${selectedApp.petId.name}` : ''}
+                                </Typography>
+                            </Box>
+                            <Typography variant="caption" sx={{ color: '#64748b', ml: 4, fontWeight: 700, display: 'block' }}>
+                                Visit Date: {selectedApp?.dateTime ? new Date(selectedApp.dateTime).toLocaleString([], { dateStyle: 'long', timeStyle: 'short' }) : 'N/A'}
                             </Typography>
                         </Box>
 

@@ -380,7 +380,7 @@ const ClinicList = () => {
         }}>
           <ContentContainer sx={{ flexGrow: 1 }}>
             <SearchSection>
-              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', width: isMobile ? '100%' : 'auto' }}>My Clinics</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px', width: isMobile ? '100%' : 'auto' }}>Registered Clinics</Typography>
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-end' }}>
 
                 <TextField
