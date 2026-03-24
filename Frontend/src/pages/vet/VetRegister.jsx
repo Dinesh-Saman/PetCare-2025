@@ -43,6 +43,10 @@ const VetRegister = () => {
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
+    if (name === 'phoneNumber') {
+      if (value.length > 10) return;
+      if (value !== '' && !/^\d+$/.test(value)) return;
+    }
     setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
     setError('');
   };
@@ -107,7 +111,7 @@ const VetRegister = () => {
           }}>
             <PetsIcon sx={{ fontSize: 22 }} />
           </Box>
-          <Typography variant="h6" fontWeight="800" color="#1e293b" letterSpacing="-0.5px">PawPal Vet</Typography>
+          <Typography variant="h6" fontWeight="800" color="#1e293b" letterSpacing="-0.5px">PawPal</Typography>
         </Box>
 
         <Box sx={{ maxWidth: '400px', width: '100%', mx: 'auto' }}>

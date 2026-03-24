@@ -767,10 +767,17 @@ exports.getRegisteredPetsForVetClinic = async (req, res) => {
 
     // If Basic Access, only show pets for their assigned clinic
     if (!isEnhanced) {
-      if (!req.user.clinicId) {
+      const activeClinicId = req.user.currentActiveClinicId || req.user.clinicId;
+
+      if (!activeClinicId && (!req.user.assignedClinics || req.user.assignedClinics.length === 0)) {
         return res.status(200).json({ success: true, count: 0, registeredPets: [], isGlobalView: false });
       }
-      query.registeredClinicId = req.user.clinicId;
+
+      if (activeClinicId) {
+        query.registeredClinicId = activeClinicId;
+      } else {
+        query.registeredClinicId = { $in: req.user.assignedClinics };
+      }
     }
 
     // 2. Fetch approved pets

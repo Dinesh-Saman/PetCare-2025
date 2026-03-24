@@ -193,7 +193,8 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
             ...prev,
             [name]: value,
             ...(name === 'date' || name === 'vetId' || name === 'clinicId' || name === 'petId' ? { time: '' } : {}),
-            ...(name === 'petId' ? { clinicId: '', vetId: '' } : {})
+            ...(name === 'petId' ? { clinicId: '', vetId: '' } : {}),
+            ...(name === 'clinicId' ? { vetId: '' } : {})
         }));
     };
 
@@ -338,7 +339,7 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                                     </StyledSelect>
                                 </FormControl>
 
-                                <FormControl fullWidth required>
+                                <FormControl fullWidth required disabled={!formData.clinicId}>
                                     <InputLabel shrink>Veterinarian</InputLabel>
                                     <StyledSelect
                                         name="vetId"
@@ -347,16 +348,26 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                                         onChange={handleChange}
                                         displayEmpty
                                         renderValue={(selected) => {
-                                            if (!selected) return <Typography sx={{ color: '#94a3b8' }}>Select Veterinarian...</Typography>;
+                                            if (!selected) return <Typography sx={{ color: '#94a3b8' }}>{formData.clinicId ? 'Select Veterinarian...' : 'Select a clinic first'}</Typography>;
                                             const vet = vets.find(v => v._id === selected);
                                             return vet ? `Dr. ${vet.firstName} ${vet.lastName}` : selected;
                                         }}
                                         startAdornment={<InputAdornment position="start"><PersonIcon sx={{ color: '#4f46e5', mr: 1 }} /></InputAdornment>}
                                     >
                                         <MenuItem value="" disabled><em>Select Veterinarian...</em></MenuItem>
-                                        {vets.map(vet => (
-                                            <MenuItem key={vet._id} value={vet._id}>Dr. {vet.firstName} {vet.lastName}</MenuItem>
-                                        ))}
+                                        {vets
+                                            .filter(vet => {
+                                                if (!formData.clinicId) return false;
+                                                const owned = vet.ownedClinics?.map(c => c._id || c).map(String) || [];
+                                                const assigned = vet.assignedClinics?.map(c => c._id || c).map(String) || [];
+                                                const active = String(vet.currentActiveClinicId?._id || vet.currentActiveClinicId || '');
+                                                const legacy = String(vet.clinicId?._id || vet.clinicId || '');
+                                                const cid = String(formData.clinicId);
+                                                return owned.includes(cid) || assigned.includes(cid) || active === cid || legacy === cid;
+                                            })
+                                            .map(vet => (
+                                                <MenuItem key={vet._id} value={vet._id}>Dr. {vet.firstName} {vet.lastName}</MenuItem>
+                                            ))}
                                     </StyledSelect>
                                 </FormControl>
 

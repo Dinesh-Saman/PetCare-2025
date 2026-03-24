@@ -1,6 +1,7 @@
 const PetOwner = require('../models/PetOwner');
 const Veterinarian = require('../models/Veterinarian');
 const ClinicStaff = require('../models/ClinicStaff');
+const Clinic = require('../models/Clinic');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
 const { OAuth2Client } = require('google-auth-library');
@@ -297,6 +298,11 @@ exports.googleLogin = async (req, res) => {
     // If no user exists, register them automatically based on requested role
     if (!user) {
       if (role === 'vet') {
+        // Fetch all existing clinics to assign to the new vet
+        const allClinics = await Clinic.find({});
+        const assignedClinics = allClinics.map(clinic => clinic._id);
+        const currentActiveClinicId = assignedClinics.length > 0 ? assignedClinics[0] : null;
+
         // Create new Veterinarian
         user = new Veterinarian({
           firstName: given_name || normalizedEmail.split('@')[0],
@@ -304,7 +310,10 @@ exports.googleLogin = async (req, res) => {
           email: normalizedEmail,
           googleId,
           accessLevel: 'Enhanced',
-          status: 'Active'
+          status: 'Active',
+          assignedClinics,
+          clinicId: currentActiveClinicId,
+          currentActiveClinicId
         });
       } else {
         // Create new Pet Owner

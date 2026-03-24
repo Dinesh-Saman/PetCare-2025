@@ -140,7 +140,7 @@ const LoginView = () => {
                 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <PetsIcon sx={{ fontSize: 22 }} />
-                        <Typography variant="body1" fontWeight="bold">PawPal {isVet ? 'Vet' : ''}</Typography>
+                        <Typography variant="body1" fontWeight="bold">PawPal</Typography>
                     </Box>
 
                     <Typography variant="h5" fontWeight="900" sx={{ mb: 2, letterSpacing: '-0.5px' }}>

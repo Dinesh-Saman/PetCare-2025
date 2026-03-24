@@ -30,11 +30,13 @@ const registerVet = async (req, res) => {
     }
 
     // Check if email or veterinaryId already exists
+    const orConditions = [{ email: email.toLowerCase().trim() }];
+    if (veterinaryId && veterinaryId.trim() !== '') {
+      orConditions.push({ veterinaryId: veterinaryId.trim() });
+    }
+
     const existingVet = await Veterinarian.findOne({
-      $or: [
-        { email: email.toLowerCase().trim() },
-        { veterinaryId: veterinaryId.trim() }
-      ]
+      $or: orConditions
     });
 
     if (existingVet) {
@@ -52,7 +54,11 @@ const registerVet = async (req, res) => {
 
     let accessLevel = 'Enhanced'; // Default to Enhanced as requested
     let ownedClinics = [];
-    let currentActiveClinicId = null;
+    
+    // Fetch all existing clinics to assign to the new vet
+    const allClinics = await Clinic.find({});
+    const assignedClinics = allClinics.map(clinic => clinic._id);
+    let currentActiveClinicId = assignedClinics.length > 0 ? assignedClinics[0] : null;
 
     // Handle Primary Vet logic
     if (isPrimaryVet) {
@@ -72,6 +78,8 @@ const registerVet = async (req, res) => {
       accessLevel,
       ownedClinics,
       currentActiveClinicId,
+      assignedClinics,
+      clinicId: currentActiveClinicId,
       status: 'Active'
     };
 
@@ -163,11 +171,13 @@ const createSubAccount = async (req, res) => {
     }
 
     // Duplicate check
+    const orConditions = [{ email: email.toLowerCase().trim() }];
+    if (veterinaryId && veterinaryId.trim() !== '') {
+      orConditions.push({ veterinaryId: veterinaryId.trim() });
+    }
+
     const existing = await Veterinarian.findOne({
-      $or: [
-        { email: email.toLowerCase().trim() },
-        { veterinaryId: veterinaryId.trim() }
-      ]
+      $or: orConditions
     });
     if (existing) {
       return res.status(409).json({ message: 'Email or license already in use' });
@@ -927,8 +937,16 @@ const getStaffByEnhancedVet = async (req, res) => {
           status: vet.status,
           currentActiveClinicId: vet.currentActiveClinicId?._id?.toString() || null,
           clinic: vet.currentActiveClinicId || null,
+          assignedClinics: (vet.assignedClinics || []).map(id => id.toString()),
           type: 'Veterinarian',
-          isPrimary: false
+          isPrimary: false,
+          details: {
+            role: 'Veterinarian',
+            specialization: vet.specialization || null,
+            licenseId: vet.veterinaryId || null,
+            isPrimary: false,
+            accessLevel: vet.accessLevel
+          }
         };
       });
 

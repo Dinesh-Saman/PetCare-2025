@@ -70,7 +70,12 @@ const OwnerRegister = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'phoneNumber') {
+      if (value.length > 10) return;
+      if (value !== '' && !/^\d+$/.test(value)) return;
+    }
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e) => {

@@ -48,8 +48,12 @@ const AddPetModal = ({ open, onClose, onPetAdded }) => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.species.trim() || !formData.clinicId) {
-      Swal.fire('Error', 'Pet name, species, and registered clinic are required', 'warning');
+    if (!formData.name.trim() || !formData.species.trim() || !formData.clinicId || !formData.gender) {
+      if (!formData.gender) {
+        Swal.fire('Error', 'Please select a gender for your pet', 'warning');
+        return;
+      }
+      Swal.fire('Error', 'Pet name, species, gender, and registered clinic are required', 'warning');
       return;
     }
 

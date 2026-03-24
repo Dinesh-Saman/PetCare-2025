@@ -135,23 +135,7 @@ exports.getAppointmentsByVet = async (req, res) => {
     const { vetId } = req.params;
     const { date, clinicId } = req.query;
 
-    // Security: Enhanced Vet sees all, Basic staff/vet sees appointments in their clinic
-    const isEnhanced = req.user.role === 'vet' && req.user.accessLevel === 'Enhanced';
-
-    // Instead of completely blocking, we will enforce the clinicId constraint in the query.
-
-    let query = {};
-    if (isEnhanced && req.user.id.toString() === vetId) {
-      // Enhanced vet looking at their own ID get global system view
-      query = {};
-    } else {
-      // Basic access level: see all appointments for their clinic
-      if (req.user.clinicId) {
-        query = { clinicId: req.user.clinicId };
-      } else {
-        query = { vetId };
-      }
-    }
+    let query = { vetId };
 
     if (clinicId) query.clinicId = clinicId;
 
@@ -523,10 +507,6 @@ exports.getTodayAppointmentsCountByVet = async (req, res) => {
       });
     }
 
-    // If Enhanced, allow viewing ANY vet's stats (Global)
-    // For Basic, we will restrict to their clinicId in the DB query below.
-    const isEnhanced = req.user.accessLevel === 'Enhanced';
-
     // Define today's date range (00:00:00 to 23:59:59)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -536,24 +516,16 @@ exports.getTodayAppointmentsCountByVet = async (req, res) => {
 
     // Count appointments for today
     let countQuery = {
+      vetId: vetId,
       dateTime: { $gte: today, $lt: tomorrow },
       status: 'Confirmed'
     };
 
-    // If NOT Enhanced, only count for the specific clinic (or vet if no clinic)
-    if (!isEnhanced) {
-      if (req.user.clinicId) {
-        countQuery.clinicId = req.user.clinicId;
-      } else {
-        countQuery.vetId = vetId;
-      }
-    }
-
     const count = await Appointment.countDocuments(countQuery);
 
     res.status(200).json({
-      message: isEnhanced ? "Total today's appointments (Global)" : "Today's appointments count retrieved",
-      vetId: isEnhanced ? 'GLOBAL' : vetId,
+      message: "Today's appointments count retrieved",
+      vetId: vetId,
       todayDate: today.toISOString().split('T')[0],
       todayAppointmentsCount: count
     });

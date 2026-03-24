@@ -210,7 +210,7 @@ const ClinicStaff = () => {
     specialization: '',
     accessLevel: 'Basic',
     role: 'Veterinarian',
-    clinicId: ''
+    clinicIds: []
   });
 
   const handleOpenAddPopup = () => setIsAddPopupOpen(true);
@@ -228,12 +228,16 @@ const ClinicStaff = () => {
       specialization: '',
       accessLevel: 'Basic',
       role: 'Veterinarian',
-      clinicId: ''
+      clinicIds: []
     });
   };
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'phoneNumber') {
+      if (value.length > 10) return;
+      if (value !== '' && !/^\d+$/.test(value)) return;
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -241,9 +245,13 @@ const ClinicStaff = () => {
   };
 
   const handleAddStaffSubmit = async () => {
-    const required = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'phoneNumber', 'specialization', 'clinicId'];
+    const required = ['firstName', 'lastName', 'email', 'password', 'confirmPassword', 'phoneNumber', 'specialization', 'clinicIds'];
 
-    const missing = required.filter(field => !formData[field]?.trim());
+    const missing = required.filter(field => {
+      const val = formData[field];
+      if (Array.isArray(val)) return val.length === 0;
+      return !val?.trim();
+    });
     if (missing.length > 0) {
       Swal.fire('Missing Fields', 'Please fill all required fields', 'warning');
       return;
@@ -404,7 +412,7 @@ const ClinicStaff = () => {
         accessLevel: isVet ? (vetData.accessLevel || 'Basic') : (member.details?.accessLevel || 'Basic'),
         role: isVet ? '' : (member.details?.role || 'Receptionist'),
         clinicId: isVet ? (vetData.currentActiveClinicId?._id || vetData.currentActiveClinicId || '') : (member.clinicId || ''),
-        assignedClinics: isVet ? (vetData.ownedClinics || []) : (member.assignedClinics || (member.clinicId ? [member.clinicId] : []))
+        assignedClinics: isVet ? (vetData.assignedClinics || vetData.ownedClinics || []) : (member.assignedClinics || (member.clinicId ? [member.clinicId] : []))
       });
 
     } catch (error) {
@@ -520,7 +528,6 @@ const ClinicStaff = () => {
                     <TableHeadCell width="50px"></TableHeadCell>
                     <TableHeadCell>Staff ID</TableHeadCell>
                     <TableHeadCell>Name</TableHeadCell>
-                    <TableHeadCell>Role</TableHeadCell>
                     <TableHeadCell>Access Level</TableHeadCell>
                     <TableHeadCell>Status</TableHeadCell>
                     <TableHeadCell align="center">Actions</TableHeadCell>
@@ -536,7 +543,6 @@ const ClinicStaff = () => {
                           <TableCell><IconButton onClick={() => toggleExpandRow(member._id)} size="small"><ExpandMoreIcon sx={{ transform: expandedRow === member._id ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.3s' }} /></IconButton></TableCell>
                           <TableCell><Typography fontWeight="bold" sx={{ color: '#8e24aa', fontFamily: 'monospace' }}>#{getStaffNumber(member._id)}</Typography></TableCell>
                           <TableCell><Typography fontWeight="bold">{member.firstName} {member.lastName}</Typography><Typography variant="caption" color="textSecondary">{member.type}</Typography></TableCell>
-                          <TableCell><Typography variant="body2">{member.details?.role || member.type}</Typography></TableCell>
                           <TableCell><AccessChip label={member.details?.accessLevel || 'Basic'} level={member.details?.accessLevel} size="small" /></TableCell>
                           <TableCell><Chip label={member.status || 'Active'} color={getStatusColor(member.status)} variant="outlined" size="small" /></TableCell>
                           <TableCell align="center">
@@ -593,27 +599,36 @@ const ClinicStaff = () => {
                                         )}
 
                                         {/* Clinic Assignment Information */}
-                                        {(member.details?.accessLevel === 'Enhanced' || member.accessLevel === 'Enhanced') ? (
-                                          <InfoRow>
-                                            <BusinessIcon />
-                                            <InfoLabel>Clinics:</InfoLabel>
-                                            <InfoValue sx={{ color: '#10b981', fontWeight: 700 }}>System-wide (All Clinics)</InfoValue>
-                                          </InfoRow>
-                                        ) : (
-                                          <InfoRow sx={{ alignItems: 'flex-start' }}>
-                                            <BusinessIcon sx={{ mt: 0.5 }} />
-                                            <InfoLabel sx={{ mt: 0.5 }}>Assigned Clinics:</InfoLabel>
-                                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                              {member.assignedClinics && member.assignedClinics.length > 0
-                                                ? member.assignedClinics.map((cid, idx) => {
-                                                  const clinicId = cid._id || cid;
-                                                  const name = clinics.find(c => c._id === clinicId)?.name;
-                                                  return name ? <InfoValue key={idx} sx={{ fontWeight: 600, mb: 0.5 }}>{name}</InfoValue> : null;
-                                                })
-                                                : <InfoValue color="textSecondary">Initially Unassigned</InfoValue>}
-                                            </Box>
-                                          </InfoRow>
-                                        )}
+                                        {(() => {
+                                          const memberClinicIds = (member.assignedClinics || []).map(id => (id._id || id).toString());
+                                          const allClinicIds = clinics.map(c => (c._id || c).toString());
+                                          const hasAllClinics = allClinicIds.length > 0 && allClinicIds.every(id => memberClinicIds.includes(id));
+
+                                          if (hasAllClinics) {
+                                            return (
+                                              <InfoRow>
+                                                <BusinessIcon />
+                                                <InfoLabel>Clinics:</InfoLabel>
+                                                <InfoValue sx={{ color: '#10b981', fontWeight: 700 }}>System-wide (All Clinics)</InfoValue>
+                                              </InfoRow>
+                                            );
+                                          }
+
+                                          return (
+                                            <InfoRow sx={{ alignItems: 'flex-start' }}>
+                                              <BusinessIcon sx={{ mt: 0.5 }} />
+                                              <InfoLabel sx={{ mt: 0.5 }}>Assigned Clinics:</InfoLabel>
+                                              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                                {memberClinicIds.length > 0
+                                                  ? memberClinicIds.map((cid, idx) => {
+                                                    const name = clinics.find(c => (c._id || c).toString() === cid)?.name;
+                                                    return name ? <InfoValue key={idx} sx={{ fontWeight: 600, mb: 0.5 }}>{name}</InfoValue> : null;
+                                                  })
+                                                  : <InfoValue color="textSecondary">No clinics assigned</InfoValue>}
+                                              </Box>
+                                            </InfoRow>
+                                          );
+                                        })()}
                                       </Box>
                                     </Box>
                                   </Grid>
@@ -673,14 +688,26 @@ const ClinicStaff = () => {
 
             {/* Row 3: Clinic + Specialization */}
             <FormControl fullWidth required>
-              <InputLabel>Clinic</InputLabel>
+              <InputLabel>Clinics</InputLabel>
               <Select
-                name="clinicId"
-                value={formData.clinicId}
+                multiple
+                name="clinicIds"
+                value={formData.clinicIds}
                 onChange={handleFormChange}
-                label="Clinic"
+                label="Clinics"
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => (
+                      <Chip 
+                        key={value} 
+                        label={clinics.find(c => c._id === value)?.name || 'Unknown'} 
+                        size="small"
+                        sx={{ bgcolor: '#eee', fontWeight: 600 }}
+                      />
+                    ))}
+                  </Box>
+                )}
               >
-                <MenuItem value="" disabled>Select Clinic</MenuItem>
                 {clinics.sort((a, b) => a.name.localeCompare(b.name)).map((clinic) => (
                   <MenuItem key={clinic._id} value={clinic._id}>{clinic.name}</MenuItem>
                 ))}
@@ -760,7 +787,7 @@ const ClinicStaff = () => {
 
               {/* Row 2 */}
               <TextField fullWidth type="email" label="Email Address" name="email" value={editFormData.email} onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })} required />
-              <TextField fullWidth label="Phone Number" name="phoneNumber" value={editFormData.phoneNumber} onChange={(e) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })} />
+              <TextField fullWidth label="Phone Number" name="phoneNumber" value={editFormData.phoneNumber} onChange={(e) => { const v = e.target.value; if (v.length <= 10 && (v === '' || /^\d+$/.test(v))) setEditFormData({ ...editFormData, phoneNumber: v }) }} />
 
               {/* Row 3: Access Level + Role or Vet ID */}
               <FormControl fullWidth>
@@ -800,7 +827,7 @@ const ClinicStaff = () => {
                   </Select>
                 </FormControl>
               )}
-              {editFormData.staffType !== 'veterinarian' && editFormData.accessLevel === 'Basic' && (
+              {(editFormData.staffType === 'veterinarian' || editFormData.accessLevel === 'Basic') && (
                 <Box sx={{ gridColumn: '1 / -1' }}>
                   <FormControl fullWidth>
                     <InputLabel>Assigned Clinics</InputLabel>

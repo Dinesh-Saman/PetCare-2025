@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     Box, Typography, Grid, Card, CardContent, TextField, Button,
-    Stack, Avatar, Switch, alpha, CircularProgress, Alert, Divider, MenuItem
+    Stack, Avatar, Switch, alpha, CircularProgress, Alert, Divider,
+    MenuItem, FormControl, InputLabel, Select
 } from '@mui/material';
 import {
     Person as PersonIcon,
@@ -246,34 +247,27 @@ const VetProfile = () => {
                                                     <TextField
                                                         fullWidth label="Phone Number"
                                                         value={formData.phoneNumber}
-                                                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                                                        onChange={(e) => { const v = e.target.value; if (v.length <= 10 && (v === '' || /^\d+$/.test(v))) setFormData({ ...formData, phoneNumber: v }) }}
                                                         sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                                     />
                                                 </Grid>
-                                                {!user?.staffRole && (
-                                                    <Grid item xs={12} sm={6} md={6}>
-                                                        <TextField
-                                                            fullWidth 
-                                                            label="Specialization"
-                                                            select
+                                                <Grid item xs={12} sm={6} md={6} sx={{ display: user?.staffRole ? 'none' : undefined, boxSizing: 'border-box', minWidth: 0 }}>
+                                                    <FormControl fullWidth sx={{ minWidth: '220px', width: '100%' }}>
+                                                        <InputLabel>Specialization</InputLabel>
+                                                        <Select
                                                             value={formData.specialization}
+                                                            label="Specialization"
                                                             onChange={(e) => setFormData({ ...formData, specialization: e.target.value })}
-                                                            sx={{ 
-                                                                '& .MuiOutlinedInput-root': { borderRadius: '12px', width: '100% !important' },
-                                                                '& .MuiSelect-select': { width: '100% !important' },
-                                                                '& .MuiInputBase-root': { width: '100% !important' },
-                                                                width: '100% !important',
-                                                                minWidth: '100% !important'
-                                                            }}
+                                                            sx={{ borderRadius: '12px', width: '100%' }}
                                                         >
                                                             {specializations.map((option) => (
                                                                 <MenuItem key={option} value={option}>
                                                                     {option}
                                                                 </MenuItem>
                                                             ))}
-                                                        </TextField>
-                                                    </Grid>
-                                                )}
+                                                        </Select>
+                                                    </FormControl>
+                                                </Grid>
                                             </Grid>
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 4 }}>
                                                 <Button

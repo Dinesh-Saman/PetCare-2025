@@ -47,14 +47,19 @@ import VaccinationTips from './pages/tips/Vaccinations';
 import IllnessTips from './pages/tips/SignsOfIllness';
 import ToxicFoodsTips from './pages/tips/ToxicFoods';
 
+import { useAuth } from './context/AuthContext';
+
 function App() {
   const location = useLocation();
+  const { user } = useAuth();
 
   // Hide footer on dashboard pages to prevent sidebar clipping
   const shouldHideFooter = location.pathname.startsWith('/vet') && location.pathname !== '/vet-home';
 
-  // Hide the floating chatbot in owner chat to prevent overlapping functionality
-  const shouldHideChatWidget = shouldHideFooter || location.pathname.startsWith('/owner/chat');
+  // Hide the floating chatbot in owner chat to prevent overlapping functionality,
+  // or if the user is a vet, or if we are on vet-related pages
+  const isVetContext = location.pathname.startsWith('/vet') || location.pathname === '/vet-home' || location.state?.fromVet;
+  const shouldHideChatWidget = shouldHideFooter || location.pathname.startsWith('/owner/chat') || user?.role === 'vet' || isVetContext;
 
   return (
     <>

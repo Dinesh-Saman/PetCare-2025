@@ -210,10 +210,65 @@ const OwnerDashboard = () => {
   const [twoFactorToken, setTwoFactorToken] = useState('');
   const [tfaLoading, setTfaLoading] = useState(false);
 
-  // Placeholders for 2FA functions
-  const setup2FA = () => { /* Implement setup logic */ };
-  const disable2FA = () => { /* Implement disable logic */ };
-  const enable2FA = () => { /* Implement enable logic */ };
+  const setup2FA = async () => {
+    try {
+      setTfaLoading(true);
+      const { data } = await api.post('/auth/2fa/setup');
+      setTwoFactorData(data);
+    } catch (err) {
+      Swal.fire('Error', 'Failed to initiate 2FA setup', 'error');
+    } finally {
+      setTfaLoading(false);
+    }
+  };
+
+  const disable2FA = async () => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "Disabling 2FA reduces your account security.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'Yes, disable it!'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        setTfaLoading(true);
+        await api.post('/auth/2fa/disable');
+        Swal.fire('Disabled', '2FA has been disabled.', 'success');
+        const profileRes = await api.get('/auth/me');
+        const ownerWithRole = { ...profileRes.data.user, role: 'owner' };
+        setOwner(ownerWithRole);
+        updateUser(ownerWithRole);
+      } catch (err) {
+        Swal.fire('Error', 'Failed to disable 2FA', 'error');
+      } finally {
+        setTfaLoading(false);
+      }
+    }
+  };
+
+  const enable2FA = async () => {
+    if (!twoFactorToken) return;
+    try {
+      setTfaLoading(true);
+      const { data } = await api.post('/auth/2fa/verify', { token: twoFactorToken, role: 'owner' });
+      if (data.success) {
+        Swal.fire('Success', 'Two-factor authentication enabled!', 'success');
+        setTwoFactorData(null);
+        setTwoFactorToken('');
+        const profileRes = await api.get('/auth/me');
+        const ownerWithRole = { ...profileRes.data.user, role: 'owner' };
+        setOwner(ownerWithRole);
+        updateUser(ownerWithRole);
+      }
+    } catch (err) {
+      Swal.fire('Error', err.response?.data?.message || 'Verification failed', 'error');
+    } finally {
+      setTfaLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Wait for auth to finish loading before determining if user is logged in
@@ -299,6 +354,22 @@ const OwnerDashboard = () => {
   };
 
   const handleUpdateProfile = async () => {
+    // Validate Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (editForm.email && !emailRegex.test(editForm.email)) {
+      Swal.fire('Error', 'Please enter a valid email address', 'error');
+      return;
+    }
+
+    // Validate Phone Number
+    const phoneRegex = /^(?:0|94|\+94)?\d{9}$/;
+    const genericPhoneRegex = /^\d{10}$/;
+    const cleanPhone = editForm.phoneNumber?.replace(/[\s-]/g, '') || '';
+    if (cleanPhone && !phoneRegex.test(cleanPhone) && !genericPhoneRegex.test(cleanPhone)) {
+      Swal.fire('Error', 'Please enter a valid 10-digit phone number', 'error');
+      return;
+    }
+
     try {
       const response = await api.put(`/owners/${owner._id || owner.id}`, editForm);
       const updatedOwner = response.data.owner;
@@ -677,7 +748,7 @@ const OwnerDashboard = () => {
                     fullWidth
                     label="Phone Number"
                     value={editForm.phoneNumber}
-                    onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                    onChange={(e) => { const v = e.target.value; if (v.length <= 10 && (v === '' || /^\d+$/.test(v))) setEditForm({ ...editForm, phoneNumber: v }) }}
                   />
 
                   <TextField

@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
 const RegisterView = () => {
-    const { authModalRole, vetUser, updateUser, closeAuthModal } = useAuth();
+    const { authModalRole, vetUser, updateUser, closeAuthModal, setAuthModalView, login } = useAuth();
     const navigate = useNavigate();
     const isVet = authModalRole === 'vet';
 
@@ -46,6 +46,10 @@ const RegisterView = () => {
 
     const handleChange = (e) => {
         const { name, value, checked, type } = e.target;
+        if (name === 'phoneNumber') {
+            if (value.length > 10) return;
+            if (value !== '' && !/^\d+$/.test(value)) return;
+        }
         setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
         setError('');
     };
@@ -85,6 +89,20 @@ const RegisterView = () => {
 
         if (invalid) {
             setError('Please complete all required fields');
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            setError('Please enter a valid email address');
+            return;
+        }
+
+        const phoneRegex = /^(?:0|94|\+94)?\d{9}$/; // Starts with 0, 94, or +94 followed by 9 digits
+        const genericPhoneRegex = /^\d{10}$/; // Alternatively 10 digits directly
+        const cleanPhone = formData.phoneNumber.replace(/[\s-]/g, '');
+        if (!phoneRegex.test(cleanPhone) && !genericPhoneRegex.test(cleanPhone)) {
+            setError('Please enter a valid 10-digit phone number');
             return;
         }
 
@@ -131,7 +149,7 @@ const RegisterView = () => {
                     <Box sx={{ maxWidth: '92%', width: '100%', mx: 'auto' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                             <PetsIcon sx={{ fontSize: 20, color: primaryColor }} />
-                            <Typography variant="body2" fontWeight="bold" sx={{ color: primaryColor }}>PawPal {isVet ? 'Vet' : ''}</Typography>
+                            <Typography variant="body2" fontWeight="bold" sx={{ color: primaryColor }}>PawPal</Typography>
                         </Box>
 
                         <Typography variant="h5" fontWeight="900" sx={{ mb: 0.5, color: textMain, letterSpacing: '-0.5px' }}>
@@ -140,7 +158,7 @@ const RegisterView = () => {
                         <Typography variant="caption" sx={{ mb: 2, opacity: 0.9, color: textMuted, fontWeight: 500, fontSize: '0.8rem', display: 'block' }}>
                             {isCompleteProfileMode
                                 ? 'Please provide your professional details to activate your vet account.'
-                                : 'Join PawPal to manage your pet\'s health records.'}
+                                : isVet ? 'Join PawPal to provide professional care for pets.' : 'Join PawPal to manage your pet\'s health records.'}
                         </Typography>
 
                         <form onSubmit={handleSubmit} noValidate>
@@ -236,7 +254,7 @@ const RegisterView = () => {
                             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 1 }}>
                                 <Button type="submit" variant="contained" disabled={loading}
                                     sx={{ width: { xs: '100%', sm: '320px' }, bgcolor: primaryColor, color: 'white', py: 1.25, borderRadius: '50px', fontSize: '0.95rem', fontWeight: 800, textTransform: 'none', '&:hover': { bgcolor: alpha(primaryColor, 0.9) } }}>
-                                    {loading ? <CircularProgress size={20} color="inherit" /> : (isCompleteProfileMode ? 'Complete Profile & Continue' : `Create ${isVet ? 'Professional' : ''} Account`)}
+                                    {loading ? <CircularProgress size={20} color="inherit" /> : (isCompleteProfileMode ? 'Complete Profile & Continue' : 'Create Account')}
                                 </Button>
                             </Box>
                         </form>
