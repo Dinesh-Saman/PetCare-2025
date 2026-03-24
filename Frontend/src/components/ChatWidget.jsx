@@ -6,7 +6,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 // Import the image (make sure to place your image in the correct folder)
 import vetIcon from "../assets/vet-girl.png"; // Update this path to your actual image
 
-const BOT_WELCOME = "Hi! I'm Dr. Sara. Ask me about pet care, appointments, or clinic info.";
+const BOT_WELCOME = "Hi! I'm PawBot. Ask me about pet vaccination, nutrition, or general pet health advice!";
 const OFFLINE_REPLY = "Thanks for your message. I can help with appointments, pet care tips, or direct you to clinic contacts. (offline)";
 
 const ChatWidget = () => {
@@ -20,7 +20,16 @@ const ChatWidget = () => {
     try {
       const key = user ? `petcare_chat_messages_${user._id || user.id}` : "petcare_chat_messages_guest";
       const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : [{ id: 1, from: "bot", text: BOT_WELCOME }];
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Reset cache if the first message is stale (welcome text changed)
+        if (parsed[0]?.text !== BOT_WELCOME) {
+          localStorage.removeItem(key);
+          return [{ id: 1, from: "bot", text: BOT_WELCOME }];
+        }
+        return parsed;
+      }
+      return [{ id: 1, from: "bot", text: BOT_WELCOME }];
     } catch (error) {
       return [{ id: 1, from: "bot", text: BOT_WELCOME }];
     }
@@ -32,7 +41,18 @@ const ChatWidget = () => {
       const key = `petcare_chat_messages_${user._id || user.id}`;
       const raw = localStorage.getItem(key);
       if (raw) {
-        setMessages(JSON.parse(raw));
+        try {
+          const parsed = JSON.parse(raw);
+          // Reset cache if the first message is stale
+          if (parsed[0]?.text !== BOT_WELCOME) {
+            localStorage.removeItem(key);
+            setMessages([{ id: Date.now(), from: "bot", text: BOT_WELCOME }]);
+          } else {
+            setMessages(parsed);
+          }
+        } catch {
+          setMessages([{ id: Date.now(), from: "bot", text: BOT_WELCOME }]);
+        }
       } else {
         setMessages([{ id: Date.now(), from: "bot", text: BOT_WELCOME }]);
       }
@@ -103,13 +123,13 @@ const ChatWidget = () => {
                 <div className="bot-avatar">
                   <img
                     src={vetIcon}
-                    alt="Dr. Sara"
+                    alt="PawBot"
                     className="vet-icon"
                   />
                 </div>
                 <div>
-                  <div className="title">Dr. Sara</div>
-                  <div className="status">Online</div>
+                  <div className="title">PawBot</div>
+                  <div className="status">AI Pet Assistant</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -171,19 +191,19 @@ const ChatWidget = () => {
                 {loading ? '…' : '➤'}
               </button>
             </div>
-            <div className="chat-footer">Type a question or ask for pet care tips ✅</div>
+            <div className="chat-footer">Ask about vaccinations, nutrition, or pet health tips 🐾</div>
           </div>
         ) : (
           <button
             className="chat-launch floating"
             onClick={() => setOpen(true)}
             aria-label="Open chat"
-            title="Chat with Dr. Sara"
+            title="Chat with PawBot"
           >
             <div className="launch-icon">
               <img
                 src={vetIcon}
-                alt="Chat with Dr. Sara"
+                alt="Chat with PawBot"
                 className="vet-icon-launch"
               />
             </div>
