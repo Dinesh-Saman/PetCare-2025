@@ -167,10 +167,14 @@ const DashboardHome = () => {
       const vetId = user.id || user._id;
 
       // Parallel fetching for better performance
+      const clinicId = 'all';
+      
+      const apptEndpoint = `/appointments/clinic/${clinicId}/today-count`;
+      
       const [registeredRes, clinicsRes, apptRes, staffRes, pendingRes] = await Promise.all([
         api.get('/pets/clinic/registered').catch(() => ({ data: {} })),
         api.get('/vets/my-clinics').catch(() => ({ data: {} })),
-        api.get(`/appointments/vet/${vetId}/today-count`).catch(() => ({ data: {} })),
+        api.get(apptEndpoint).catch(() => ({ data: {} })),
         api.get('/vets/clinics/staff').catch(() => ({ data: {} })),
         api.get('/pets/clinic/pending').catch(() => ({ data: {} }))
       ]);
@@ -203,9 +207,11 @@ const DashboardHome = () => {
       if (!userData) return;
       const user = JSON.parse(userData);
       const vetId = user.id || user._id;
+      const clinicId = 'all';
+      const endpoint = `/appointments/clinic/${clinicId}`;
 
       // Fetch a range of appointments to highlight dates on calendar
-      const res = await api.get(`/appointments/vet/${vetId}`);
+      const res = await api.get(endpoint);
       const confirmedDates = (res.data.appointments || [])
         .filter(a => a.status === 'Confirmed')
         .map(a => dayjs(a.dateTime).format('YYYY-MM-DD'));
@@ -223,9 +229,11 @@ const DashboardHome = () => {
       if (!userData) return;
       const user = JSON.parse(userData);
       const vetId = user.id || user._id;
+      const clinicId = 'all';
 
       const formattedDate = date.format('YYYY-MM-DD');
-      const res = await api.get(`/appointments/vet/${vetId}?date=${formattedDate}`);
+      const endpoint = clinicId ? `/appointments/clinic/${clinicId}?date=${formattedDate}` : `/appointments/vet/${vetId}?date=${formattedDate}`;
+      const res = await api.get(endpoint);
 
       // Filter only confirmed ones as per requirement
       const confirmedOnly = (res.data.appointments || []).filter(a => a.status === 'Confirmed');

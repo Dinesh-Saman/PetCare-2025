@@ -32,6 +32,7 @@ import {
   HowToReg as RegisterIcon,
   Close as CloseIcon,
   ArrowDropDown as ArrowDropDownIcon,
+  Business as BusinessIcon,
 } from "@mui/icons-material";
 import { useAuth } from "../context/AuthContext";
 import Swal from 'sweetalert2';
@@ -80,6 +81,7 @@ const Navbar = () => {
 
   const ownerItems = [
     { path: "/owner/my-appointments", icon: <CalendarIcon />, label: "My Appointments" },
+    { path: "/owner/clinics", icon: <BusinessIcon />, label: "Clinics" },
   ];
 
   let menuItems = commonItems;

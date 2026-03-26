@@ -41,6 +41,7 @@ import Footer from './components/Footer';
 import AuthModal from './components/Auth/AuthModal';
 import ChatWidget from './components/ChatWidget';
 import VetProtectedRoute from './components/Auth/VetProtectedRoute';
+import MyClinics from './pages/owner/MyClinics';
 
 // PetCare Tips Pages
 import VaccinationTips from './pages/tips/Vaccinations';
@@ -102,6 +103,7 @@ function App() {
         <Route path="/owner/chat" element={<OwnerChat />} />
         <Route path="/chatbot" element={<PetChatbot />} />
         <Route path="/owner/my-appointments" element={<MyAppointments />} />
+        <Route path="/owner/clinics" element={<MyClinics />} />
 
 
 

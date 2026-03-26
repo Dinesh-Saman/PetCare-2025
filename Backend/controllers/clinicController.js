@@ -1,6 +1,7 @@
 const Clinic = require('../models/Clinic');
 const Veterinarian = require('../models/Veterinarian');
 const ClinicStaff = require('../models/ClinicStaff');
+const PetProfile = require('../models/PetProfile');
 const bcrypt = require('bcryptjs');
 
 // Create a new clinic (Enhanced vet can create multiple clinics)
@@ -1046,3 +1047,59 @@ exports.deleteClinicStaff = async (req, res) => {
     });
   }
 };
+
+// Get clinics where the logged-in owner's pets are registered
+exports.getClinicsForOwner = async (req, res) => {
+  try {
+    const ownerId = req.user.id;
+
+    console.log('=== getClinicsForOwner called for owner:', ownerId);
+
+    // Find all approved pet profiles for this owner
+    const petProfiles = await PetProfile.find({
+      ownerId,
+      registrationStatus: 'Approved',
+      isDeleted: { $ne: true }
+    }).select('registeredClinicId');
+
+    // Extract unique clinic IDs
+    const clinicIds = [...new Set(petProfiles.map(p => p.registeredClinicId?.toString()).filter(id => !!id))];
+
+    console.log('Found clinic IDs for owner:', clinicIds);
+
+    if (clinicIds.length === 0) {
+      return res.status(200).json({ success: true, count: 0, clinics: [] });
+    }
+
+    // Fetch clinic details
+    const clinics = await Clinic.find({
+      _id: { $in: clinicIds }
+    }).select('-__v');
+
+    // Optionally add pet counts for each clinic
+    const clinicsWithPetCounts = await Promise.all(clinics.map(async (clinic) => {
+      const petCount = await PetProfile.countDocuments({
+        ownerId,
+        registeredClinicId: clinic._id,
+        registrationStatus: 'Approved',
+        isDeleted: { $ne: true }
+      });
+      return {
+        ...clinic.toObject(),
+        petsCount: petCount
+      };
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: clinicsWithPetCounts.length,
+      clinics: clinicsWithPetCounts
+    });
+  } catch (error) {
+    console.error('Error fetching clinics for owner:', error);
+    res.status(500).json({
+      message: 'Error fetching your clinics',
+      error: error.message
+    });
+  }
+};

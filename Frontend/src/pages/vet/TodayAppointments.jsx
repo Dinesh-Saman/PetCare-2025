@@ -26,7 +26,6 @@ import {
     Medication as MedicationIcon,
     Chat as ChatIcon,
     Add as AddIcon,
-    Delete as DeleteIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 import socket, { connectSocket, disconnectSocket } from '../../services/socket';
@@ -204,7 +203,9 @@ const TodayAppointments = () => {
         }
     };
 
-    const vetId = getCurrentVetId();
+    const user = JSON.parse(localStorage.getItem('vet_user') || '{}');
+    const vetId = user?.id || user?._id || null;
+    const clinicId = 'all';
 
     const isToday = (dateString) => {
         if (!dateString) return false;
@@ -236,7 +237,8 @@ const TodayAppointments = () => {
         const fetchTodayAppointments = async () => {
             try {
                 setLoading(true);
-                const response = await api.get(`/appointments/vet/${vetId}`);
+                const endpoint = clinicId ? `/appointments/clinic/${clinicId}` : `/appointments/vet/${vetId}`;
+                const response = await api.get(endpoint);
                 let appointmentsData = response.data?.appointments || response.data || [];
                 const todayApps = appointmentsData.filter(app => isToday(app.dateTime));
                 todayApps.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
@@ -300,37 +302,6 @@ const TodayAppointments = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        const result = await Swal.fire({
-            title: 'Permanently Delete?',
-            text: 'This will completely remove the record from the database. Use with caution!',
-            icon: 'error',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, DELETE it!',
-            cancelButtonText: 'No, keep it'
-        });
-
-        if (result.isConfirmed) {
-            try {
-                setLoading(true);
-                await api.delete(`/appointments/${id}`);
-                setAppointments(prev => prev.filter(app => app._id !== id));
-                Swal.fire({
-                    title: 'Deleted!',
-                    text: 'Appointment has been removed from the database.',
-                    icon: 'success',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-            } catch (error) {
-                Swal.fire('Error!', error.response?.data?.message || 'Could not delete appointment', 'error');
-            } finally {
-                setLoading(false);
-            }
-        }
-    };
 
     const handlePendingManage = async (app) => {
         const result = await Swal.fire({
@@ -611,18 +582,6 @@ const TodayAppointments = () => {
                                                                     <CancelIcon />
                                                                 </IconButton>
                                                             )}
-                                                            <IconButton
-                                                                color="error"
-                                                                size="small"
-                                                                onClick={() => handleDelete(app._id)}
-                                                                title="Delete Permanently"
-                                                                sx={{
-                                                                    bgcolor: alpha('#d32f2f', 0.1),
-                                                                    '&:hover': { bgcolor: alpha('#d32f2f', 0.2) }
-                                                                }}
-                                                            >
-                                                                <DeleteIcon />
-                                                            </IconButton>
                                                         </Box>
                                                     </TableCell>
                                                 </TableRowStyled>

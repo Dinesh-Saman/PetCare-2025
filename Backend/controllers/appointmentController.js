@@ -166,6 +166,75 @@ exports.getAppointmentsByVet = async (req, res) => {
   }
 };
 
+// Get appointments by clinic
+exports.getAppointmentsByClinic = async (req, res) => {
+  try {
+    const { clinicId } = req.params;
+    const { date, status } = req.query;
+
+    let query = {};
+
+    if (clinicId === 'all') {
+      // Security check: Only Vets or Admins can see "all"
+      if (!req.user || (req.user.role !== 'vet' && req.user.role !== 'admin')) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      // If it's a vet, we should restrict to clinics they are associated with
+      if (req.user.role === 'vet') {
+        const Veterinarian = require('../models/Veterinarian');
+        const vet = await Veterinarian.findById(req.user.id);
+        
+        if (!vet) return res.status(404).json({ message: 'Vet not found' });
+
+        if (vet.accessLevel !== 'Enhanced') {
+          // If NOT Enhanced, only show their specific clinics
+          const clinicIds = [
+            ...(vet.ownedClinics || []),
+            ...(vet.assignedClinics || []),
+            vet.currentActiveClinicId,
+            vet.clinicId
+          ].filter(Boolean);
+
+          query.clinicId = { $in: clinicIds };
+        }
+        // If Enhanced, they see all clinics (no clinicId filter)
+      }
+    } else {
+      query.clinicId = clinicId;
+    }
+
+    if (status && status !== 'all') query.status = status;
+
+    if (date) {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+      query.dateTime = { $gte: start, $lte: end };
+    }
+
+    const appointments = await Appointment.find(query)
+      .populate({
+        path: 'petId',
+        select: 'name species breed photo',
+        populate: { path: 'ownerId', select: 'firstName lastName phoneNumber' }
+      })
+      .populate('clinicId', 'name address phoneNumber')
+      .populate('vetId', 'firstName lastName')
+      .sort({ dateTime: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: appointments.length,
+      appointments
+    });
+  } catch (error) {
+    console.error('Error fetching appointments by clinic:', error);
+    res.status(500).json({ message: 'Error fetching appointments', error: error.message });
+  }
+};
+
 // Cancel appointment (owner or vet)
 exports.cancelAppointment = async (req, res) => {
   try {
@@ -532,6 +601,73 @@ exports.getTodayAppointmentsCountByVet = async (req, res) => {
 
   } catch (error) {
     console.error('Error in getTodayAppointmentsCountByVet:', error);
+    res.status(500).json({
+      message: 'Error fetching today\'s appointments count',
+      error: error.message
+    });
+  }
+};
+
+// Get ONLY the count of today's appointments for a clinic
+exports.getTodayAppointmentsCountByClinic = async (req, res) => {
+  try {
+    const { clinicId } = req.params;
+
+    if (!req.user || (req.user.role !== 'vet' && req.user.role !== 'staff' && req.user.role !== 'admin')) {
+      return res.status(403).json({
+        message: 'Access denied'
+      });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    let countQuery = {
+      dateTime: { $gte: today, $lt: tomorrow },
+      status: 'Confirmed'
+    };
+
+    if (clinicId === 'all') {
+      // Security check: Only Vets or Admins can see "all"
+      if (!req.user || (req.user.role !== 'vet' && req.user.role !== 'admin')) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+
+      if (req.user.role === 'vet') {
+        const Veterinarian = require('../models/Veterinarian');
+        const vet = await Veterinarian.findById(req.user.id);
+
+        if (!vet) return res.status(404).json({ message: 'Vet not found' });
+
+        if (vet.accessLevel !== 'Enhanced') {
+          const clinicIds = [
+            ...(vet.ownedClinics || []),
+            ...(vet.assignedClinics || []),
+            vet.currentActiveClinicId,
+            vet.clinicId
+          ].filter(Boolean);
+
+          countQuery.clinicId = { $in: clinicIds };
+        }
+      }
+    } else {
+      countQuery.clinicId = clinicId;
+    }
+
+    const count = await Appointment.countDocuments(countQuery);
+
+    res.status(200).json({
+      success: true,
+      clinicId: clinicId,
+      todayDate: today.toISOString().split('T')[0],
+      todayAppointmentsCount: count
+    });
+
+  } catch (error) {
+    console.error('Error in getTodayAppointmentsCountByClinic:', error);
     res.status(500).json({
       message: 'Error fetching today\'s appointments count',
       error: error.message

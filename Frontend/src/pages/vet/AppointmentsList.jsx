@@ -4,7 +4,8 @@ import {
   Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, TextField, MenuItem, FormControl, Select, InputLabel, TablePagination,
   Avatar, Chip, IconButton, Collapse, Grid, Card, CardContent, CardHeader, Tabs, Tab, Button,
-  Dialog, DialogTitle, DialogContent, DialogActions, alpha, Divider, Stack, Autocomplete
+  Dialog, DialogTitle, DialogContent, DialogActions, alpha, Divider, Stack, Autocomplete,
+  CircularProgress, Tooltip, Badge
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import Swal from 'sweetalert2';
@@ -25,8 +26,7 @@ import {
   CheckCircleOutline as CheckCircleOutlineIcon,
   Medication as MedicationIcon,
   Chat as ChatIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon
+  Add as AddIcon
 } from '@mui/icons-material';
 import api from '../../services/api';
 import socket, { connectSocket, disconnectSocket } from '../../services/socket';
@@ -231,6 +231,7 @@ const VetAppointmentsList = () => {
 
   const currentUser = getCurrentUser();
   const vetId = currentUser?.id || currentUser?._id || null;
+  const clinicId = 'all';
   const isVeterinarian = currentUser && (!currentUser.staffRole || currentUser.staffRole === 'Veterinarian');
 
   const isToday = (dateString) => {
@@ -281,7 +282,9 @@ const VetAppointmentsList = () => {
     const fetchVetAppointments = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/appointments/vet/${vetId}`);
+        // FETCH FROM CLINIC INSTEAD OF VET
+        const endpoint = clinicId ? `/appointments/clinic/${clinicId}` : `/appointments/vet/${vetId}`;
+        const response = await api.get(endpoint);
 
         let appointmentsData = [];
         if (Array.isArray(response.data)) {
@@ -357,37 +360,6 @@ const VetAppointmentsList = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    const result = await Swal.fire({
-      title: 'Permanently Delete?',
-      text: 'This will completely remove the record from the database. Use with caution!',
-      icon: 'error',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, DELETE it!',
-      cancelButtonText: 'No, keep it'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        setLoading(true);
-        await api.delete(`/appointments/${id}`);
-        setAppointments(prev => prev.filter(app => app._id !== id));
-        Swal.fire({
-          title: 'Deleted!',
-          text: 'Appointment has been removed from the database.',
-          icon: 'success',
-          timer: 3000,
-          showConfirmButton: false
-        });
-      } catch (error) {
-        Swal.fire('Error!', error.response?.data?.message || 'Could not delete appointment', 'error');
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
 
   const handlePendingManage = async (app) => {
     const result = await Swal.fire({
@@ -645,20 +617,6 @@ const VetAppointmentsList = () => {
                             }}
                           >
                             <CancelIcon />
-                          </IconButton>
-                        )}
-                        {isVeterinarian && (
-                          <IconButton
-                            color="error"
-                            size="small"
-                            onClick={() => handleDelete(app._id)}
-                            title="Delete Permanently"
-                            sx={{
-                              bgcolor: alpha('#d32f2f', 0.1),
-                              '&:hover': { bgcolor: alpha('#d32f2f', 0.2) }
-                            }}
-                          >
-                            <DeleteIcon />
                           </IconButton>
                         )}
                       </Box>
