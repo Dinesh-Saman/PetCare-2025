@@ -80,7 +80,6 @@ exports.bookAppointment = async (req, res) => {
       // Notify the clinic room (for all staff) and the specific vet
       if (clinicId) io.to(`clinic_${clinicId}`).emit('newAppointment', appointment);
       io.to(`user_${vetId}`).emit('newAppointment', appointment);
-      console.log(`📡 Socket: Notified clinic ${clinicId} and vet ${vetId} about new appointment`);
     }
   } catch (error) {
     console.error('Error booking appointment:', error);
@@ -324,7 +323,6 @@ exports.cancelAppointment = async (req, res) => {
         if (updated.clinicId) {
           io.to(`clinic_${updated.clinicId._id || updated.clinicId}`).emit('appointmentStatusChanged', updated);
         }
-        console.log(`📡 Socket: Notified related parties about cancellation of ${id}`);
       }
     } catch (socketErr) {
       console.error('Socket notification failed for cancellation:', socketErr.message);
