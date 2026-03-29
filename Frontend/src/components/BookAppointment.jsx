@@ -285,11 +285,98 @@ const BookAppointment = () => {
     loadVets();
   }, [formData.clinicId, isAuthenticated]);
 
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [fetchingSlots, setFetchingSlots] = useState(false);
+
+  // 6. Generate dynamic time slots based on clinic hours & existing bookings
+  useEffect(() => {
+    if (!formData.vetId || !formData.date || !registeredClinic) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    const fetchAndGenerateSlots = async () => {
+      setFetchingSlots(true);
+      try {
+        // 1. Fetch existing appointments for this vet on this specific date
+        const res = await api.get(`/appointments/vet/${formData.vetId}?date=${formData.date}`);
+        const bookedAppointments = res.data.appointments || [];
+        const bookedTimes = bookedAppointments
+          .filter(a => a.status !== 'Canceled')
+          .map(a => {
+            const d = new Date(a.dateTime);
+            return d.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+          });
+
+        // 2. Parse Clinic Operating Hours
+        // Default to 08:00 - 18:00 if not specified
+        let startHour = 8;
+        let startMin = 0;
+        let endHour = 18;
+        let endMin = 0;
+
+        const hoursStr = registeredClinic.operatingHours || "08:00 AM - 06:00 PM";
+        const timeMatch = hoursStr.match(/(\d+):(\d+)\s*(AM|PM)\s*-\s*(\d+):(\d+)\s*(AM|PM)/i);
+
+        if (timeMatch) {
+          let sH = parseInt(timeMatch[1]);
+          const sM = parseInt(timeMatch[2]);
+          const sAmpm = timeMatch[3].toUpperCase();
+          let eH = parseInt(timeMatch[4]);
+          const eM = parseInt(timeMatch[5]);
+          const eAmpm = timeMatch[6].toUpperCase();
+
+          if (sAmpm === 'PM' && sH < 12) sH += 12;
+          if (sAmpm === 'AM' && sH === 12) sH = 0;
+          if (eAmpm === 'PM' && eH < 12) eH += 12;
+          if (eAmpm === 'AM' && eH === 12) eH = 0;
+
+          startHour = sH;
+          startMin = sM;
+          endHour = eH;
+          endMin = eM;
+        }
+
+        // 3. Generate 30-minute intervals
+        const slots = [];
+        const startTime = new Date();
+        startTime.setHours(startHour, startMin, 0, 0);
+
+        const endTime = new Date();
+        endTime.setHours(endHour, endMin, 0, 0);
+
+        let current = new Date(startTime);
+        while (current < endTime) {
+          const timeStr = current.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+          const displayStr = current.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+          // Filter out booked times
+          if (!bookedTimes.includes(timeStr)) {
+            slots.push({ value: timeStr, label: displayStr });
+          }
+          current.setMinutes(current.getMinutes() + 30);
+        }
+
+        setAvailableSlots(slots);
+      } catch (err) {
+        console.error('Failed to generate slots', err);
+        setAvailableSlots([]);
+      } finally {
+        setFetchingSlots(false);
+      }
+    };
+
+    fetchAndGenerateSlots();
+  }, [formData.vetId, formData.date, registeredClinic]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => {
       if (name === 'petId') {
-        return { ...prev, petId: value, clinicId: '', vetId: '' };
+        return { ...prev, petId: value, clinicId: '', vetId: '', date: '', time: '' };
+      }
+      if (name === 'date' || name === 'vetId') {
+        return { ...prev, [name]: value, time: '' }; // Reset time if date or vet changes
       }
       return { ...prev, [name]: value };
     });
@@ -537,20 +624,30 @@ const BookAppointment = () => {
                 </div>
 
                 <div className="col-12 col-md-6">
-                  <StyledTextField
-                    fullWidth
-                    required
-                    label="Time"
-                    name="time"
-                    type="time"
-                    value={formData.time}
-                    onChange={handleChange}
-                    disabled={!formData.clinicId}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: <InputAdornment position="start"><AccessTimeIcon sx={{ color: '#10b981' }} /></InputAdornment>,
-                    }}
-                  />
+                  <FormControl fullWidth required disabled={!formData.date || fetchingSlots}>
+                    <InputLabel>Time Slot</InputLabel>
+                    <StyledSelect
+                      name="time"
+                      value={formData.time}
+                      label="Time Slot"
+                      onChange={handleChange}
+                      startAdornment={<InputAdornment position="start"><AccessTimeIcon sx={{ color: '#10b981' }} /></InputAdornment>}
+                    >
+                      <MenuItem value="">
+                        <em>{fetchingSlots ? 'Finding slots...' : (availableSlots.length ? 'Choose a time' : 'No slots available')}</em>
+                      </MenuItem>
+                      {availableSlots.map(slot => (
+                        <MenuItem key={slot.value} value={slot.value}>
+                          {slot.label}
+                        </MenuItem>
+                      ))}
+                    </StyledSelect>
+                    {formData.date && !availableSlots.length && !fetchingSlots && (
+                      <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1 }}>
+                        All slots booked or clinic closed.
+                      </Typography>
+                    )}
+                  </FormControl>
                 </div>
 
                 <div className="col-12">

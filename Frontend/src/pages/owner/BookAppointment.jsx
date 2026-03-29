@@ -146,18 +146,13 @@ const BookAppointment = () => {
     const [clinics, setClinics] = useState([]);
     const [vets, setVets] = useState([]);
     const [bookedSlots, setBookedSlots] = useState([]);
+    const [dynamicTimeSlots, setDynamicTimeSlots] = useState([]);
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(true);
     const [fetchingSlots, setFetchingSlots] = useState(false);
     const [userId, setUserId] = useState(null);
 
     const navigate = useNavigate();
-
-    const timeSlots = [
-        '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-        '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
-        '16:00', '16:30', '17:00'
-    ];
 
     useEffect(() => {
         const userData = localStorage.getItem('owner_user') || localStorage.getItem('user');
@@ -198,19 +193,16 @@ const BookAppointment = () => {
 
     useEffect(() => {
         const fetchVets = async () => {
-            console.log('--- fetchVets called for clinic:', formData.clinicId);
             if (!formData.clinicId) {
                 setVets([]);
                 return;
             }
             try {
-                // Clear old vets while new ones are loading
                 setVets([]);
                 const response = await api.get(`vets/clinic/${formData.clinicId}`);
-                console.log('--- Vets received from server:', response.data.vets);
                 setVets(response.data.vets || []);
             } catch (error) {
-                console.error('--- Error fetching vets:', error);
+                console.error('Error fetching vets:', error);
                 setVets([]);
             }
         };
@@ -219,13 +211,77 @@ const BookAppointment = () => {
 
     useEffect(() => {
         const fetchSlots = async () => {
-            if (!formData.vetId || !formData.date) {
+            if (!formData.vetId || !formData.date || !formData.clinicId) {
                 setBookedSlots([]);
+                setDynamicTimeSlots([]);
                 return;
             }
 
             try {
                 setFetchingSlots(true);
+
+                // 1. Get Clinic Working Hours and Days
+                const selectedClinic = clinics.find(c => c._id === formData.clinicId);
+                
+                // Check if closed on this day
+                if (selectedClinic?.operatingDays?.length > 0) {
+                    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const selectedDay = days[new Date(formData.date).getDay()];
+                    if (!selectedClinic.operatingDays.includes(selectedDay)) {
+                        setDynamicTimeSlots([]);
+                        setBookedSlots([]);
+                        return;
+                    }
+                }
+
+                const hoursStr = selectedClinic?.operatingHours || "09:00 AM - 05:00 PM";
+                
+                // More robust parsing for various formats (AM/PM or 24h)
+                let startHour = 9, startMin = 0, endHour = 17, endMin = 0;
+                
+                const amPmMatch = hoursStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)\s*(?:-|to)\s*(\d+)(?::(\d+))?\s*(AM|PM)/i);
+                const h24Match = hoursStr.match(/(\d+)(?::(\d+))?\s*(?:-|to)\s*(\d+)(?::(\d+))?/);
+
+                if (amPmMatch) {
+                    let sH = parseInt(amPmMatch[1]);
+                    const sM = parseInt(amPmMatch[2] || "0");
+                    const sAmpm = amPmMatch[3].toUpperCase();
+                    let eH = parseInt(amPmMatch[4]);
+                    const eM = parseInt(amPmMatch[5] || "0");
+                    const eAmpm = amPmMatch[6].toUpperCase();
+
+                    if (sAmpm === 'PM' && sH < 12) sH += 12;
+                    if (sAmpm === 'AM' && sH === 12) sH = 0;
+                    if (eAmpm === 'PM' && eH < 12) eH += 12;
+                    if (eAmpm === 'AM' && eH === 12) eH = 0;
+
+                    startHour = sH; startMin = sM; endHour = eH; endMin = eM;
+                } else if (h24Match) {
+                    startHour = parseInt(h24Match[1]);
+                    startMin = parseInt(h24Match[2] || "0");
+                    endHour = parseInt(h24Match[3]);
+                    endMin = parseInt(h24Match[4] || "0");
+                }
+
+                // 2. Generate 30-min slots
+                const slots = [];
+                let current = new Date();
+                current.setHours(startHour, startMin, 0, 0);
+                
+                const end = new Date();
+                end.setHours(endHour, endMin, 0, 0);
+
+                if (end > current) {
+                    while (current < end) {
+                        const h = String(current.getHours()).padStart(2, '0');
+                        const m = String(current.getMinutes()).padStart(2, '0');
+                        slots.push(`${h}:${m}`);
+                        current.setMinutes(current.getMinutes() + 30);
+                    }
+                }
+                setDynamicTimeSlots(slots);
+
+                // 3. Fetch Booked Slots
                 const response = await api.get(`/appointments/vet/${formData.vetId}?date=${formData.date}`);
                 const appointments = response.data.appointments || [];
 
@@ -240,13 +296,14 @@ const BookAppointment = () => {
             } catch (error) {
                 console.error('Error fetching slots:', error);
                 setBookedSlots([]);
+                setDynamicTimeSlots([]);
             } finally {
                 setFetchingSlots(false);
             }
         };
 
         fetchSlots();
-    }, [formData.vetId, formData.date]);
+    }, [formData.vetId, formData.date, formData.clinicId, clinics]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -254,7 +311,7 @@ const BookAppointment = () => {
             ...prev,
             [name]: value,
             ...(name === 'date' || name === 'vetId' || name === 'clinicId' || name === 'petId' ? { time: '' } : {}),
-            ...(name === 'clinicId' ? { vetId: '' } : {}), // Reset vet when clinic changes
+            ...(name === 'clinicId' ? { vetId: '' } : {}),
             ...(name === 'petId' ? { clinicId: '', vetId: '' } : {})
         }));
     };
@@ -299,7 +356,7 @@ const BookAppointment = () => {
                 vetId: formData.vetId,
                 dateTime,
                 reason: formData.reason.trim(),
-                notes: formData.notes.trim()
+                notes: formData.notes?.trim() || ''
             });
 
             Swal.fire({
@@ -358,7 +415,6 @@ const BookAppointment = () => {
                     <form onSubmit={handleSubmit}>
                         <div className="container-fluid p-0">
                             <div className="row g-4">
-                                {/* ── Section 1: Core Details ── */}
                                 <div className="col-12">
                                     <Typography variant="subtitle2" sx={{ color: '#4f46e5', fontWeight: 700, mb: 1, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem' }}>
                                         1. Patient & Provider
@@ -446,7 +502,6 @@ const BookAppointment = () => {
                                     </FormControl>
                                 </div>
 
-                                {/* ── Section 2: Date & Time ── */}
                                 <div className="col-12">
                                     <Divider sx={{ mb: 3, mt: 1 }} />
                                     <Typography variant="subtitle2" sx={{ color: '#4f46e5', fontWeight: 700, mb: 2, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem' }}>
@@ -485,7 +540,7 @@ const BookAppointment = () => {
                                             </Box>
                                         ) : (
                                             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1.5 }}>
-                                                {timeSlots.map((time) => {
+                                                {dynamicTimeSlots.map((time) => {
                                                     const isPast = isPastTime(time);
                                                     const isBooked = bookedSlots.includes(time);
                                                     return (
@@ -507,7 +562,6 @@ const BookAppointment = () => {
                                     </div>
                                 )}
 
-                                {/* ── Section 3: Additional Info ── */}
                                 <div className="col-12">
                                     <Divider sx={{ mb: 3, mt: 2 }} />
                                     <Typography variant="subtitle2" sx={{ color: '#4f46e5', fontWeight: 700, mb: 2, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.75rem' }}>

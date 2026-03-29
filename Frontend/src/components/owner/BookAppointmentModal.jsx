@@ -102,21 +102,15 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
     const [clinics, setClinics] = useState([]);
     const [vets, setVets] = useState([]);
     const [bookedSlots, setBookedSlots] = useState([]);
+    const [dynamicTimeSlots, setDynamicTimeSlots] = useState([]);
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(false);
     const [fetchingSlots, setFetchingSlots] = useState(false);
-
-    const timeSlots = [
-        '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-        '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
-        '16:00', '16:30', '17:00'
-    ];
 
     useEffect(() => {
         if (open) {
             fetchInitialData();
         } else {
-            // Reset form on close
             setFormData({
                 petId: '',
                 clinicId: '',
@@ -154,38 +148,89 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
         }
     };
 
-
-
     useEffect(() => {
         const fetchSlots = async () => {
-            if (!formData.vetId || !formData.date) {
+            if (!formData.vetId || !formData.date || !formData.clinicId) {
                 setBookedSlots([]);
+                setDynamicTimeSlots([]);
                 return;
             }
 
             try {
                 setFetchingSlots(true);
+                const selectedClinic = clinics.find(c => c._id === formData.clinicId);
+                
+                if (selectedClinic?.operatingDays?.length > 0) {
+                    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                    const selectedDay = days[new Date(formData.date).getDay()];
+                    if (!selectedClinic.operatingDays.includes(selectedDay)) {
+                        setDynamicTimeSlots([]);
+                        setBookedSlots([]);
+                        return;
+                    }
+                }
+
+                const hoursStr = selectedClinic?.operatingHours || "09:00 AM - 05:00 PM";
+                let startHour = 9, startMin = 0, endHour = 17, endMin = 0;
+                
+                const amPmMatch = hoursStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)\s*(?:-|to)\s*(\d+)(?::(\d+))?\s*(AM|PM)/i);
+                const h24Match = hoursStr.match(/(\d+)(?::(\d+))?\s*(?:-|to)\s*(\d+)(?::(\d+))?/);
+
+                if (amPmMatch) {
+                    let sH = parseInt(amPmMatch[1]);
+                    const sM = parseInt(amPmMatch[2] || "0");
+                    const sAmpm = amPmMatch[3].toUpperCase();
+                    let eH = parseInt(amPmMatch[4]);
+                    const eM = parseInt(amPmMatch[5] || "0");
+                    const eAmpm = amPmMatch[6].toUpperCase();
+                    if (sAmpm === 'PM' && sH < 12) sH += 12;
+                    if (sAmpm === 'AM' && sH === 12) sH = 0;
+                    if (eAmpm === 'PM' && eH < 12) eH += 12;
+                    if (eAmpm === 'AM' && eH === 12) eH = 0;
+                    startHour = sH; startMin = sM; endHour = eH; endMin = eM;
+                } else if (h24Match) {
+                    startHour = parseInt(h24Match[1]);
+                    startMin = parseInt(h24Match[2] || "0");
+                    endHour = parseInt(h24Match[3]);
+                    endMin = parseInt(h24Match[4] || "0");
+                }
+
+                const slots = [];
+                let current = new Date();
+                current.setHours(startHour, startMin, 0, 0);
+                const end = new Date();
+                end.setHours(endHour, endMin, 0, 0);
+
+                if (end > current) {
+                    while (current < end) {
+                        const h = String(current.getHours()).padStart(2, '0');
+                        const m = String(current.getMinutes()).padStart(2, '0');
+                        slots.push(`${h}:${m}`);
+                        current.setMinutes(current.getMinutes() + 30);
+                    }
+                }
+                setDynamicTimeSlots(slots);
+
                 const response = await api.get(`/appointments/vet/${formData.vetId}?date=${formData.date}`);
                 const appointments = response.data.appointments || [];
-
                 const bookedTimes = appointments
                     .filter(app => app.status !== 'Canceled')
                     .map(app => {
                         const date = new Date(app.dateTime);
                         return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
                     });
-
                 setBookedSlots(bookedTimes);
             } catch (error) {
                 console.error('Error fetching slots:', error);
                 setBookedSlots([]);
+                setDynamicTimeSlots([]);
             } finally {
                 setFetchingSlots(false);
             }
         };
 
         fetchSlots();
-    }, [formData.vetId, formData.date]);
+    }, [formData.vetId, formData.date, formData.clinicId, clinics]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -205,13 +250,10 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         const localToday = `${year}-${month}-${day}`;
-
         if (formData.date !== localToday) return false;
-
         const [hours, minutes] = slotTime.split(':').map(Number);
         const slotDate = new Date(now);
         slotDate.setHours(hours, minutes, 0, 0);
-
         return slotDate < now;
     };
 
@@ -222,14 +264,11 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (!formData.petId || !formData.clinicId || !formData.vetId || !formData.date || !formData.time || !formData.reason) {
             Swal.fire('Error', 'Please fill all required fields', 'warning');
             return;
         }
-
         const dateTime = new Date(`${formData.date}T${formData.time}:00`).toISOString();
-
         setLoading(true);
         try {
             await api.post('/appointments/book', {
@@ -238,9 +277,8 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                 vetId: formData.vetId,
                 dateTime,
                 reason: formData.reason.trim(),
-                notes: formData.notes.trim()
+                notes: formData.notes?.trim() || ''
             });
-
             Swal.fire({
                 title: 'Success!',
                 text: 'Appointment booked successfully',
@@ -248,7 +286,6 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                 timer: 2000,
                 showConfirmButton: false
             });
-
             onSuccess();
             onClose();
         } catch (error) {
@@ -432,7 +469,7 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                                         </Box>
                                     ) : (
                                         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 1 }}>
-                                            {timeSlots.map((time) => {
+                                            {dynamicTimeSlots.map((time) => {
                                                 const isPast = isPastTime(time);
                                                 const isBooked = bookedSlots.includes(time);
                                                 return (
@@ -452,8 +489,6 @@ const BookAppointmentModal = ({ open, onClose, onSuccess }) => {
                                     )}
                                 </Box>
                             )}
-
-
 
                             <StyledTextField
                                 fullWidth
