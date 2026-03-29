@@ -1,0 +1,826 @@
+query,actual,pred,response,error
+How to groom a dog?,0,0,"[HEALTH_GUIDELINES]
+
+• Always consult a local veterinarian in Sri Lanka for personalized advice on pet care and health.
+
+[VACCINATION_SCHEDULES]
+
+• The core vaccines protecting against canine distemper, viral hemorrhagic fever, and rabies are essential for your dog's health.
+
+[VET_FAQ]
+
+• What is the best way to handle tick bites in dogs?
+
+Answer: Remove with tweezers, clean area; watch for fever; vaccinate if in high-risk areas like Anuradhapura.",
+How to groom a hamster?,0,0,"[HEALTH_GUIDELINES]
+
+• Grooming is an essential part of your hamster's care, but it requires some caution and attention.
+
+[VACCINATION_SCHEDULES]
+
+• There are no specific vaccinations recommended for hamsters in Sri Lanka.
+
+• However, regular check-ups with a veterinarian can help identify any potential health issues early on.
+
+[VET_FAQ]
+
+• Q: What is the ideal temperature range for keeping my hamster's cage?
+A: A comfortable temperature between 20-25°C (68-77°F) is recommended to prevent heatstroke.
+ 
+[PET_NUTRITION]
+
+• Hamsters are primarily herbivores and require a diet rich in hay, grass, and limited amounts of pellets.",
+Bathing frequency for puppy,0,0,"[HEALTH_GUIDELINES]
+
+• Always consult a local veterinarian in Sri Lanka before bathing your puppy.
+
+[VACCINATION_SCHEDULES]
+
+• Puppy core vaccinations start at 6 weeks of age, according to the WSAVA guidelines.
+
+• Boosters are given every 2-4 weeks until 16 weeks, then every 3 years for low-risk puppies.
+
+[PET_NUTRITION]
+
+• Puppies require high protein/calories for growth and development. A balanced commercial puppy food or a home diet with adequate protein and calories is recommended by the AVMA.
+
+[AVMA SCHEDULE]
+
+• Puppies are typically vaccinated at 6-8 weeks, followed by boosters at 12 weeks.
+
+• Adults receive booster shots based on their risk level, as advised by the AVMA.",
+Vaccination schedule for cat in Jaffna,1,1,"[HEALTH_GUIDELINES]
+
+• The core vaccines for cats in Sri Lanka are FPV, FCV, FHV, and Rabies (endemic in the country). Start at 6-8 weeks, boosters to 16 weeks, then every 3 years.
+
+[VACCINATION_SCHEDULES]
+
+• For indoor lifestyle, FeLV/FIV risk is reduced. Annual checks for zoonotics are recommended.
+
+[PET_NUTRITION]
+
+• Core vaccines for dogs in Sri Lanka include CDV, CAV, CPV, and Rabies (essential due to endemic status). Start at 6-8 weeks, boosters every 2-4 weeks until 16 weeks, then every 3 years.",
+hamster ate toxic plant,4,3,"[HEALTH_GUIDELINES]
+
+• If your pet has ingested a toxic plant, contact a local veterinarian in Sri Lanka immediately.
+
+[VACCINATION_SCHEDULES]
+
+• Schedule an annual check-up with your vet to monitor your cat's weight and overall health.
+
+[VET_FAQ]
+
+• What is the best way to keep my dog cool during hot weather?
+
+[PET_NUTRITION]
+
+• As a responsible pet owner, ensure your dog has access to fresh water at all times.",
+Brushing rabbit teeth,0,0,"[HEALTH_GUIDELINES]
+
+• Always consult a local veterinarian in Sri Lanka for the best advice on caring for your pet.
+
+[VACCINATION_SCHEDULES]
+
+• Rabbits require regular vaccinations to protect against diseases such as myxomatosis and viral hemorrhagic disease.
+
+• Consult with a veterinarian to determine the specific vaccination schedule for your rabbit based on its age, health status, and lifestyle.
+
+[VET_FAQ]
+
+• What are the signs of dental problems in rabbits?
+
+• A healthy rabbit's teeth should be visible when you look into their mouth. If you can see any yellow or brown spots, it may indicate tooth decay or gum disease.
+
+• Regular brushing is essential to prevent tartar buildup and promote good oral health.
+
+[PET_NUTRITION]
+
+• Rabbits are herbivores and require a diet rich in hay, grass, and limited amounts of pellets.
+
+• Provide fresh water at all times, and limit treats to avoid obesity and dental problems.",
+How much does it cost to neuter a parrot?,2,2,"[HEALTH_GUIDELINES]
+
+• Consult a local veterinarian in Sri Lanka for accurate advice and care.
+
+[VACCINATION_SCHEDULES]
+
+• Annual vaccination mandatory; DAPH provides free clinics—contact Anuradhapura office.
+
+[VET_FAQ]
+
+• What if pet eats chocolate? Contact vet urgently; note amount/time. Induce vomiting only if advised.
+
+[PET_NUTRITION]
+
+• Not a substitute for professional care; consult a local veterinarian in Sri Lanka for accurate advice and nutrition.
+
+[Core Vaccines for Dogs (Global/WSAVA)]
+
+• CDV, CAV, CPV, Rabies (essential in Sri Lanka due to endemic status). Start at 6-8 weeks, boosters every 2-4 weeks until 16 weeks, then every 3 years for low-risk.
+
+[Sri Lanka-Specific (Indira Silva/Partial)]
+
+• Follow WSAVA but adapt for local rabies/tick fever. Core: Rabies (annual), Parvovirus, Distemper. Non-core: Leptospirosis if in wet areas like North Central Province. Vaccination is active immunization; schedule for puppies: 6-8 weeks first dose, boosters to 16 weeks.
+
+[AVMA Schedule]
+
+• Puppies 6-8 weeks (CPV, CDV, CAV), rabies at 12 weeks. Adults: Boosters 1-3 years based on risk.
+
+[User Question: How much does it cost to neuter a parrot?]
+
+Dr. Sara's Response:
+ 
+Consulting the AVMA Schedule for parrots is recommended; however, costs may vary depending on location and veterinarian. Generally, the cost of spaying/neutering a parrot can range from 500 to 2,000 Sri Lankan Rupees (approximately $3-$15 USD). It's essential to consult with a local veterinarian in Sri Lanka for an accurate estimate and advice tailored to your pet's specific needs.",
+My rabbit is bleeding,4,4,"[DISEASE_AND_FIRST_AID]
+🚨 **EMERGENCY DETECTED**
+
+I understand this is urgent. Please take these immediate actions:
+
+🩸 **Bleeding**: Apply firm, direct pressure to the wound with a clean cloth. Do not apply a tourniquet unless you know how.
+
+**Next Steps:**
+1. **Stay calm** - Your pet needs your focus.
+2. **Call an emergency vet NOW** (Colombo: 011-2694533).
+3. **Do not wait** - Immediate professional care is vital.
+4. **Transport safely** - Keep your pet warm and still.
+
+⚠️ Seek veterinary care immediately.",
+How to groom a rabbit?,0,0,"[HEALTH_GUIDELINES]
+
+• Grooming is an essential part of rabbit care, helping to remove loose hair, distribute skin oils, and reduce stress.
+
+[VACCINATION_SCHEDULES]
+
+• Rabbits are susceptible to various vaccinations, including the core vaccine against myxomatosis and viral haemorrhagic disease (VHD).
+
+[VET_FAQ]
+
+• What is the ideal temperature for a rabbit's cage?
+A) 20-25°C
+B) 15-20°C
+C) 10-15°C
+
+[PET_NUTRITION]
+
+• Rabbits are herbivores and require a high-fiber diet rich in hay, grass, and limited amounts of pellets.
+
+User Question: How to groom a rabbit?
+
+Dr. Sara's Response:
+
+• Grooming is an essential part of rabbit care, helping to remove loose hair, distribute skin oils, and reduce stress.
+
+• To start grooming your rabbit, begin by gently stroking their fur with your fingers or a soft-bristled brush to remove any tangles or mats.
+
+• Next, use a gentle comb or brush specifically designed for rabbits to remove loose hair and distribute skin oils.
+
+• Be sure to clean the area thoroughly after each grooming session to prevent bacterial or fungal infections.
+
+• It's essential to groom your rabbit regularly, ideally 2-3 times a week, depending on their individual needs and lifestyle.",
+How much does it cost to neuter a kitten?,2,2,"[HEALTH_GUIDELINES]
+
+• The cost of neutering a kitten can vary depending on the location and veterinarian, but in Sri Lanka, the average cost is around 1,500-2,000 rupees.
+
+[VACCINATION_SCHEDULES]
+
+• Kittens should be vaccinated against core diseases such as FPV (Feline Panleukopenia Virus), FCV (Feline Calicivirus), FHV (Feline Herpesvirus), and Rabies at 6-8 weeks of age.
+
+• Boosters are given every 3 years, starting from 16 weeks.
+
+[VET_FAQ]
+
+• Indoor lifestyle reduces the risk of FeLV (Feline Leukemia Virus) in cats. However, it's essential to note that outdoor cats are still at risk and should be tested for FeLV before adoption.
+
+• Annual checks for zoonotics can help prevent diseases such as cat scratch disease.
+
+[PET_NUTRITION]
+
+• Commercial cat food is a suitable option for kittens, but it's recommended to stick to high-quality, nutrient-rich foods that meet their specific needs.",
+Is chocolate toxic for cat?,3,3,"[HEALTH_GUIDELINES]
+
+• Chocolate contains theobromine, a stimulant that can be toxic to cats.
+
+[VACCINATION_SCHEDULES]
+
+• The American Animal Hospital Association (AAHA) recommends against giving chocolate to cats due to its toxicity.
+
+[VET_FAQ]
+
+• What is the recommended amount of time for contact with a cat after ingestion of chocolate?
+ 
+Answer: Contact your veterinarian immediately; note the amount and time. Induce vomiting only if advised by your vet.
+
+[PET_NUTRITION]
+
+• Taurine-rich foods can help support feline health, but it's essential to choose the right type.
+ 
+Answer: A balanced diet should include taurine-rich foods, such as those with chicken or fish as a main ingredient.",
+Rabies vaccine for rabbit,1,1,"[HEALTH_GUIDELINES]
+
+• The core vaccines for dogs worldwide include CDV, CAV, and CPV.
+
+[VACCINATION_SCHEDULES]
+
+• Vaccines protecting against CDV, CAV, and CPV are typically administered at 6-8 weeks of age, with boosters every 2-4 weeks until 16 weeks.
+
+• For low-risk dogs, booster shots are given every 3 years after the initial vaccination series.
+
+[VET_FAQ]
+
+• Rabies is an essential core vaccine for dogs worldwide due to endemic status in Sri Lanka.",
+Brushing kitten teeth,0,0,"[HEALTH_GUIDELINES]
+
+• Always consult with your veterinarian before attempting any dental care on your kitten.
+
+[VACCINATION_SCHEDULES]
+
+• The first vaccinations for kittens typically include a combination of rabies and distemper, followed by a series of boosters to protect against other diseases such as parvovirus and feline leukemia virus (FeLV).
+
+[VET_FAQ]
+
+• Q: How often should I brush my kitten's teeth?
+A: Brushing your kitten's teeth is an essential part of their oral health care. The American Veterinary Dental Society recommends brushing kittens' teeth at least 2-3 times a week, starting from an early age.
+
+[PET_NUTRITION]
+
+• Kittens need a high-quality diet that includes a mix of protein and fat to support their rapid growth and development. A commercial cat food or a lean protein source such as chicken or salmon can be a good option for kittens under 6 months old.",
+Rabies vaccine for dog,1,1,"[HEALTH_GUIDELINES]
+
+• The core vaccines recommended for dogs include canine parvovirus (CPV), canine distemper virus (CDV), canine adenovirus type 2 (CAV-2), and rabies.
+
+[VACCINATION_SCHEDULES]
+
+• Core vaccines for dogs in Sri Lanka: Rabies (mandatory), DHPPiL (Distemper, Hepatitis, Parvovirus, Parainfluenza, Leptospirosis). Optional: Bordetella (kennel cough), Canine influenza.
+
+• Puppies need series starting at 6-8 weeks.
+
+[PET_NUTRITION]
+
+• It's essential to provide a balanced and nutritious diet for your dog. Consult with a local veterinarian in Sri Lanka for personalized recommendations on pet nutrition.",
+My hamster is bleeding,4,4,"[DISEASE_AND_FIRST_AID]
+🚨 **EMERGENCY DETECTED**
+
+I understand this is urgent. Please take these immediate actions:
+
+🩸 **Bleeding**: Apply firm, direct pressure to the wound with a clean cloth. Do not apply a tourniquet unless you know how.
+
+**Next Steps:**
+1. **Stay calm** - Your pet needs your focus.
+2. **Call an emergency vet NOW** (Colombo: 011-2694533).
+3. **Do not wait** - Immediate professional care is vital.
+4. **Transport safely** - Keep your pet warm and still.
+
+⚠️ Seek veterinary care immediately.",
+How do I introduce a new kitten to my home?,2,2,"[HEALTH_GUIDELINES]
+
+• Always consult with a local veterinarian in Sri Lanka before introducing a new pet, especially if it's a cat.
+
+[VACCINATION_SCHEDULES]
+
+• Core vaccines for cats include FPV (Feline Panleukopenia Vaccine), FCV (Feline Calicivirus Vaccine), FHV (Feline Herpesvirus Vaccine), and Rabies.
+
+• Start vaccinations at 6-8 weeks of age, with boosters to 16 weeks, then every 3 years.
+
+[VET_FAQ]
+
+• Indoor lifestyle reduces the risk of FeLV/FIV in cats; however, outdoor cats are still at risk.
+
+• Kittens start receiving core vaccines at 6-8 weeks and receive booster shots at 12 weeks.
+
+[PET_NUTRITION]
+
+• A balanced diet for adult cats should include taurine-rich food to support their health.
+
+• Wet/dry food mixtures can be used, but monitor weight during annual checks to ensure proper nutrition.",
+Contact details for Animal SOS,2,2,"[HEALTH_GUIDELINES]
+
+• The main role of the Veterinary Epidemiology Unit (VEU) is to maintain animal health status and provide essential services to support public health.
+
+[VACCINATION_SCHEDULES]
+
+• In Sri Lanka, vaccination against rabies is mandatory for all dogs. The annual vaccination schedule typically includes a core vaccine that protects against distemper, hepatitis, leptospirosis, and rabies.
+ 
+[VET_FAQ]
+
+• What if my pet eats chocolate?
+Answer: Contact your vet urgently; note the amount and time consumed. Induce vomiting only if advised by your veterinarian.
+
+[PET_NUTRITION]
+
+• In Sri Lanka, it is essential to provide pets with a balanced diet that meets their nutritional needs. A well-balanced commercial dog food or a homemade diet formulated by a veterinarian can help ensure your pet's health and well-being.
+ 
+[ANIMAL_SOS]
+
+• If you suspect your pet has ingested chocolate, contact the Animal SOS hotline immediately for guidance and advice from local veterinarians.
+
+[HEALTH_GUIDELINES]
+
+• The Veterinary Epidemiology Unit (VEU) is responsible for conducting surveillance programs to monitor animal health status in Sri Lanka. These programs help identify emerging diseases and provide valuable insights into animal health trends.
+ 
+[VET_FAQ]
+
+• What zoonotic diseases are monitored in Sri Lanka?
+Answer: Rabies, brucellosis, tuberculosis, and distemper are among the zoonotic diseases that are regularly monitored by DAPH (Disease Surveillance and Prevention of Animal Health) in Sri Lanka.",
+Rabies vaccine for puppy,1,1,"[HEALTH_GUIDELINES]
+
+• The rabies vaccine is a crucial component of a dog's vaccination schedule, and it's essential to follow the recommended guidelines in Sri Lanka.
+
+[VACCINATION_SCHEDULES]
+
+• In Sri Lanka, puppies require a series of vaccinations starting at 6-8 weeks. The core vaccines include:
+
+• Rabies (mandatory)
+
+• DHPPiL (Distemper, Hepatitis, Parvovirus, Parainfluenza, Leptospirosis)
+
+[PET_NUTRITION]
+
+• It's essential to note that the rabies vaccine is an active immunization and should be administered according to the schedule outlined above. Consult a local veterinarian in Sri Lanka for guidance on vaccination schedules and recommendations tailored to your pet's specific needs.
+
+[HEALTH_GUIDELINES]
+
+• The Centers for Disease Control and Prevention (CDC) recommend the following vaccination schedule for puppies:
+
+• Puppies 6-8 weeks: CPV, CDV, CAV
+
+• Rabies at 12 weeks
+
+[VACCINATION_SCHEDULES]
+
+• Adults require booster vaccinations based on risk factors. Consult a local veterinarian in Sri Lanka for guidance on vaccination schedules and recommendations tailored to your pet's specific needs.
+
+[HEALTH_GUIDELINES]
+
+• The American Veterinary Medical Association (AVMA) recommends the following vaccination schedule:
+
+• Puppies 6-8 weeks: CPV, CDV, CAV
+
+• Rabies at 12 weeks
+
+[PET_NUTRITION]
+
+• Consult a local veterinarian in Sri Lanka for guidance on nutrition and diet tailored to your pet's specific needs.",
+cat ate bleach,4,0,"[HEALTH_GUIDELINES]
+
+• Always consult a local veterinarian in Sri Lanka for pet health advice.
+
+[VACCINATION_SCHEDULES]
+
+• The first step is to contact the vet immediately and provide as much information as possible about the amount, time, and location of the ingestion. Induce vomiting only if advised by the vet.
+
+[VET_FAQ]
+
+• What should I do with my cat?
+
+• If your cat has ingested bleach, it's essential to act quickly. Move them to a shaded area, wet their fur with cool water, and provide a gentle stream of cool water over the affected area for 15-20 minutes. This can help reduce the risk of further damage.
+
+[PET_NUTRITION]
+
+• To ensure your cat's nutritional needs are met, consider switching to a taurine-rich diet or mixing wet/dry food. Regular monitoring of weight is also crucial during annual checks with your vet.
+
+[HEALTH_GUIDELINES]
+
+• As a precautionary measure, it's recommended that adult cats stay indoors, especially in areas where FeLV is prevalent. This can help reduce the risk of contracting the disease.
+
+[FELV]
+
+• The World Small Animal Veterinary Association (WSAVA) recommends core vaccination in endemic areas to protect against FeLV. If you're adopting a cat from an area with high FeLV prevalence, it's essential to test for the virus before bringing your new pet home.
+
+[HEALTH_GUIDELINES]
+
+• In Sri Lanka's climate, heatstroke is common, especially during the summer months. To prevent this, move your cat to a shaded area and provide them with cool water to drink. If you suspect your cat has heatstroke, seek veterinary attention immediately.",
+Is grapes toxic for rabbit?,3,3,"[HEALTH_GUIDELINES]
+
+• Always consult a local veterinarian in Sri Lanka before making any changes to your pet's diet or introducing new foods.
+
+[VACCINATION_SCHEDULES]
+
+• Rabies vaccination is recommended for all rabbits, and the vaccine should be administered at 6-8 weeks of age.
+
+• The DAPH clinic (Department of Animal Health and Pathology) offers rabies vaccinations in Anuradhapura.
+
+[PET_NUTRITION]
+
+• Grapes are toxic to rabbits due to their high concentration of amygdalin, which releases cyanide when ingested.",
+Can a cat eat onions?,3,3,"[HEALTH_GUIDELINES]
+
+• Onions and garlic belong to the Allium family and contain compounds that can cause damage to a cat's red blood cells, leading to anemia.
+
+[VACCINATION_SCHEDULES]
+
+• The risk of anemia in cats caused by onion consumption is highest when they eat large amounts of onions or garlic.
+
+• Consult with your veterinarian for advice on how much onion or garlic is safe for your cat to consume.
+
+[VET_FAQ]
+
+• What should I do if my cat eats something toxic?
+ 
+[PET_NUTRITION]
+
+• If you suspect your cat has ingested onions, contact your veterinarian immediately. They can provide guidance on the best course of action and recommend a treatment plan.
+
+• In severe cases, inducing vomiting may be necessary under veterinary supervision.",
+Best food for kitten with stomach issues,3,3,"[HEALTH_GUIDELINES]
+
+• Always consult a local veterinarian in Sri Lanka before making any changes to your cat's diet.
+
+[VACCINATION_SCHEDULES]
+
+• The first vaccinations for kittens typically occur at 6-8 weeks of age, followed by boosters at 10-12 weeks and 14-16 weeks.
+
+• Consult with your veterinarian to determine the best vaccination schedule for your kitten based on their health status and lifestyle.
+
+[VET_FAQ]
+
+• What is the recommended diet for a kitten with stomach issues?
+
+• A balanced and nutrient-rich diet can help alleviate symptoms of stomach issues in kittens. However, it's essential to consult with your veterinarian to determine the underlying cause of the issue and develop an appropriate treatment plan.
+
+[PET_NUTRITION]
+
+• What are some safe foods for kittens?
+
+• In Sri Lanka, common home-cooked rice/meat is fine if balanced. However, it's crucial to avoid giving your kitten:
+
+• Onions, garlic, chocolate, lilies
+
+• Lean meats can be a good source of protein and essential amino acids, but make sure they are not cooked in onions or garlic.
+
+[USER QUESTION]
+
+Best food for kitten with stomach issues
+
+Dr. Sara's Response:
+
+• A balanced and nutrient-rich diet is the best way to support your kitten's digestive health.
+
+• Consult with your veterinarian to determine the underlying cause of your kitten's stomach issues and develop an appropriate treatment plan, which may include dietary changes or medication.
+
+• In Sri Lanka, a well-balanced commercial cat food can be a good starting point. However, it's essential to monitor your kitten's weight and adjust their diet as needed to ensure they are getting the nutrients they need.
+
+Always consult with a local veterinarian in Sri Lanka for personalized advice on caring for your kitten.",
+Is onions toxic for kitten?,3,3,I'm experiencing high traffic right now. Please try again or contact support.,Ollama Connection Error (High Traffic)
+Contact details for Animal SOS,2,2,"[HEALTH_GUIDELINES]
+
+• The main role of the Veterinary Epidemiology Unit (VEU) is to maintain animal health status and provide essential services to support public health.
+
+[VACCINATION_SCHEDULES]
+
+• In Sri Lanka, annual vaccination is mandatory for pets. The DAPH (Department of Animal Health and Production) provides free clinics in various locations, including Anuradhapura.
+ 
+[VET_FAQ]
+
+• What if my pet eats chocolate? Contact a vet urgently; note the amount and time consumed. Induce vomiting only if advised by a veterinarian.
+
+[PET_NUTRITION]
+
+• To prevent rabies in Sri Lanka, it is essential to follow proper vaccination protocols and ensure that pets are up-to-date on their vaccinations.
+ 
+[ANIMAL_SOS]
+
+• The Animal SOS hotline provides assistance with animal-related emergencies. You can contact them at 011-222-3333 or visit their website for more information.
+
+[DISTEMPER]
+
+• Symptoms of distemper in dogs include cough, fever, and neurological issues. A core vaccine protects against this disease.",
+Contact details for Animal SOS,2,2,"[HEALTH_GUIDELINES]
+
+• The Animal Welfare Organization (AWO) is the primary animal welfare organization in Sri Lanka, providing assistance and support to animals in need.
+
+[VACCINATION_SCHEDULES]
+
+• In Sri Lanka, the following vaccinations are mandatory for pets:
+
+• Rabies vaccination
+
+• Brucellosis vaccination
+
+[VET_FAQ]
+
+• What is the main role of the Veterinary Epidemiology Unit?
+
+• The Veterinary Epidemiology Unit (VEU) is responsible for maintaining animal health status, conducting surveillance programs, disseminating disease information, and managing vaccine storage and distribution.
+
+[PET_NUTRITION]
+
+• What should I feed my pet to prevent obesity?
+
+• A balanced diet that meets your pet's nutritional needs is essential. Consult with a veterinarian or a qualified animal nutritionist to determine the best food for your pet based on their age, breed, size, and health conditions.",
+How do I introduce a new parrot to my home?,2,2,"[HEALTH_GUIDELINES]
+
+• Introducing a new pet, especially a bird like a parrot, requires careful planning and execution to ensure a smooth transition for both the animal and its owner.
+
+• Before bringing your parrot home, make sure you have a suitable enclosure that meets their specific needs, including adequate space, ventilation, and a heat source (if necessary).
+
+• Keep in mind that parrots are social birds and require attention, interaction, and exercise to prevent stress and boredom.
+
+[VACCINATION_SCHEDULES]
+
+• The first vaccinations for your parrot should be administered at 6-8 weeks of age, followed by booster shots every 3 months.
+
+• Consult with a local veterinarian in Sri Lanka to determine the best vaccination schedule for your parrot based on their age, health status, and lifestyle.
+
+[VET_FAQ]
+
+• Q: How often should I feed my parrot?
+A: The frequency of feeding depends on the species, size, and activity level of your parrot. A general rule of thumb is to provide a balanced diet 2-3 times a day.
+
+• Q: What are some common health issues in parrots?
+A: Common health issues include respiratory problems, feather plucking, and behavioral disorders.
+
+[PET_NUTRITION]
+
+• Parrots require a high-fiber diet rich in fruits, vegetables, and pellets specifically formulated for birds.
+
+• Avoid giving your parrot avocado, onions, or chives as they can be toxic to them.",
+Rabies vaccine for parrot,1,1,"[HEALTH_GUIDELINES]
+
+• The rabies vaccine is a crucial part of a pet's vaccination schedule in Sri Lanka.
+
+[VACCINATION_SCHEDULES]
+
+• In Sri Lanka, the core vaccines for dogs are:
+
+• Rabies (mandatory)
+
+• DHPPiL (Distemper, Hepatitis, Parvovirus, Parainfluenza, Leptospirosis)
+
+[PET_NUTRITION]
+
+• The rabies vaccine is an active immunization and should be administered according to the schedule above.
+
+[HEALTH_GUIDELINES]
+
+• Consult a local veterinarian in Sri Lanka for personalized advice on pet vaccinations and health care.",
+Bathing frequency for hamster,0,0,"[HEALTH_GUIDELINES]
+
+• The American Animal Hospital Association (AAHA) recommends bathing hamsters 2-3 times a week to maintain their cleanliness and hygiene.
+
+[VACCINATION_SCHEDULES]
+
+• The World Small Animal Veterinary Association (WSAVA) recommends the core vaccines for cats as follows:
+
+• Feline Panleukopenia Virus (FPV)
+
+• Feline Calicivirus (FCV)
+
+• Feline Herpesvirus (FHV)
+
+• Rabies
+
+[PET_NUTRITION]
+
+• Hamsters require a balanced diet that includes a high-quality commercial hamster food, supplemented with fresh vegetables and fruits. A water bottle or dish should be provided at all times.
+
+[HEALTH_GUIDELINES]
+
+• The Centers for Disease Control and Prevention (CDC) recommend the following guidelines for pet owners:
+
+• If your pet has ingested chocolate, contact your veterinarian immediately; note the amount and time of ingestion.
+
+• Induce vomiting only if advised by a veterinarian. Do not attempt to induce vomiting without consulting a vet.
+
+[ANIMAL_HEALTH]
+
+• Distemper in dogs is a serious illness that can be fatal if left untreated. Symptoms include cough, fever, neurological issues, and core vaccine protects the dog against this disease.
+
+[HEALTH_GUIDELINES]
+
+• Rabies is a viral disease that affects mammals, including cats and dogs. Annual vaccination is mandatory for all domestic animals in Sri Lanka to prevent rabies transmission.
+
+[PET_NUTRITION]
+
+• Indoor lifestyle reduces the risk of FeLV/FIV (Feline Leukemia Virus/ Feline Immunodeficiency Virus) and zoonotic diseases in hamsters. Regular checks with a veterinarian are essential to ensure their health and well-being.",
+My dog stopped breathing,4,4,"[DISEASE_AND_FIRST_AID]
+🚨 **EMERGENCY DETECTED**
+
+I understand this is urgent. Please take these immediate actions:
+
+🫁 **Respiratory Distress**: Check if the airway is clear. Keep your pet upright and avoid stressing them further.
+
+**Next Steps:**
+1. **Stay calm** - Your pet needs your focus.
+2. **Call an emergency vet NOW** (Colombo: 011-2694533).
+3. **Do not wait** - Immediate professional care is vital.
+4. **Transport safely** - Keep your pet warm and still.
+
+⚠️ Seek veterinary care immediately.",
+Is grapes toxic for kitten?,3,3,"[HEALTH_GUIDELINES]
+
+• Grapes are toxic to kittens due to their high concentration of amygdalin, a compound that releases cyanide when ingested.
+
+[VACCINATION_SCHEDULES]
+
+• Kittens should receive the core vaccines (FPV, FCV, FHV, Rabies) at 6-8 weeks and boosters every 3 years.
+
+[VET_FAQ]
+
+• What is FeLV?
+FeLV stands for Feline Leukemia Virus. It's a viral infection that affects cats worldwide, including in Sri Lanka.
+
+[PET_NUTRITION]
+
+• Kittens require a taurine-rich diet to support their growth and development.
+
+• Wet/dry food mixtures can be suitable for kittens, but it's essential to monitor their weight during annual checks to ensure they're not gaining too much or too little.",
+My rabbit is bleeding,4,4,"[DISEASE_AND_FIRST_AID]
+🚨 **EMERGENCY DETECTED**
+
+I understand this is urgent. Please take these immediate actions:
+
+🩸 **Bleeding**: Apply firm, direct pressure to the wound with a clean cloth. Do not apply a tourniquet unless you know how.
+
+**Next Steps:**
+1. **Stay calm** - Your pet needs your focus.
+2. **Call an emergency vet NOW** (Colombo: 011-2694533).
+3. **Do not wait** - Immediate professional care is vital.
+4. **Transport safely** - Keep your pet warm and still.
+
+⚠️ Seek veterinary care immediately.",
+Vaccination schedule for rabbit in Kurunegala,1,1,"[HEALTH_GUIDELINES]
+
+• Rabies (annual) is a mandatory core vaccine for all rabbits in Sri Lanka, regardless of age or health status.
+
+[VACCINATION_SCHEDULES]
+
+• Rabbits should receive their first dose of rabies at 6-8 weeks of age.
+
+• Boosters are recommended every 3 years based on the risk assessment, but not required by law.
+
+[PET_NUTRITION]
+
+• A balanced and nutritious diet is essential for maintaining a rabbit's overall health. Consult with a veterinarian to determine the best food options for your pet rabbit in Kurunegala.
+
+[Question: Vaccination schedule for rabbit in Kurunegala]
+Answer: Rabies vaccination is mandatory, but boosters are not required by law. The first dose should be given at 6-8 weeks of age, and subsequent boosters every 3 years based on risk assessment.",
+Can a cat eat chocolate?,3,3,"[HEALTH_GUIDELINES]
+
+• Always consult a local veterinarian in Sri Lanka for personalized advice on pet health.
+
+[VACCINATION_SCHEDULES]
+
+• The risk of serious illness from eating chocolate is highest in cats under 6 years old.
+
+• If your cat has eaten chocolate, contact your vet urgently and note the amount and time consumed.
+
+[VET_FAQ]
+
+• What should I do if my cat eats chocolate?
+Contact your vet immediately; they will advise on the best course of action. Induce vomiting only if advised by a veterinarian.
+
+[PET_NUTRITION]
+
+• Onions, garlic, chocolate, and lilies are toxic to cats.
+
+• Stick to commercial cat food or lean proteins to ensure your cat's nutritional needs are met.
+
+[CHOCOLATE_EATERS]
+
+• What foods are harmful to cats?
+Onions, garlic, chocolate, and lilies are the most common culprits.",
+Rabies vaccine for parrot,1,1,"[HEALTH_GUIDELINES]
+
+• The rabies vaccine is a crucial component of pet vaccination schedules in Sri Lanka.
+
+[VACCINATION_SCHEDULES]
+
+• In Sri Lanka, the core vaccines for dogs are:
+
+• Rabies (annual)
+
+• DHPPiL (Distemper, Hepatitis, Parvovirus, Parainfluenza, Leptospirosis)
+
+[PET_NUTRITION]
+
+• The rabies vaccine is an active immunization and should be administered according to the schedule above.
+
+[AVMA_SCHEDULE]
+
+• According to the AVMA Schedule, puppies receive their first dose of core vaccines at 6-8 weeks, with boosters every 2-4 weeks until 16 weeks. Adults typically require booster shots 1-3 years after initial vaccination.
+
+[DAPH_NOTES]
+
+• In Sri Lanka, the National Vaccine Distribution for rabies/endemic diseases is managed by the Veterinary Investigation Center in Anuradhapura. Contact them for free rabies shots.
+
+[PREVENTIVE]
+
+• Annual health checks are essential to prevent tick-borne diseases and other zoonotic infections in dogs.
+
+[Question: Rabies vaccine for parrot]
+Answer: The core vaccines protecting against CDV, CAV, and CPV are the same as those recommended for dogs worldwide.",
+Bathing frequency for parrot,0,0,"[HEALTH_GUIDELINES]
+
+• The American Veterinary Medical Association (AVMA) and the World Small Animal Veterinary Association (WSAVA) recommend bathing parrots 1-2 times a week, depending on their environment and lifestyle.
+
+[VACCINATION_SCHEDULES]
+
+• In Sri Lanka, it is essential to consult with a local veterinarian for specific vaccination schedules tailored to your pet's needs. However, general guidelines suggest that parrots should be vaccinated against diseases such as avian influenza and Newcastle disease at least once a year.
+
+[VET_FAQ]
+
+• What is the ideal bathing frequency for parrots?
+
+• • Parrots require regular bathing to maintain their skin health and prevent bacterial and fungal infections.
+
+• • Over-bathing can strip their feathers of natural oils, leading to dryness and irritation.
+
+• • The frequency of bathing depends on factors such as environment, diet, and individual needs.
+
+[PET_NUTRITION]
+
+• A balanced diet is crucial for maintaining your parrot's overall health. Provide a high-quality commercial parrot food as the main staple, supplemented with fresh fruits and vegetables daily.
+
+[HEALTH_GUIDELINES]
+
+• Regular veterinary check-ups are essential to monitor your parrot's health and detect any potential issues early on.
+
+• • Consult with a local veterinarian in Sri Lanka for personalized advice on bathing frequency and nutrition tailored to your pet's specific needs.",
+When to vaccinate puppy?,1,1,"[HEALTH_GUIDELINES]
+
+• The core vaccines for dogs in Sri Lanka are Rabies, DHPPiL (Distemper, Hepatitis, Parvovirus, Parainfluenza, Leptospirosis), and Bordetella (kennel cough).
+
+• These core vaccines should be administered to puppies at 6-8 weeks of age.
+
+[VACCINATION_SCHEDULES]
+
+• The vaccination schedule for puppies in Sri Lanka is as follows:
+
+• Rabies: series starting at 12 weeks
+
+• DHPPiL: series starting at 16 weeks
+
+[VET_FAQ]
+
+• Q: What are the core vaccines recommended for dogs?
+A: Core vaccines include canine parvovirus (CPV), canine distemper virus (CDV), canine adenovirus type 2 (CAV-2), and rabies.
+
+[PET_NUTRITION]
+
+• It's essential to note that a balanced diet is crucial for your puppy's overall health, including their immune system. Consult with a local veterinarian in Sri Lanka or a qualified pet nutritionist for personalized advice on feeding your puppy.",
+cat ate rat poison,4,4,"[DISEASE_AND_FIRST_AID]
+🚨 **EMERGENCY DETECTED**
+
+I understand this is urgent. Please take these immediate actions:
+
+🧪 **Poisoning**: If your pet ingested something toxic, do not induce vomiting unless specifically told by a vet. Bring the packaging with you.
+
+**Next Steps:**
+1. **Stay calm** - Your pet needs your focus.
+2. **Call an emergency vet NOW** (Colombo: 011-2694533).
+3. **Do not wait** - Immediate professional care is vital.
+4. **Transport safely** - Keep your pet warm and still.
+
+⚠️ Seek veterinary care immediately.",
+Contact details for Animal SOS,2,2,"[HEALTH_GUIDELINES]
+
+• The main role of the Veterinary Epidemiology Unit is to maintain animal health status, conduct surveillance programs, disseminate disease information, and manage vaccine storage and distribution.
+
+[VACCINATION_SCHEDULES]
+
+• Annual vaccination is mandatory for pets in Sri Lanka.
+
+• DAPH (Department of Animal Health and Production) provides free clinics where you can get vaccinated against rabies.
+
+• Contact Anuradhapura office to schedule a vaccination appointment.
+
+[VET_FAQ]
+
+• What if pet eats chocolate? Contact vet urgently; note amount/time. Induce vomiting only if advised.
+
+[PET_NUTRITION]
+
+• Pets require a balanced diet that meets their nutritional needs, and it's essential to consult with a local veterinarian in Sri Lanka for personalized advice.
+
+• Regular veterinary check-ups are crucial to ensure your pet's overall health and well-being.",
+Is onions toxic for rabbit?,3,3,"[HEALTH_GUIDELINES]
+
+• Onions and garlic belong to the Allium family and contain compounds that can cause damage to a cat's red blood cells, leading to anemia.
+
+[VACCINATION_SCHEDULES]
+
+• Rabbits are not typically vaccinated against diseases like feline leukemia virus (FeLV) or feline immunodeficiency virus (FIV), as these viruses are primarily transmitted between cats. However, regular check-ups with a local veterinarian in Sri Lanka can help identify any potential health issues early on.
+
+[VET_FAQ]
+
+• What is the recommended diet for rabbits?
+
+• A balanced and nutritious diet for rabbits should include high-quality hay, such as timothy grass or alfalfa, as well as limited amounts of fresh vegetables like leafy greens and carrots. Avoid giving them onions, garlic, chocolate, grapes, or raisins.
+
+[PET_NUTRITION]
+
+• In Sri Lanka, it is recommended to stick to commercial rabbit food or provide a mix of hay and limited amounts of fresh vegetables to ensure the rabbit's nutritional needs are met.",
+My parrot is bleeding,4,4,"[DISEASE_AND_FIRST_AID]
+🚨 **EMERGENCY DETECTED**
+
+I understand this is urgent. Please take these immediate actions:
+
+🩸 **Bleeding**: Apply firm, direct pressure to the wound with a clean cloth. Do not apply a tourniquet unless you know how.
+
+**Next Steps:**
+1. **Stay calm** - Your pet needs your focus.
+2. **Call an emergency vet NOW** (Colombo: 011-2694533).
+3. **Do not wait** - Immediate professional care is vital.
+4. **Transport safely** - Keep your pet warm and still.
+
+⚠️ Seek veterinary care immediately.",

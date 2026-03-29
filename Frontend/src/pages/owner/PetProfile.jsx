@@ -221,7 +221,7 @@ const PetProfile = () => {
 
       // Store ALL prescriptions in the main state for the tab
       let finalPres = [...allPres];
-      
+
       // Also check for medical records with prescriptionUrl but NO linked structured prescriptions
       const recordsWithFiles = recordsRes.data.records?.filter(r => r.prescriptionUrl) || [];
       recordsWithFiles.forEach(record => {
@@ -248,20 +248,20 @@ const PetProfile = () => {
   // Scroll to and highlight the notification-linked record
   useEffect(() => {
     if (!highlightedId || loading) return;
-    
+
     const timer = setTimeout(() => {
       const elementId = `record-${highlightedId}`;
       const el = document.getElementById(elementId);
-      
+
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
+
         // Remove highlight after 4 seconds
         const fadeTimer = setTimeout(() => setHighlightedId(null), 4000);
         return () => clearTimeout(fadeTimer);
       }
     }, 800);
-    
+
     return () => clearTimeout(timer);
   }, [highlightedId, loading, tabValue]);
 
@@ -282,7 +282,7 @@ const PetProfile = () => {
 
   const handleDownload = async (url, fileName) => {
     if (!url) return;
-    
+
     try {
       // Ensure fileName has an extension if not present
       let finalFileName = fileName;
@@ -471,7 +471,7 @@ const PetProfile = () => {
       Swal.fire('Error', 'Failed to upload document. Please check your connection.', 'error');
     }
   };
- 
+
   const handleDeletePersonalRecord = async (recordId, recordName) => {
     const result = await Swal.fire({
       title: 'Remove Record?',
@@ -645,12 +645,12 @@ const PetProfile = () => {
                 }
               }}
             >
-                <Tab label="Pet Info" />
-                <Tab label="Medical Notes" />
-                <Tab label="Medical Records" />
-                <Tab label="Prescriptions" />
-                <Tab label="Vaccinations" />
-              </Tabs>
+              <Tab label="Pet Info" />
+              <Tab label="Medical Notes" />
+              <Tab label="Medical Records" />
+              <Tab label="Prescriptions" />
+              <Tab label="Vaccinations" />
+            </Tabs>
           </Box>
         </ProfileBanner>
 
@@ -784,13 +784,13 @@ const PetProfile = () => {
                                           <Typography variant="caption" sx={{ fontWeight: 800, color: '#64748b' }}>
                                             Appointment:
                                           </Typography>
-                                          <Link 
+                                          <Link
                                             component="button"
                                             variant="caption"
                                             onClick={() => navigate('/owner/my-appointments', { state: { highlightId: (record.appointmentId?._id || record.appointmentId)?.toString() } })}
-                                            sx={{ 
-                                              fontWeight: 700, 
-                                              color: '#4f46e5', 
+                                            sx={{
+                                              fontWeight: 700,
+                                              color: '#4f46e5',
                                               textDecoration: 'none',
                                               '&:hover': { textDecoration: 'underline' }
                                             }}
@@ -874,9 +874,9 @@ const PetProfile = () => {
                             const isText = url.toLowerCase().endsWith('.txt');
                             const appIdStr = record.appointmentId?._id?.toString() || record.appointmentId?.toString();
                             const itemHighlight = appIdStr === highlightedId;
-                            
+
                             return (
-                              <TableRow 
+                              <TableRow
                                 key={`${record._id}-${idx}`}
                                 id={`record-${appIdStr}`}
                                 sx={{
@@ -895,12 +895,12 @@ const PetProfile = () => {
                                   Dr. {record.vetId?.firstName} {record.vetId?.lastName}
                                 </TableCell>
                                 <TableCell>
-                                  <Chip 
+                                  <Chip
                                     icon={isPdf ? <PdfIcon sx={{ fontSize: '1rem !important' }} /> : isText ? <FileIcon sx={{ fontSize: '1rem !important' }} /> : <ImageIcon sx={{ fontSize: '1rem !important' }} />}
                                     label={isPdf ? 'PDF' : isText ? 'TEXT' : 'IMAGE'}
                                     size="small"
-                                    sx={{ 
-                                      fontWeight: 700, 
+                                    sx={{
+                                      fontWeight: 700,
                                       fontSize: '0.7rem',
                                       bgcolor: alpha(isPdf ? '#ef4444' : isText ? '#64748b' : '#3b82f6', 0.1),
                                       color: isPdf ? '#ef4444' : isText ? '#64748b' : '#3b82f6'
@@ -908,8 +908,8 @@ const PetProfile = () => {
                                   />
                                 </TableCell>
                                 <TableCell align="center">
-                                  <IconButton 
-                                    onClick={() => handleDownload(url, `Record_${record.diagnosis}_${new Date(record.date).toLocaleDateString()}.pdf`)} 
+                                  <IconButton
+                                    onClick={() => handleDownload(url, `Record_${record.diagnosis}_${new Date(record.date).toLocaleDateString()}.pdf`)}
                                     sx={{ color: '#64748b', '&:hover': { color: '#4f46e5', bgcolor: alpha('#4f46e5', 0.05) } }}
                                   >
                                     <DownloadIcon fontSize="small" />
@@ -982,7 +982,7 @@ const PetProfile = () => {
                                   <Chip label={record.type} size="small" sx={{ fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
                                 </TableCell>
                                 <TableCell>
-                                  <Chip 
+                                  <Chip
                                     icon={isPdf ? <PdfIcon sx={{ fontSize: '1rem !important' }} /> : isText ? <FileIcon sx={{ fontSize: '1rem !important' }} /> : <ImageIcon sx={{ fontSize: '1rem !important' }} />}
                                     label={isPdf ? 'PDF' : isText ? 'TEXT' : 'IMAGE'}
                                     size="small"
@@ -991,8 +991,8 @@ const PetProfile = () => {
                                 </TableCell>
                                 <TableCell align="center">
                                   <Stack direction="row" spacing={0.5} justifyContent="center">
-                                    <IconButton 
-                                      onClick={() => handleDownload(record.url, record.name || 'PersonalRecord')} 
+                                    <IconButton
+                                      onClick={() => handleDownload(record.url, record.name || 'PersonalRecord')}
                                       sx={{ color: '#64748b', '&:hover': { color: '#4f46e5' } }}
                                     >
                                       <DownloadIcon fontSize="small" />
@@ -1075,10 +1075,10 @@ const PetProfile = () => {
                             const presHighlight = appIdStr === highlightedId;
 
                             return (
-                              <TableRow 
+                              <TableRow
                                 key={pres._id}
                                 id={`record-${appIdStr}`}
-                                sx={{ 
+                                sx={{
                                   bgcolor: presHighlight ? alpha('#10b981', 0.05) : 'inherit',
                                   borderLeft: presHighlight ? '4px solid #10b981' : 'none',
                                   '&:hover': { bgcolor: '#f9fafb' },
@@ -1181,12 +1181,12 @@ const PetProfile = () => {
                           {displayedVacc.map((pres) => {
                             const appIdStr = pres.appointmentId?._id?.toString() || pres.appointmentId?.toString() || pres.medicalRecordId?.appointmentId?._id?.toString() || pres.medicalRecordId?.appointmentId?.toString();
                             const vaccHighlight = appIdStr === highlightedId;
-                            
+
                             return (
-                              <TableRow 
-                                key={pres._id} 
+                              <TableRow
+                                key={pres._id}
                                 id={`record-${appIdStr}`}
-                                sx={{ 
+                                sx={{
                                   bgcolor: vaccHighlight ? alpha('#7c3aed', 0.05) : 'inherit',
                                   borderLeft: vaccHighlight ? '4px solid #7c3aed' : 'none',
                                   '&:hover': { bgcolor: '#f9fafb' },
@@ -1248,7 +1248,7 @@ const PetProfile = () => {
           PaperProps={{ sx: { borderRadius: '24px' } }}
         >
           <DialogTitle sx={{ p: 4, pb: 1 }}>
-            <Typography variant="h5" fontWeight="900" sx={{ color: '#1e293b' }}>Edit Patient Profile</Typography>
+            <Typography variant="h5" fontWeight="900" sx={{ color: '#1e293b' }}>Edit Pet Profile</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Keep your pet's information up to date</Typography>
           </DialogTitle>
           <DialogContent sx={{ p: 4 }}>

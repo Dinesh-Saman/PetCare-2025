@@ -20,3 +20,9 @@ typing_extensions>=4.12.0
 typer
 loguru
 tqdm
+ 
+# Data Analysis & Metrics
+pandas
+scikit-learn
+matplotlib
+numpy
