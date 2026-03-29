@@ -158,7 +158,7 @@ const ChatWidget = () => {
                   key={m.id}
                   className={`bubble ${m.from === "bot" ? "bot" : "user"} ${m.typing ? 'typing' : ''}`}
                 >
-                  <div className="bubble-text">
+                  <div className="bubble-text" style={{ whiteSpace: 'pre-wrap' }}>
                     {m.typing ? (
                       <div className="typing-dots" aria-hidden>
                         <span></span><span></span><span></span>

@@ -21,41 +21,31 @@ def get_rag_chain():
             return _CACHED_CHAIN
 
     # Consistency: Low temperature for deterministic answers
+    # Note: If llama3.2:1b fails due to RAM, try tinyllama:latest (637MB)
     model = ChatOllama(
         model="llama3.2:1b",
         temperature=0.1,
-        num_ctx=2048
+        num_ctx=2048,
+        base_url="http://127.0.0.1:11434"
     )
     
-    # Direct and efficient prompt for Dr. Sara (llama3.2:1b optimized)
+    # Tightly constrained prompt for llama3.2:1b — small model needs very explicit instructions
     prompt = PromptTemplate.from_template(
-        """
-        [Role]
-        You are Dr. Sara, an AI veterinarian for PawPal (Sri Lanka).
-        Your mission is to provide helpful, safe, and accurate advice to pet owners.
-        
-        [Guidelines]
-        1. SEARCH THE CONTEXT FIRST: If the answer is found in the "Context" below, use it as your primary source.
-        2. USE YOUR OWN KNOWLEDGE: If the answer is NOT in the context, use your professional veterinary knowledge to answer directly.
-        3. STRUCTURE & FORMATTING (CRITICAL):
-           - Use plain bullet points with the "•" symbol.
-           - NEVER use asterisks (*) or hash symbols (#) for lists or formatting.
-           - Use EXACTLY TWO newlines between every paragraph or section to ensure clear, vertical separation.
-           - Headers should be plain text on their own line, NOT preceded by symbols.
-           - Each bullet point or numbered item must be on its own line.
-        4. BE DIRECT: Start answering the question directly with a friendly tone. Do not use filler phrases like "Based on the context...".
-        5. PETS ONLY: Only answer questions about animals and pet health.
-        6. SAFETY: Always remind users to consult a local veterinarian in Sri Lanka.
-        7. DOMAIN TAGGING (MANDATORY): Begin EVERY response with the appropriate domain header on its own line:
-           [HEALTH_GUIDELINES], [VACCINATION_SCHEDULES], [VET_FAQ], or [PET_NUTRITION].
-        
-        Context:
-        {context}
-        
-        User Question: {input}
-        
-        Dr. Sara's Response:
-        """
+        """You are Dr. Sara, an AI veterinarian for PawPal (Sri Lanka). Answer ONLY the user's question below.
+
+RULES (follow exactly):
+1. Start with the MOST RELEVANT category tag: [HEALTH_GUIDELINES] for general health, [VACCINATION_SCHEDULES] for shots/vaccines, [VET_FAQ] for common questions, or [PET_NUTRITION] for food.
+2. Answer using 2-4 bullet points (•). No colons after headers.
+3. End with: "Always consult a local vet in Sri Lanka for personalized advice."
+4. Do NOT use markdown symbols like * or #. Plain text only.
+5. Answer ONLY what the user asked. Be concise.
+
+Context (use only if relevant):
+{context}
+
+User Question: {input}
+
+Dr. Sara's Response:"""
     )
     
     # Load vector store with absolute path
@@ -74,7 +64,8 @@ def get_rag_chain():
         )
         retriever = vector_store.as_retriever(
             search_type="similarity",
-            search_kwargs={"k": 5},
+            # k=2: small model (1b) gets confused with too many docs; 2 is enough
+            search_kwargs={"k": 2},
         )
     else:
         # Fallback if no vector store found
@@ -142,18 +133,30 @@ def ask(query: str, **kwargs):
         import concurrent.futures
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(chain.invoke, {"input": query})
-            # Added a 45-second timeout so the execution does not hang forever if Ollama stalls
-            result = future.result(timeout=45)
+            # llama3.2:1b can take ~60s on first load; 120s gives enough headroom
+            result = future.result(timeout=120)
         
         if isinstance(result, dict):
             response = result.get("answer", result.get("output", str(result)))
         else:
             response = str(result)
             
+    except concurrent.futures.TimeoutError:
+        print("\n[CRITICAL] Error in Dr. Sara RAG chain: Timed out waiting for Ollama response (>120s)")
+        return "The AI model is taking longer than expected to load. Please wait a moment and try again."
     except Exception as e:
-        # Return friendly message and log issue without cluttering console for user
-        print(f"Error in RAG chain: {e}")
-        return "I'm experiencing high traffic right now. Please try again or contact support."
+        # Return friendly message and log issue for debugging
+        error_msg = str(e)
+        error_type = type(e).__name__
+        print(f"\n[CRITICAL] Error in Dr. Sara RAG chain: [{error_type}] {error_msg}")
+        
+        if "allocate" in error_msg.lower() or "memory" in error_msg.lower():
+            return "Ollama is running low on memory. Please close other apps and restart Ollama, or try again in a moment."
+        
+        if "10061" in error_msg or "Connection refused" in error_msg:
+            return "I can't reach the AI server right now. Please ensure Ollama is running on your computer."
+
+        return f"I'm experiencing high traffic right now. Please try again in a moment."
 
     # Clean up response
     def _clean_response(text):
@@ -161,33 +164,35 @@ def ask(query: str, **kwargs):
             text = str(text)
         s = text.strip()
         
-        # 1. Standardize all bullet marks (•, *, -) into a unique internal placeholder
-        s = re.sub(r'(?m)(?:^|\s+)[•*-]\s+', ' __BT__ ', s)
+        # 1. Standardize and split all bullet marks (•, *, -)
+        # Force a newline before any bullet that isn't at the start of the string
+        s = re.sub(r'([^\n])\s*[•*-]\s+', r'\1\n• ', s)
+        s = re.sub(r'^[•*-]\s+', '• ', s)
 
-        # 2. Strip all '#' and leftovers '*' symbols (bolding/headers)
+        # 2. Catch known tags even without brackets and force them to be bracketed and on their own line
+        known_tags = ['HEALTH_GUIDELINES', 'VACCINATION_SCHEDULES', 'VET_FAQ', 'PET_NUTRITION']
+        for tag in known_tags:
+            # Match tag if it's at start or after whitespace, and NOT already bracketed
+            s = re.sub(rf'(?<!\[)\b{tag}\b(?!\])', f'[{tag}]', s)
+        
+        # 3. Ensure bracketed tags (e.g., [VET_FAQ]) are on their own line with spacing
+        s = re.sub(r'\[([A-Z_]+)\]', r'\n[\1]\n', s)
+
+        # 4. Strip all '#', leftovers '*', and COLONS on their own line
         s = re.sub(r'[#*]+', '', s)
+        s = re.sub(r'(?m)^\s*:\s*$', '', s) # Remove line with only a colon
 
-        # 3. Cleanup filler
+        # 5. Cleanup filler
         s = re.sub(r'(?i)^\s*(answer[:\-\s]*)', '', s).strip()
         s = re.sub(r'(?i)^based on the provided context[,:]?\s*', '', s).strip()
         
-        # 4. Convert placeholders into "•" with mandatory double newlines
-        s = re.sub(r'\s*__BT__\s+', '\n\n• ', s)
+        # 6. Ensure single newline before numbering (e.g. 1.)
+        s = re.sub(r'([^\n])\s*(\d+\.)\s+', r'\1\n\2 ', s)
         
-        # 5. Ensure double newlines before numbering (e.g. 1.)
-        s = re.sub(r'([^\n])\s*(\d+\.)\s+', r'\1\n\n\2 ', s)
-        
-        # 6. Clean up spacing (max 2 newlines)
+        # 7. Clean up multiple newlines to stay concise (max 2)
         s = re.sub(r'\n{3,}', '\n\n', s)
         
-        # 7. Corner case fix for starting bullet
-        if s.startswith('•') or s.startswith(' __BT__ '):
-            s = re.sub(r'^ __BT__ ', '• ', s)
-        elif text.strip().startswith(('•', '*', '-')):
-            if not s.startswith('• '):
-                s = '• ' + s.strip()
-
-        # Remove any lingering prompt tags if AI leaks them
+        # 8. Remove any prompt leakage
         s = s.split("[/Instructions]")[0].strip() if "[/Instructions]" in s else s
         return s.strip()
 
